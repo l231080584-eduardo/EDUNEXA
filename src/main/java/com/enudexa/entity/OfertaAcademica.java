@@ -29,7 +29,8 @@ public class OfertaAcademica {
     @EqualsAndHashCode.Include
     private Long id;
 
-    private String modalidad;
+    @Builder.Default
+    private String modalidad = "Presencial";
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "universidad_id", nullable = false)

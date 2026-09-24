@@ -37,6 +37,7 @@ public class Carrera {
     @Column(nullable = false)
     private String nombre;
 
+    @Column(nullable = false)
     private String areaConocimiento;
 
     @Column(columnDefinition = "NVARCHAR(MAX)")
