@@ -18,7 +18,6 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "resultados_test")
@@ -30,10 +29,20 @@ import java.util.UUID;
 public class ResultadoTest {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(nullable = false, updatable = false)
     @EqualsAndHashCode.Include
-    private UUID id;
+    private Long id;
+
+    @Builder.Default
+    @Column(name = "fecha_creacion", nullable = false)
+    private LocalDateTime fechaCreacion = LocalDateTime.now();
+
+    @Column(name = "puntaje_general")
+    private Double puntajeGeneral;
+
+    @Column(name = "carrera_sugerida")
+    private String carreraSugerida;
 
     @Builder.Default
     @Column(nullable = false)
@@ -51,12 +60,15 @@ public class ResultadoTest {
     private Double puntajeMatch;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_id", nullable = false)
+    @JoinColumn(name = "usuario_id")
     @ToString.Exclude
     private Usuario usuario;
 
     @PrePersist
     public void prePersist() {
+        if (fechaCreacion == null) {
+            fechaCreacion = LocalDateTime.now();
+        }
         if (fechaEvaluacion == null) {
             fechaEvaluacion = LocalDateTime.now();
         }

@@ -43,6 +43,7 @@ public class EvaluacionService {
                 .vectorRespuestas(request.vectorRespuestas())
                 .topCarrerasJson(request.topCarrerasJson())
                 .reporteIa(request.reporteIa())
+                .puntajeGeneral(score)
                 .puntajeMatch(score)
                 .build();
 

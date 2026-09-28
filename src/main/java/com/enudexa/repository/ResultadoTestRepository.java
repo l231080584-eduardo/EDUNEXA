@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.UUID;
 
-public interface ResultadoTestRepository extends JpaRepository<ResultadoTest, UUID> {
+public interface ResultadoTestRepository extends JpaRepository<ResultadoTest, Long> {
 
     List<ResultadoTest> findByUsuarioId(UUID usuarioId);
 }
