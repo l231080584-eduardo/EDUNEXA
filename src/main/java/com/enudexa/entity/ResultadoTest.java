@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.CreationTimestamp;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -34,9 +35,9 @@ public class ResultadoTest {
     @EqualsAndHashCode.Include
     private Long id;
 
-    @Builder.Default
-    @Column(name = "fecha_creacion", nullable = false)
-    private LocalDateTime fechaCreacion = LocalDateTime.now();
+    @CreationTimestamp
+    @Column(name = "fecha_creacion", updatable = false, nullable = false)
+    private LocalDateTime fechaCreacion;
 
     @Column(name = "puntaje_general")
     private Double puntajeGeneral;
@@ -44,8 +45,8 @@ public class ResultadoTest {
     @Column(name = "carrera_sugerida")
     private String carreraSugerida;
 
-    @Builder.Default
-    @Column(nullable = false)
+    @CreationTimestamp
+    @Column(name = "fecha_evaluacion", nullable = false)
     private LocalDateTime fechaEvaluacion = LocalDateTime.now();
 
     @Column(columnDefinition = "NVARCHAR(MAX)")
@@ -66,9 +67,6 @@ public class ResultadoTest {
 
     @PrePersist
     public void prePersist() {
-        if (fechaCreacion == null) {
-            fechaCreacion = LocalDateTime.now();
-        }
         if (fechaEvaluacion == null) {
             fechaEvaluacion = LocalDateTime.now();
         }
