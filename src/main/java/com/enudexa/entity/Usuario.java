@@ -44,6 +44,7 @@ public class Usuario {
     private String email;
 
     @Column(nullable = false)
+    @ToString.Exclude
     private String passwordHash;
 
     @Builder.Default
