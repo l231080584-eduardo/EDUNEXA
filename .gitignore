@@ -35,3 +35,15 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Environment files ###
+.env
+.env.*
+!.env.example
+
+### Frontend dependencies ###
+frontend/node_modules/
+frontend/dist/
+
+### Build output ###
+target/

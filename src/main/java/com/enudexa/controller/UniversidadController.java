@@ -1,10 +1,10 @@
 package com.enudexa.controller;
 
 import com.enudexa.entity.Universidad;
+import com.enudexa.dto.response.ApiResponse;
 import com.enudexa.repository.UniversidadRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,38 +15,28 @@ import java.util.Locale;
 
 @RestController
 @RequestMapping("/universidades")
-@CrossOrigin(
-        origins = "*",
-        methods = {
-                org.springframework.web.bind.annotation.RequestMethod.GET,
-                org.springframework.web.bind.annotation.RequestMethod.POST,
-                org.springframework.web.bind.annotation.RequestMethod.PUT,
-                org.springframework.web.bind.annotation.RequestMethod.DELETE,
-                org.springframework.web.bind.annotation.RequestMethod.OPTIONS
-        },
-        allowedHeaders = "*"
-)
 @RequiredArgsConstructor
 public class UniversidadController {
 
     private final UniversidadRepository universidadRepository;
 
     @GetMapping
-    public ResponseEntity<List<Universidad>> obtenerTodas() {
-        return ResponseEntity.ok(universidadRepository.findAll());
+    public ResponseEntity<ApiResponse<List<Universidad>>> obtenerTodas() {
+        return ResponseEntity.ok(ApiResponse.success(universidadRepository.findAll(), "Universidades obtenidas"));
     }
 
     @GetMapping("/tecnm")
-    public ResponseEntity<List<Universidad>> obtenerTecNM() {
+    public ResponseEntity<ApiResponse<List<Universidad>>> obtenerTecNM() {
         List<Universidad> universidades = universidadRepository.findAll().stream()
                 .filter(this::esInstitutoTecnologico)
                 .toList();
-        return ResponseEntity.ok(universidades);
+        return ResponseEntity.ok(ApiResponse.success(universidades, "Universidades TecNM obtenidas"));
     }
 
     @GetMapping("/iztapalapa1")
-    public ResponseEntity<List<Universidad>> obtenerIztapalapa1() {
-        return ResponseEntity.ok(universidadRepository.findByEsTecnmIztapalapa1True());
+    public ResponseEntity<ApiResponse<List<Universidad>>> obtenerIztapalapa1() {
+        return ResponseEntity.ok(ApiResponse.success(
+                universidadRepository.findByEsTecnmIztapalapa1True(), "Universidades Iztapalapa 1 obtenidas"));
     }
 
     private boolean esInstitutoTecnologico(Universidad universidad) {

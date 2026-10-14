@@ -1,5 +1,6 @@
 package com.enudexa.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -7,53 +8,60 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.Setter;
 
-import java.math.BigDecimal;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 @Entity
 @Table(name = "carreras")
-@Data
-@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@Builder
 public class Carrera {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String nombre;
 
     @Column(nullable = false)
-    private String areaConocimiento;
+    private String area;
 
-    @Column(columnDefinition = "NVARCHAR(MAX)")
-    private String descripcionCorta;
+    private Integer duracionSemestres;
 
-    private BigDecimal salarioMin;
+    @Column(length = 4000)
+    private String descripcion;
 
-    private BigDecimal salarioMax;
+    private Double pesoIntereses;
+    private Double pesoMaterias;
+    private Double pesoEstiloVida;
+    private Double pesoGeolocalizacion;
 
+    @OneToOne(mappedBy = "carrera", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonIgnore
+    private PerfilEgreso perfilEgreso;
+
+    @OneToMany(mappedBy = "carrera", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonIgnore
+    private List<CampoLaboral> campoLaboral;
+
+    @ManyToMany(mappedBy = "carreras", fetch = FetchType.LAZY)
     @Builder.Default
-    @OneToMany(mappedBy = "carrera", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @ToString.Exclude
-    private Set<PuestoLaboral> puestosLaborales = new HashSet<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "carrera", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @ToString.Exclude
-    private Set<OfertaAcademica> ofertasAcademicas = new HashSet<>();
+    @JsonIgnore
+    private Set<Universidad> universidades = new HashSet<>();
 }

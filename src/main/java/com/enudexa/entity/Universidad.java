@@ -1,5 +1,6 @@
 package com.enudexa.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -7,57 +8,53 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.PrePersist;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.Setter;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 @Entity
 @Table(name = "universidades")
-@Data
-@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@Builder
 public class Universidad {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 1000)
     private String nombre;
 
     private String tipo;
-
     private Double latitud;
-
     private Double longitud;
 
+    @Column(length = 1000)
     private String sitioWeb;
 
-    @Builder.Default
     @Column(nullable = false)
-    private Boolean esTecnmIztapalapa1 = false;
+    private boolean esTecnmIztapalapa1;
 
+    @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+            name = "universidad_carrera",
+            joinColumns = @JoinColumn(name = "universidad_id"),
+            inverseJoinColumns = @JoinColumn(name = "carrera_id")
+    )
     @Builder.Default
-    @OneToMany(mappedBy = "universidad", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @ToString.Exclude
-    private Set<OfertaAcademica> ofertasAcademicas = new HashSet<>();
-
-    @PrePersist
-    public void prePersist() {
-        if (esTecnmIztapalapa1 == null) {
-            esTecnmIztapalapa1 = false;
-        }
-    }
+    @JsonIgnore
+    private Set<Carrera> carreras = new HashSet<>();
 }

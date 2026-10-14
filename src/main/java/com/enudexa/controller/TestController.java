@@ -2,7 +2,9 @@ package com.enudexa.controller;
 
 import com.enudexa.dto.MatchResultResponse;
 import com.enudexa.dto.TestEvaluationRequest;
+import com.enudexa.dto.response.ApiResponse;
 import com.enudexa.service.EvaluacionService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,12 +27,14 @@ public class TestController {
     }
 
     @PostMapping("/evaluate")
-    public ResponseEntity<MatchResultResponse> evaluate(@RequestBody TestEvaluationRequest request) {
-        return ResponseEntity.ok(evaluacionService.evaluar(request));
+    public ResponseEntity<ApiResponse<MatchResultResponse>> evaluate(
+            @Valid @RequestBody TestEvaluationRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                evaluacionService.evaluar(request), "Evaluación creada correctamente"));
     }
 
     @GetMapping("/resultados")
-    public ResponseEntity<List<MatchResultResponse>> resultados(
+    public ResponseEntity<ApiResponse<List<MatchResultResponse>>> resultados(
             @RequestParam(required = false) UUID usuarioId) {
         List<MatchResultResponse> respuesta = evaluacionService.obtenerResultados(usuarioId).stream()
                 .map(resultado -> new MatchResultResponse(
@@ -39,6 +43,6 @@ public class TestController {
                         resultado.getPuntajeMatch() == null ? 0.0 : resultado.getPuntajeMatch(),
                         false))
                 .toList();
-        return ResponseEntity.ok(respuesta);
+        return ResponseEntity.ok(ApiResponse.success(respuesta, "Resultados obtenidos correctamente"));
     }
 }

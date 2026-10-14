@@ -1,11 +1,11 @@
 package com.enudexa.controller;
 
 import com.enudexa.dto.UniversidadCompatibilidadResponse;
+import com.enudexa.dto.response.ApiResponse;
 import com.enudexa.entity.Universidad;
 import com.enudexa.repository.UniversidadRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,17 +15,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/evaluaciones")
-@CrossOrigin(
-        origins = "*",
-        methods = {
-                org.springframework.web.bind.annotation.RequestMethod.GET,
-                org.springframework.web.bind.annotation.RequestMethod.POST,
-                org.springframework.web.bind.annotation.RequestMethod.PUT,
-                org.springframework.web.bind.annotation.RequestMethod.DELETE,
-                org.springframework.web.bind.annotation.RequestMethod.OPTIONS
-        },
-        allowedHeaders = "*"
-)
 @RequiredArgsConstructor
 public class EvaluacionController {
 
@@ -34,8 +23,8 @@ public class EvaluacionController {
     private final UniversidadRepository universidadRepository;
 
     @GetMapping("/compatibilidad")
-    public ResponseEntity<List<UniversidadCompatibilidadResponse>> obtenerCompatibilidad() {
-        List<UniversidadCompatibilidadResponse> respuesta = universidadRepository.findAll().stream()
+    public ResponseEntity<ApiResponse<List<UniversidadCompatibilidadResponse>>> obtenerCompatibilidad() {
+        List<UniversidadCompatibilidadResponse> respuesta = universidadRepository.findAllWithCarreras().stream()
                 .map(this::crearResultado)
                 .sorted(Comparator.comparingDouble(UniversidadCompatibilidadResponse::matchScorePercentage)
                         .reversed()
@@ -43,11 +32,11 @@ public class EvaluacionController {
                                 Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                 .toList();
 
-        return ResponseEntity.ok(respuesta);
+        return ResponseEntity.ok(ApiResponse.success(respuesta, "Compatibilidad obtenida correctamente"));
     }
 
     private UniversidadCompatibilidadResponse crearResultado(Universidad universidad) {
-        boolean esIztapalapa1 = Boolean.TRUE.equals(universidad.getEsTecnmIztapalapa1());
+        boolean esIztapalapa1 = universidad.isEsTecnmIztapalapa1();
         double porcentaje = esIztapalapa1 ? BONO_IZTAPALAPA_1_PORCENTAJE : 0.0;
 
         return new UniversidadCompatibilidadResponse(
@@ -57,7 +46,7 @@ public class EvaluacionController {
                 universidad.getLatitud(),
                 universidad.getLongitud(),
                 universidad.getSitioWeb(),
-                universidad.getEsTecnmIztapalapa1(),
+                esIztapalapa1,
                 porcentaje
         );
     }

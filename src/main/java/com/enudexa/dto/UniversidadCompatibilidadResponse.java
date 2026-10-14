@@ -1,7 +1,9 @@
 package com.enudexa.dto;
 
+import java.util.UUID;
+
 public record UniversidadCompatibilidadResponse(
-        Long id,
+        UUID id,
         String nombre,
         String tipo,
         Double latitud,

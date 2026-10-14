@@ -3,11 +3,11 @@ package com.enudexa.controller;
 import com.enudexa.dto.UsuarioLoginRequest;
 import com.enudexa.dto.UsuarioRegistroRequest;
 import com.enudexa.dto.UsuarioResponse;
+import com.enudexa.dto.response.ApiResponse;
 import com.enudexa.service.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,7 +19,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/usuarios")
-@CrossOrigin(origins = "*")
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
@@ -29,17 +28,19 @@ public class UsuarioController {
     }
 
     @PostMapping("/registro")
-    public ResponseEntity<UsuarioResponse> registrar(@Valid @RequestBody UsuarioRegistroRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.registrar(request));
+    public ResponseEntity<ApiResponse<UsuarioResponse>> registrar(
+            @Valid @RequestBody UsuarioRegistroRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(usuarioService.registrar(request), "Usuario registrado correctamente"));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<UsuarioResponse> login(@Valid @RequestBody UsuarioLoginRequest request) {
-        return ResponseEntity.ok(usuarioService.login(request));
+    public ResponseEntity<ApiResponse<UsuarioResponse>> login(@Valid @RequestBody UsuarioLoginRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(usuarioService.login(request), "Inicio de sesión exitoso"));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UsuarioResponse> obtenerPorId(@PathVariable UUID id) {
-        return ResponseEntity.ok(usuarioService.obtenerPorId(id));
+    public ResponseEntity<ApiResponse<UsuarioResponse>> obtenerPorId(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success(usuarioService.obtenerPorId(id), "Usuario encontrado"));
     }
 }
