@@ -1,0 +1,63 @@
+[
+  {
+    "id": "uam-iztapalapa-offline",
+    "nombre": "Universidad Autónoma Metropolitana, Unidad Iztapalapa",
+    "tipo": "Universidad pública",
+    "latitud": 19.3502,
+    "longitud": -99.0754,
+    "direccion": "Av. San Rafael Atlixco 186, Iztapalapa, Ciudad de México",
+    "categoriasCompatibles": ["social", "tech", "engineering", "design", "business", "humanities", "law"],
+    "carreras": ["Ingeniería en Computación", "Ingeniería Electrónica", "Biología", "Administración", "Diseño"]
+  },
+  {
+    "id": "ipn-zacatenco-offline",
+    "nombre": "Instituto Politécnico Nacional, Unidad Zacatenco",
+    "tipo": "Universidad pública",
+    "latitud": 19.5046,
+    "longitud": -99.1395,
+    "direccion": "Av. Instituto Politécnico Nacional, Gustavo A. Madero, Ciudad de México",
+    "categoriasCompatibles": ["social", "tech", "engineering", "design", "business", "humanities"],
+    "carreras": ["Ingeniería en Sistemas Computacionales", "Ingeniería Mecatrónica", "Ingeniería Biomédica", "Administración Industrial"]
+  },
+  {
+    "id": "unam-cu-offline",
+    "nombre": "Universidad Nacional Autónoma de México, Ciudad Universitaria",
+    "tipo": "Universidad pública",
+    "latitud": 19.3327,
+    "longitud": -99.187,
+    "direccion": "Ciudad Universitaria, Coyoacán, Ciudad de México",
+    "categoriasCompatibles": ["law", "social", "tech", "engineering", "design", "business", "humanities"],
+    "carreras": ["Ingeniería en Computación", "Ciencia de Datos", "Diseño", "Medicina", "Psicología", "Administración"]
+  },
+  {
+    "id": "ut-neza-offline",
+    "nombre": "Universidad Tecnológica de Nezahualcóyotl",
+    "tipo": "Universidad tecnológica",
+    "latitud": 19.4058,
+    "longitud": -99.0141,
+    "direccion": "Circuito Universidad Tecnológica s/n, Nezahualcóyotl, Estado de México",
+    "categoriasCompatibles": ["tech", "engineering", "business", "design"],
+    "carreras": ["Desarrollo de Software Multiplataforma", "Redes Inteligentes y Ciberseguridad", "Mecatrónica", "Administración"]
+  },
+  {
+    "id": "tecnm-iztapalapa-1",
+    "nombre": "TecNM Plantel Iztapalapa 1",
+    "tipo": "Instituto tecnológico",
+    "latitud": 19.3562,
+    "longitud": -99.0141,
+    "direccion": "Av. Telecomunicaciones s/n, Tepalcates, Iztapalapa, Ciudad de México",
+    "esTecnmIztapalapa1": true,
+    "categoriasCompatibles": ["tech", "engineering"],
+    "carreras": ["Ingeniería en Sistemas Computacionales"]
+  },
+  {
+    "id": "uaemex-toluca-offline",
+    "nombre": "Universidad Autónoma del Estado de México, Ciudad Universitaria",
+    "tipo": "Universidad pública",
+    "latitud": 19.3343,
+    "longitud": -99.6802,
+    "direccion": "Cerro de Coatepec, Ciudad Universitaria, Toluca, Estado de México",
+    "categoriasCompatibles": ["law", "social", "tech", "engineering", "design", "business", "humanities"],
+    "carreras": ["Ingeniería en Computación", "Medicina", "Psicología", "Derecho", "Administración"]
+  }
+]

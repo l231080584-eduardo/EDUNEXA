@@ -55,7 +55,7 @@ export default function AccessibilityMenu({ settings, onChange }) {
             aria-pressed={settings.subtitles}
             onClick={() => onChange({ subtitles: !settings.subtitles })}
           >
-            <span><Captions size={17} aria-hidden="true" /> Subtítulos JARVIS</span>
+            <span><Captions size={17} aria-hidden="true" /> Subtítulos NONI</span>
             {settings.subtitles && <Check size={16} aria-label="Activados" />}
           </button>
           <p className="menu-note">Las respuestas del asistente también se muestran siempre por escrito.</p>
