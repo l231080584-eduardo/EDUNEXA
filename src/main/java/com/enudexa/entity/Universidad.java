@@ -43,6 +43,9 @@ public class Universidad {
     private Double longitud;
 
     @Column(length = 1000)
+    private String direccion;
+
+    @Column(length = 1000)
     private String sitioWeb;
 
     @Column(nullable = false)

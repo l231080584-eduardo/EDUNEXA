@@ -4,6 +4,7 @@ import com.enudexa.entity.CampoLaboral;
 import com.enudexa.entity.Carrera;
 import com.enudexa.entity.PerfilEgreso;
 import com.enudexa.entity.Universidad;
+import com.enudexa.repository.UniversidadRepository;
 import com.enudexa.repository.CarreraRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @Order(1)
@@ -22,16 +24,14 @@ import java.util.List;
 public class DataSeederService implements CommandLineRunner {
 
     private final CarreraRepository carreraRepository;
+    private final UniversidadRepository universidadRepository;
 
     @Override
     @Transactional
     public void run(String... args) {
-        if (carreraRepository.count() > 0) {
-            return;
-        }
-
-        log.info("Iniciando inyección de Catálogo Maestro de 15 Carreras de Alta Profundidad...");
-        List<Carrera> catalogo = new ArrayList<>();
+        if (carreraRepository.count() == 0) {
+            log.info("Iniciando catálogo base de carreras EDUNEXA...");
+            List<Carrera> catalogo = new ArrayList<>();
 
         catalogo.add(crearCarrera("Ingeniería en Sistemas Computacionales", "Tecnología y Software", 9, 0.95, 0.90, 0.80, 0.85,
                 "Arquitectura de software distribuido, ciberseguridad, cloud y modelado de IA.",
@@ -138,8 +138,27 @@ public class DataSeederService implements CommandLineRunner {
                 "Vocación docente, empatía profunda.",
                 "Diseñador Instruccional", "Instituciones Educativas", 18000.0, "Medio"));
 
-        carreraRepository.saveAll(catalogo);
-        log.info("¡Catálogo Maestro inyectado exitosamente!");
+            carreraRepository.saveAll(catalogo);
+            log.info("Catálogo base de carreras cargado.");
+        }
+
+        if (universidadRepository.findByEsTecnmIztapalapa1True().isEmpty()) {
+            Carrera sistemas = carreraRepository.findAll().stream()
+                    .filter(carrera -> carrera.getNombre().contains("Sistemas Computacionales"))
+                    .findFirst().orElse(null);
+            Universidad plantel = Universidad.builder()
+                    .nombre("TecNM Plantel Iztapalapa 1")
+                    .tipo("Instituto tecnológico")
+                    .latitud(19.3562)
+                    .longitud(-99.0141)
+                    .direccion("Av. Telecomunicaciones s/n, Tepalcates, Iztapalapa, Ciudad de México")
+                    .sitioWeb("https://iztapalapa1.tecnm.mx/")
+                    .esTecnmIztapalapa1(true)
+                    .carreras(sistemas == null ? Set.of() : Set.of(sistemas))
+                    .build();
+            universidadRepository.save(plantel);
+            log.info("Plantel TecNM Iztapalapa 1 agregado al catálogo base.");
+        }
     }
 
     private Carrera crearCarrera(

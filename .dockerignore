@@ -1,0 +1,11 @@
+.git
+.gradle
+build
+frontend
+backend/node_modules
+backend/openapi.yaml
+docs
+.env
+.env.*
+src/test
+**/node_modules

@@ -65,20 +65,23 @@ class IngestionServiceTest {
 
         UniversidadIngestionDto universidad = new UniversidadIngestionDto(
                 "Instituto Tecnológico de Prueba", "Tecnológico", 19.4, -99.1,
-                "https://example.edu", false,
+                "Dirección de prueba", "https://example.edu", false,
                 List.of(new CarreraIngestionDto("Ingeniería de Prueba", "Ingeniería")));
         IngestionService service = new IngestionService(jdbcTemplate);
 
         service.procesarIngestion(List.of(universidad, universidad));
 
         org.mockito.ArgumentCaptor<String> sqlCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
-        verify(jdbcTemplate, times(3)).batchUpdate(
+        verify(jdbcTemplate, times(4)).batchUpdate(
                 sqlCaptor.capture(),
                 anyCollection(), eq(1000), any(ParameterizedPreparedStatementSetter.class));
         List<String> batchSql = sqlCaptor.getAllValues();
-        assertEquals(3, batchSql.size());
-        assertTrue(batchSql.stream().allMatch(sql -> sql.contains("WHERE NOT EXISTS")));
+        assertEquals(4, batchSql.size());
+        assertTrue(batchSql.get(0).contains("WHERE NOT EXISTS"));
+        assertTrue(batchSql.get(1).contains("WHERE NOT EXISTS"));
+        assertTrue(batchSql.get(3).contains("WHERE NOT EXISTS"));
         assertTrue(batchSql.stream().anyMatch(sql -> sql.contains("universidad_carrera")));
+        assertTrue(batchSql.get(2).contains("UPDATE universidades"));
         verify(jdbcTemplate, never()).queryForList(anyString(), eq(String.class));
     }
 

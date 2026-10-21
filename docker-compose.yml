@@ -1,0 +1,65 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: edunexa-db
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: Upiicsa1
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          (/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" ||
+          /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -Q "SELECT 1") >/dev/null 2>&1
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    restart: always
+
+  # Combines the Node gateway and Spring domain API in one service so the
+  # existing API stays intact while the portable stack has exactly three services.
+  backend:
+    container_name: edunexa-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      additional_contexts:
+        project: .
+    environment:
+      PORT: 3000
+      SPRING_API_URL: http://127.0.0.1:8080
+      DB_HOST: db
+      DB_PORT: 1433
+      DB_NAME: ENUDEXA_DB
+      DB_USER: sa
+      DB_PASSWORD: Upiicsa1
+      DB_URL: jdbc:sqlserver://db:1433;databaseName=ENUDEXA_DB;encrypt=false;trustServerCertificate=true
+      CORS_ORIGIN: http://localhost:5173,http://localhost:80,http://localhost
+      INGESTION_SOLO_TECNM: ${INGESTION_SOLO_TECNM:-false}
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
+  frontend:
+    container_name: edunexa-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: always
+
+volumes:
+  mssql_data:

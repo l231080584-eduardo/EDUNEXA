@@ -2,12 +2,20 @@ package com.orinetador.demo;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import com.enudexa.EnudexaApplication;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.web.client.RestTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+        classes = EnudexaApplication.class,
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = {
+                "spring.datasource.url=jdbc:h2:mem:edunexa-test;MODE=MSSQLServer;DB_CLOSE_DELAY=-1",
+                "enudexa.ingestion.enabled=false"
+        }
+)
 class DemoApplicationTests {
 
     @LocalServerPort
@@ -18,7 +26,7 @@ class DemoApplicationTests {
     @Test
     void shouldExposeHealthEndpoint() {
         var response = restTemplate.getForEntity(
-                "http://localhost:" + port + "/health",
+                "http://localhost:" + port + "/api/v1/health",
                 String.class
         );
 
@@ -29,7 +37,7 @@ class DemoApplicationTests {
     @Test
     void shouldExposeRootEndpoint() {
         var response = restTemplate.getForEntity(
-                "http://localhost:" + port + "/",
+                "http://localhost:" + port + "/api/v1/universidades",
                 String.class
         );
 

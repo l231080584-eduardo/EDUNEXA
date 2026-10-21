@@ -75,6 +75,7 @@ public class EvaluacionArcadeResponseDTO {
         private String tipo;
         private Double latitud;
         private Double longitud;
+        private String direccion;
         private String sitioWeb;
         private boolean esTecnmIztapalapa1;
         private String urlMapaInteractivo;

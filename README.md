@@ -1,112 +1,116 @@
-# EDUNEXA — Plataforma Integrada de Orientación Vocacional Tecnológica
+# EDUNEXA
 
-Plataforma full-stack de orientación vocacional para estudiantes de nivel medio superior. Incluye evaluaciones vocacionales, un asistente de voz y consulta de oferta educativa universitaria, con énfasis en el TecNM Plantel Iztapalapa I.
+EDUNEXA es una plataforma de orientación vocacional con React/Vite, un gateway Node.js/Express y una API de dominio Spring Boot. SQL Server es el motor de datos para desarrollo local y Docker Compose. La evaluación del frontend conserva un resultado local inmediato si la API no responde.
 
-## Equipo
+## Requisitos
 
-- Desarrollador Backend y Arquitectura de Base de Datos
-- Desarrollador Frontend y Diseño UX/UI
+- Java 21
+- SQL Server disponible localmente, o Docker Engine con Docker Compose v2
+- Node.js 22 o superior para desarrollo frontend
 
-## Tecnologías
+## Inicio con Docker Compose
 
-- **Backend:** Java 21, Spring Boot 3.5.6, Spring Data JPA, Jakarta Validation
-- **Base de datos:** SQL Server
-- **Frontend:** React, Vite, Tailwind CSS, Lucide Icons y Web Speech API
-- **Seguridad y calidad:** BCrypt, CORS restrictivo y cabeceras de seguridad
+Desde la raíz del repositorio:
 
-## Requisitos previos
-
-- JDK 21 o superior
-- Node.js 20 o superior y npm
-- SQL Server accesible desde el backend (predeterminadamente en el puerto 1433)
-- Gradle Wrapper incluido en el repositorio
-
-## Instalación y configuración
-
-1. Clona el repositorio y entra a su directorio:
-
-   ```powershell
-   git clone <URL_DEL_REPOSITORIO>
-   cd EDUNEXA
-   ```
-
-2. Configura el backend. Usa `.env.example` como referencia y define sus variables en el entorno del proceso que ejecutará Gradle. Spring Boot no carga un archivo `.env` automáticamente. En PowerShell, por ejemplo:
-
-   ```powershell
-   $env:DB_URL = "jdbc:sqlserver://localhost:1433;databaseName=ENUDEXA_DB;encrypt=false;trustServerCertificate=true"
-   $env:DB_USER = "sa"
-   $env:DB_PASSWORD = "<contraseña-local>"
-   $env:CORS_ORIGIN = "http://localhost:5173"
-   ```
-
-   Los valores predeterminados de `application.properties` están destinados al desarrollo local; define credenciales seguras mediante variables para otros entornos.
-
-3. Inicia el backend desde la raíz:
-
-   ```powershell
-   .\gradlew.bat bootRun
-   ```
-
-   La API escucha por defecto en `http://localhost:8080/api/v1`. Al iniciar valida las propiedades requeridas y la conexión a SQL Server.
-
-4. En otra terminal, instala y ejecuta el frontend:
-
-   ```powershell
-   cd frontend
-   npm install
-   npm run dev
-   ```
-
-   El cliente usa `VITE_API_BASE_URL`, cuyo valor predeterminado es `http://localhost:8080/api/v1`.
-
-## Variables de entorno
-
-| Variable | Descripción | Valor predeterminado |
-|---|---|---|
-| `PORT` | Puerto del backend | `8080` |
-| `DB_URL` | URL JDBC de SQL Server | `jdbc:sqlserver://localhost:1433;databaseName=ENUDEXA_DB;encrypt=false;trustServerCertificate=true` |
-| `DB_USER` | Usuario de SQL Server | `sa` |
-| `DB_PASSWORD` | Contraseña de SQL Server | `Upiicsa1` (solo desarrollo local; reemplazar fuera del entorno local) |
-| `CORS_ORIGIN` | Origen permitido para solicitudes cross-origin | `http://localhost:5173` |
-| `EXTERNAL_API_URL` | URL del recurso oficial de universidades CDMX | Recurso JSON de datos abiertos CDMX configurado en `.env.example` |
-| `VITE_API_BASE_URL` | URL base del backend utilizada por Vite | `http://localhost:8080/api/v1` |
-
-## Endpoints de la API
-
-Todas las rutas están bajo `/api/v1`.
-
-| Método | Ruta | Descripción | Respuestas relevantes |
-|---|---|---|---|
-| `POST` | `/usuarios/registro` | Registrar usuario | `201`, `400` |
-| `POST` | `/usuarios/login` | Iniciar sesión | `200`, `400`, `401` |
-| `GET` | `/usuarios/{id}` | Consultar usuario por UUID | `200`, `404` |
-| `POST` | `/test/evaluate` | Procesar evaluación vocacional | `200`, `400` |
-| `POST` | `/test/arcade/evaluate?nickname=Ada` | Evaluación arcade con recomendación de carrera, perfil egresado, universidad, mapa y narrativa de NONI | `200`, `400`, `500` |
-| `GET` | `/test/resultados` | Listar resultados, opcionalmente por `usuarioId` | `200` |
-| `GET` | `/evaluaciones/compatibilidad` | Consultar compatibilidad de universidades | `200` |
-| `POST` | `/evaluaciones` | Crear resultado de evaluación | `201`, `400` |
-| `GET` | `/evaluaciones` | Listar resultados de evaluación | `200` |
-| `GET` | `/evaluaciones/{id}` | Consultar resultado por ID | `200`, `404` |
-| `PUT` | `/evaluaciones/{id}` | Actualizar resultado | `200`, `404` |
-| `DELETE` | `/evaluaciones/{id}` | Eliminar resultado | `204`, `404` |
-| `GET` | `/universidades` | Listar universidades | `200` |
-| `GET` | `/universidades/tecnm` | Listar instituciones TecNM | `200` |
-| `GET` | `/universidades/iztapalapa1` | Consultar TecNM Iztapalapa I | `200` |
-
-Las respuestas exitosas usan `ApiResponse<T>` y los errores controlados usan `ErrorResponse`. No hay actualmente un endpoint DELETE de usuarios.
-
-El catálogo de carreras (15 perfiles) se inicializa al arrancar cuando la tabla `carreras` está vacía. Las universidades de la fuente oficial se ingieren después y se vinculan con áreas académicas por reglas de nombre. Los IDs UUID de `Carrera` y `Universidad` requieren una base de datos compatible; respalda y migra las tablas existentes antes de desplegar esta revisión sobre una base con IDs `BIGINT`.
-
-## Pruebas
-
-Ejecuta las pruebas del backend:
-
-```powershell
-.\gradlew.bat test
+```sh
+cp .env.example .env
 ```
 
-La colección de solicitudes Postman está en `docs/EDUNEXA_Postman_Collection.json`. La prueba `DemoApplicationTests` requiere corregir su paquete o indicar `EnudexaApplication` explícitamente para que encuentre la configuración Spring.
+Define una contraseña propia para `DB_PASSWORD` y arranca los servicios:
+
+```sh
+docker compose up --build
+```
+
+Compose inicia SQL Server, crea `EDUNEXA_DB`, construye Spring Boot y el gateway Express, y publica Nginx en los puertos 80 y 5173. Express escucha en el puerto 3000 y reenvía las rutas `/api` a Spring Boot; así se conserva la API de dominio y su acceso SQL Server. SQL Server conserva la información en el volumen `mssql_data`. La API carga un catálogo base y actualiza universidades desde el [Directorio nacional de universidades del Sistema de Información Cultural](https://sic.gob.mx/opendata/d/0_universidad_directorio.json), que incluye domicilio y ubicación geográfica. Si el origen no está disponible, conserva el catálogo local. La ficha del conjunto de datos se publica en [datos.gob.mx](https://www.datos.gob.mx/dataset/sistema_informacion_cultural_espacios_culturales/resource/e40c8d2c-ff33-4a8e-b58a-71accd8cddde) con licencia CC BY 4.0.
+
+En Windows puedes arrancar el conjunto con `ejecutar.bat`; el script reconstruye los contenedores en segundo plano y abre el navegador.
+
+| Servicio | URL |
+|---|---|
+| Frontend | http://localhost |
+| Frontend (puerto alternativo) | http://localhost:5173 |
+| Gateway Express | http://localhost:3000/health |
+| API de negocio | http://localhost/api/v1 |
+| Health check Spring | disponible dentro de Docker en `spring-api:8080/api/v1/health` |
+
+## Desarrollo local
+
+Configura SQL Server, crea la base `EDUNEXA_DB` una vez (`CREATE DATABASE EDUNEXA_DB;`) y define `DB_URL`, `DB_USER` y `DB_PASSWORD` (puedes partir de `.env.example`). Compose crea esa base automáticamente.
+
+API:
+
+```sh
+./gradlew bootRun
+```
+
+En Windows:
+
+```powershell
+.\gradlew.bat bootRun
+```
+
+Frontend, en otra terminal:
+
+```sh
+cd frontend
+npm ci
+npm run dev
+```
+
+Inicia también el gateway Express (`cd backend && npm ci && npm run dev`) y la API Java con `./gradlew bootRun`. Vite sirve la interfaz en `http://localhost:5173` y reenvía `/api` al gateway del puerto 3000.
+
+## Configuración
+
+| Variable | Uso |
+|---|---|
+| `DB_URL` | JDBC de SQL Server; por defecto apunta a `localhost:1433/EDUNEXA_DB` |
+| `DB_USER` / `DB_PASSWORD` | Credenciales SQL Server |
+| `DB_NAME` | Base de datos fija que inicializa Compose: `EDUNEXA_DB` |
+| `PORT` | Puerto interno de Spring Boot; por defecto `8080` |
+| `BACKEND_PORT` | Puerto publicado para el gateway Express; por defecto `3000` |
+| `FRONTEND_HTTP_PORT` | Puerto HTTP de Nginx; por defecto `80` |
+| `FRONTEND_DEV_PORT` | Puerto alternativo de Nginx; por defecto `5173` |
+| `CORS_ORIGIN` | Orígenes permitidos separados por coma; acepta patrones como `*` si se configura expresamente |
+| `EXTERNAL_API_URL` | Origen del catálogo de instituciones |
+| `INGESTION_SOLO_TECNM` | Limita la ingesta a instituciones TecNM cuando es `true` |
+| `INGESTION_ENABLED` | Activa la actualización del catálogo al arrancar; por defecto `true` |
+
+### Récord de partida y Supabase (opcional)
+
+El perfil, el resultado, la clase elegida y las tres instituciones recomendadas se conservan en el navegador aunque no haya conexión. Para habilitar sincronización de cuentas y récords entre dispositivos:
+
+1. Crea un proyecto Supabase y copia `frontend/.env.example` a `frontend/.env.local`.
+2. Completa `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` con la URL del proyecto y su clave pública anon/publishable. No uses una clave `service_role` en el frontend.
+3. Ejecuta [`supabase/schema.sql`](supabase/schema.sql) una vez en el SQL Editor de Supabase. Activa la confirmación de correo y configura como URL permitida la dirección local de Vite.
+4. Reinicia `npm run dev`. El registro e inicio de sesión aparecen en la tarjeta `MEMORY CARD`; el progreso se sincroniza al completar una partida y al guardar el mapa.
+
+Sin estas variables, EDUNEXA permanece en modo local y no intenta autenticar ni enviar récords a un servicio remoto.
+
+## Rutas principales
+
+Las rutas de negocio usan el prefijo `/api/v1`:
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `POST` | `/usuarios/registro` | Registra una cuenta |
+| `POST` | `/usuarios/login` | Valida credenciales |
+| `POST` | `/test/evaluate` | Calcula y guarda la evaluación |
+| `POST` | `/test/arcade/evaluate?nickname=Ada` | Devuelve recomendación y narrativa de NONI |
+| `GET` | `/evaluaciones/compatibilidad` | Lista instituciones disponibles con coordenadas y dirección |
+| `GET` | `/universidades` | Devuelve el catálogo de instituciones |
+| `GET` | `/health` | Comprueba la conexión a la base de datos |
+
+Los errores usan JSON estructurado con `message`, `timestamp` y `status`; no incluyen trazas internas.
+
+## Compilación
+
+```sh
+./gradlew build
+```
+
+En Windows, usa `.\gradlew.bat build` desde PowerShell. Para el frontend, ejecuta `npm run build` dentro de `frontend/`.
 
 ## Licencia
 
-Distribuido bajo la Licencia MIT. Consulta `LICENSE`.
+Este proyecto se distribuye bajo la licencia MIT. Consulta [LICENSE](LICENSE).

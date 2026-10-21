@@ -7,6 +7,7 @@ record UniversidadIngestionDto(
         String tipo,
         Double latitud,
         Double longitud,
+        String direccion,
         String sitioWeb,
         boolean esTecnmIztapalapa1,
         List<CarreraIngestionDto> carreras

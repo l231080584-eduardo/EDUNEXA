@@ -85,6 +85,6 @@ public class GlobalExceptionHandler {
 
     private ResponseEntity<ErrorResponse> error(
             HttpStatus status, String codigo, String mensaje, List<String> detalles) {
-        return ResponseEntity.status(status).body(ErrorResponse.of(codigo, mensaje, detalles));
+        return ResponseEntity.status(status).body(ErrorResponse.of(status.value(), codigo, mensaje, detalles));
     }
 }

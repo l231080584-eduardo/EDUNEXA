@@ -37,9 +37,16 @@ public class TestVocacionalService {
                 .orElseThrow(() -> new IllegalStateException("No fue posible determinar una carrera compatible."));
         double diferencia = calcularDiferencia(mejorCarrera, request);
         double compatibilidad = Math.max(75.0, (1.0 - diferencia) * 100.0);
+        boolean interesTecnm = Boolean.TRUE.equals(request.esTecnmIztapalapa1());
+        if (interesTecnm) {
+            compatibilidad = Math.min(100.0, compatibilidad + 10.0);
+        }
 
-        Universidad mejorUniversidad = seleccionarUniversidad(mejorCarrera);
+        Universidad mejorUniversidad = seleccionarUniversidad(mejorCarrera, interesTecnm);
         List<String> badges = new ArrayList<>(List.of("Simulación Completada"));
+        if (interesTecnm) {
+            badges.add("Aspirante Prioritario TecNM");
+        }
         if (request.materias() >= 0.8) {
             badges.add("Mente Maestra");
         }
@@ -72,9 +79,9 @@ public class TestVocacionalService {
                 + Math.abs(carrera.getPesoGeolocalizacion() - request.geolocalizacion()) * 0.15;
     }
 
-    private Universidad seleccionarUniversidad(Carrera carrera) {
+    private Universidad seleccionarUniversidad(Carrera carrera, boolean priorizarTecnm) {
         Comparator<Universidad> prioridad = Comparator
-                .comparing(Universidad::isEsTecnmIztapalapa1).reversed()
+                .comparing((Universidad universidad) -> priorizarTecnm && universidad.isEsTecnmIztapalapa1()).reversed()
                 .thenComparing(Universidad::getNombre, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
 
         Universidad elegida = carrera.getUniversidades().stream()
@@ -122,6 +129,7 @@ public class TestVocacionalService {
                 .tipo(universidad.getTipo())
                 .latitud(universidad.getLatitud())
                 .longitud(universidad.getLongitud())
+                .direccion(universidad.getDireccion())
                 .sitioWeb(universidad.getSitioWeb())
                 .esTecnmIztapalapa1(universidad.isEsTecnmIztapalapa1())
                 .urlMapaInteractivo(mapa)

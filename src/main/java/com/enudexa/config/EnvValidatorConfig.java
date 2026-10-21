@@ -24,7 +24,6 @@ public class EnvValidatorConfig {
             List<String> requiredProperties = List.of(
                     "spring.datasource.url",
                     "spring.datasource.username",
-                    "spring.datasource.password",
                     "cors.allowed-origins",
                     "external.api.url"
             );
@@ -44,7 +43,7 @@ public class EnvValidatorConfig {
             try (Connection ignored = dataSource.getConnection()) {
                 LOGGER.info("Configuración validada y conexión a la base de datos establecida.");
             } catch (SQLException exception) {
-                LOGGER.error("No fue posible conectar con la base de datos. Verifique DB_URL, DB_USER y DB_PASSWORD.",
+                LOGGER.error("No fue posible conectar con la base de datos. Verifique SPRING_DATASOURCE_URL y credenciales.",
                         exception);
                 throw new IllegalStateException("No fue posible establecer conexión con la base de datos", exception);
             }

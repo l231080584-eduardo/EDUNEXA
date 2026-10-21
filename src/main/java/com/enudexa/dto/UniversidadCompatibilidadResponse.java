@@ -1,6 +1,7 @@
 package com.enudexa.dto;
 
 import java.util.UUID;
+import java.util.List;
 
 public record UniversidadCompatibilidadResponse(
         UUID id,
@@ -8,8 +9,10 @@ public record UniversidadCompatibilidadResponse(
         String tipo,
         Double latitud,
         Double longitud,
+        String direccion,
         String sitioWeb,
         Boolean esTecnmIztapalapa1,
-        double matchScorePercentage
+        double matchScorePercentage,
+        List<String> carreras
 ) {
 }

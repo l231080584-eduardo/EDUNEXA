@@ -34,10 +34,11 @@ public class EvaluacionService {
 
         boolean esIztapalapa1 = Boolean.TRUE.equals(request.esTecnmIztapalapa1());
         double score = normalizar(request.intereses()) * 0.35
-                + normalizar(request.materias()) * 0.25
-                + normalizar(request.estiloVida()) * 0.20
-                + normalizar(request.geolocalizacion()) * 0.10
+                + normalizar(request.materias()) * 0.35
+                + normalizar(request.estiloVida()) * 0.15
+                + normalizar(request.geolocalizacion()) * 0.15
                 + (esIztapalapa1 ? BONO_IZTAPALAPA_1 : 0.0);
+        score = Math.min(1.0, score);
         ResultadoTest resultado = ResultadoTest.builder()
                 .usuario(usuario)
                 .vectorRespuestas(request.vectorRespuestas())

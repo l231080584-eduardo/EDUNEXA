@@ -103,6 +103,7 @@ public class IngestionService {
                         universidad.tipo(),
                         universidad.latitud(),
                         universidad.longitud(),
+                        universidad.direccion(),
                         universidad.sitioWeb(),
                         universidad.esTecnmIztapalapa1()))
                 .toList();
@@ -110,14 +111,44 @@ public class IngestionService {
         if (!nuevasUniversidades.isEmpty()) {
             String insertarUniversidad = """
                     INSERT INTO universidades
-                        (id, nombre, tipo, latitud, longitud, sitio_web, es_tecnm_iztapalapa1)
-                    SELECT ?, ?, ?, ?, ?, ?, ?
+                        (id, nombre, tipo, latitud, longitud, direccion, sitio_web, es_tecnm_iztapalapa1)
+                    SELECT ?, ?, ?, ?, ?, ?, ?, ?
                     WHERE NOT EXISTS (
                         SELECT 1 FROM universidades WITH (UPDLOCK, HOLDLOCK) WHERE nombre = ?
                     )
                     """;
             jdbcTemplate.batchUpdate(insertarUniversidad, nuevasUniversidades, JDBC_BATCH_SIZE,
                     this::asignarUniversidad);
+        }
+
+        List<UniversidadIngestionDto> catalogoActualizado = datos.stream()
+                .filter(universidad -> universidad.nombre() != null && !universidad.nombre().isBlank())
+                .toList();
+        if (!catalogoActualizado.isEmpty()) {
+            jdbcTemplate.batchUpdate(
+                    """
+                    UPDATE universidades
+                    SET tipo = COALESCE(NULLIF(?, ''), tipo),
+                        latitud = COALESCE(?, latitud),
+                        longitud = COALESCE(?, longitud),
+                        direccion = COALESCE(NULLIF(?, ''), direccion),
+                        sitio_web = COALESCE(NULLIF(?, ''), sitio_web),
+                        es_tecnm_iztapalapa1 = CASE WHEN ? = 1 THEN 1 ELSE es_tecnm_iztapalapa1 END
+                    WHERE nombre = ?
+                    """,
+                    catalogoActualizado,
+                    JDBC_BATCH_SIZE,
+                    (statement, universidad) -> {
+                        statement.setString(1, universidad.tipo());
+                        if (universidad.latitud() == null) statement.setNull(2, Types.DOUBLE);
+                        else statement.setDouble(2, universidad.latitud());
+                        if (universidad.longitud() == null) statement.setNull(3, Types.DOUBLE);
+                        else statement.setDouble(3, universidad.longitud());
+                        statement.setString(4, universidad.direccion());
+                        statement.setString(5, universidad.sitioWeb());
+                        statement.setBoolean(6, universidad.esTecnmIztapalapa1());
+                        statement.setString(7, universidad.nombre());
+                    });
         }
 
         Map<String, UUID> idsUniversidadesPorNombre = new HashMap<>();
@@ -148,10 +179,6 @@ public class IngestionService {
                         .forEach(idsSeleccionados::add);
             }
             List<UUID> idsCarrerasUniversidad = List.copyOf(idsSeleccionados);
-            if (idsCarrerasUniversidad.isEmpty() && idsCarrerasPorNombre.size() > 5) {
-                List<UUID> primerasCarreras = idsCarrerasPorNombre.values().stream().limit(5).toList();
-                idsCarrerasUniversidad = List.of(primerasCarreras.get(0), primerasCarreras.get(4));
-            }
             for (UUID carreraId : idsCarrerasUniversidad) {
                 relacionesUnicas.add(new RelacionUniversidadCarrera(universidadId, carreraId));
             }
@@ -177,8 +204,8 @@ public class IngestionService {
                     (statement, relacion) -> {
                         statement.setString(1, relacion[0].toString());
                         statement.setString(2, relacion[1].toString());
-                        statement.setString(3, relacion[0].toString());
-                        statement.setString(4, relacion[1].toString());
+                        statement.setString(3, relacion[2].toString());
+                        statement.setString(4, relacion[3].toString());
                     });
         }
     }
@@ -198,9 +225,10 @@ public class IngestionService {
         } else {
             statement.setDouble(5, universidad.longitud());
         }
-        statement.setString(6, universidad.sitioWeb());
-        statement.setBoolean(7, universidad.esTecnmIztapalapa1());
-        statement.setString(8, universidad.nombre());
+        statement.setString(6, universidad.direccion());
+        statement.setString(7, universidad.sitioWeb());
+        statement.setBoolean(8, universidad.esTecnmIztapalapa1());
+        statement.setString(9, universidad.nombre());
     }
 
     private Predicate<String> carreraAplicable(String nombreUniversidad) {
@@ -217,14 +245,9 @@ public class IngestionService {
         boolean creativa = nombre.contains("ARTE")
                 || nombre.contains("DISENO")
                 || nombre.contains("CULTUR");
-        boolean universidadGeneral = nombre.contains("UNIVERSIDAD")
-                || nombre.contains("AUTONOMA")
-                || nombre.contains("ESTUDIOS SUPERIORES");
-
         return areaCarrera -> {
             String area = normalizar(areaCarrera);
-            return universidadGeneral
-                    || (tecnologica && (area.contains("TECNOLOGIA")
+            return (tecnologica && (area.contains("TECNOLOGIA")
                     || area.contains("INGENIERIA")
                     || area.contains("AUTOMATIZACION")
                     || area.contains("GESTION")
@@ -269,6 +292,7 @@ public class IngestionService {
             String tipo,
             Double latitud,
             Double longitud,
+            String direccion,
             String sitioWeb,
             boolean esTecnmIztapalapa1
     ) {

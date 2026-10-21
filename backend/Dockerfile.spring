@@ -1,0 +1,19 @@
+FROM eclipse-temurin:21-jdk-alpine AS build
+
+WORKDIR /workspace
+COPY gradlew settings.gradle build.gradle ./
+COPY gradle ./gradle
+COPY src ./src
+RUN chmod +x gradlew && ./gradlew --no-daemon clean bootJar
+
+FROM eclipse-temurin:21-jre-alpine
+RUN apk add --no-cache curl \
+    && addgroup -S edunexa \
+    && adduser -S edunexa -G edunexa
+WORKDIR /app
+COPY --from=build --chown=edunexa:edunexa /workspace/build/libs/edunexa.jar /app/app.jar
+USER edunexa
+EXPOSE 8080
+HEALTHCHECK --interval=15s --timeout=5s --start-period=45s --retries=5 \
+  CMD curl --fail --silent http://localhost:8080/api/v1/health || exit 1
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]
