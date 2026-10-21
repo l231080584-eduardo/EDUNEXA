@@ -34,7 +34,9 @@ COPY init.sql /app/init.sql
 COPY --from=node-build /gateway/node_modules /app/gateway/node_modules
 COPY --from=node-build /gateway/src /app/gateway/src
 COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh && chown -R edunexa:edunexa /app
+RUN sed -i 's/\r$//' /app/entrypoint.sh \
+    && chmod +x /app/entrypoint.sh \
+    && chown -R edunexa:edunexa /app
 ENV NODE_ENV=production PORT=3000 SPRING_API_URL=http://127.0.0.1:8080
 USER edunexa
 EXPOSE 3000
