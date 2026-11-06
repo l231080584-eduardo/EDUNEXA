@@ -1,4 +1,5 @@
 import { Howl, Howler } from 'howler'
+import { random } from './random'
 
 let selectedVoice = null
 
@@ -134,7 +135,7 @@ function synthWavDataUri({ frequency, duration, wave = 'square', endFrequency = 
     const currentFrequency = frequency + (endFrequency - frequency) * progress
     phase += Math.PI * 2 * currentFrequency / sampleRate
     const oscillator = wave === 'sawtooth' ? 2 * (phase / (Math.PI * 2) - Math.floor(.5 + phase / (Math.PI * 2))) : Math.sin(phase) > 0 ? 1 : -1
-    const sample = (oscillator * (1 - noise) + (Math.random() * 2 - 1) * noise) * envelope * .35
+    const sample = (oscillator * (1 - noise) + (random() * 2 - 1) * noise) * envelope * .35
     view.setInt16(44 + index * 2, Math.max(-1, Math.min(1, sample)) * 32767, true)
   }
   let binary = ''

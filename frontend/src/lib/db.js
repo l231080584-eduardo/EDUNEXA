@@ -1,4 +1,6 @@
-const SUPABASE_URL = String(import.meta.env.VITE_SUPABASE_URL || '').replace(/\/+$/, '')
+let url = String(import.meta.env.VITE_SUPABASE_URL || '')
+while (url.endsWith('/')) { url = url.slice(0, -1) }
+const SUPABASE_URL = url
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)

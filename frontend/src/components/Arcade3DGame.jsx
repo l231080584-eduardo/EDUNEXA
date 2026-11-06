@@ -6,6 +6,7 @@ import { AdditiveBlending, BufferGeometry, BufferAttribute, CanvasTexture, Color
 import { Trophy } from 'lucide-react'
 import { HERO_CLASSES } from './CharacterSelect'
 import { playCoin, playExplosion, playNavigate, playReload, playShot, playSuccess, startMusic, stopMusic } from '../lib/audio'
+import { random, randomInt, randomChoice } from '../lib/random'
 
 const CATEGORIES = ['law', 'social', 'tech', 'engineering', 'design', 'business', 'humanities']
 const CATEGORY_LABELS = { law: 'Derecho', social: 'Salud', tech: 'Tecnología', engineering: 'Ingenierías', design: 'Artes', business: 'Negocios', humanities: 'Humanidades' }
@@ -51,7 +52,7 @@ function WarpTunnel() {
   const stars = useRef([])
   const grid = useRef(null)
   const ringPositions = useMemo(() => Array.from({ length: 22 }, (_, index) => -39 + index * 2.2), [])
-  const starPositions = useMemo(() => Array.from({ length: 64 }, () => ({ x: (Math.random() - .5) * 26, y: (Math.random() - .5) * 18, z: -38 + Math.random() * 46, size: .012 + Math.random() * .025 })), [])
+  const starPositions = useMemo(() => Array.from({ length: 64 }, () => ({ x: (random() - .5) * 26, y: (random() - .5) * 18, z: -38 + random() * 46, size: .012 + random() * .025 })), [])
   useFrame((_, delta) => {
     rings.current.forEach((ring) => {
       if (!ring) return
@@ -64,8 +65,8 @@ function WarpTunnel() {
       star.position.z += delta * TUNNEL_SPEED * (1.15 + star.userData.speed)
       if (star.position.z > 9) {
         star.position.z = -39
-        star.position.x = (Math.random() - .5) * 26
-        star.position.y = (Math.random() - .5) * 18
+        star.position.x = (random() - .5) * 26
+        star.position.y = (random() - .5) * 18
       }
     })
     if (grid.current) {
@@ -109,7 +110,8 @@ function GameWorld({ targets, targetMeshes, aimRef, onTargetHit, onMiss, onFire,
     let node = hit?.object
     while (node && !node.userData.targetId) node = node.parent
     const targetId = node?.userData.targetId
-    const shot = { id: `${Date.now()}-${Math.random()}`, from: [.76, -.48, 7.42], to: endpoint.toArray() }
+    const shotId = globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `${Date.now()}-${random()}`
+    const shot = { id: shotId, from: [.76, -.48, 7.42], to: endpoint.toArray() }
     queueMicrotask(() => {
       onFire(shot)
       if (targetId) onTargetHit(targetId)
@@ -234,11 +236,11 @@ function Burst({ burst }) {
     const positions = new Float32Array(count * 3)
     const colors = new Float32Array(count * 3)
     const velocities = Array.from({ length: count }, (_, index) => {
-      const position = new Vector3((Math.random() - .5) * .16, (Math.random() - .5) * .16, (Math.random() - .5) * .16)
+      const position = new Vector3((random() - .5) * .16, (random() - .5) * .16, (random() - .5) * .16)
       position.toArray(positions, index * 3)
       const tint = new Color(index % 2 ? '#ff55d8' : '#54fff1')
       tint.toArray(colors, index * 3)
-      return { position, velocity: new Vector3((Math.random() - .5) * 10, (Math.random() - .5) * 10, (Math.random() - .5) * 10), seed: index * .32 }
+      return { position, velocity: new Vector3((random() - .5) * 10, (random() - .5) * 10, (random() - .5) * 10), seed: index * .32 }
     })
     const geometry = new BufferGeometry()
     geometry.setAttribute('position', new BufferAttribute(positions, 3))
@@ -297,7 +299,7 @@ function WeaponRig({ hero, shot }) {
     if (muzzle.current) {
       muzzle.current.position.z = 7.42 + recoil * .2
       muzzle.current.visible = Boolean(shot && elapsed < .075)
-      const flare = 1 + Math.random() * .8
+      const flare = 1 + random() * .8
       muzzle.current.scale.setScalar(muzzle.current.visible ? flare : 0)
     }
   })
@@ -336,7 +338,7 @@ function ArcadeScene({ hero, targets, targetMeshes, aimRef, onTargetHit, onMiss,
   useFrame(() => {
     const remaining = shakeUntilRef.current - performance.now()
     const intensity = remaining > 0 ? Math.min(.095, remaining / 190 * .095) : 0
-    camera.position.set(baseCamera.x + (Math.random() - .5) * intensity, baseCamera.y + (Math.random() - .5) * intensity, baseCamera.z)
+    camera.position.set(baseCamera.x + (random() - .5) * intensity, baseCamera.y + (random() - .5) * intensity, baseCamera.z)
   })
   const chromaticOffset = useMemo(() => new Vector2(.0011, .0011), [])
   return <>
@@ -502,7 +504,7 @@ export default function Arcade3DGame({ hero: selectedHero, profile, onGameComple
         bossSpawned = true
         const target = {
           id: `boss-${Date.now()}`, kind: 'boss', category: hero.id, label: BOSS_BY_HERO[hero.id] || 'El Guardián del Futuro',
-          x: 0, y: .12, z: -36, speed: 3.2, seed: Math.random() * 10, color: '#ff4d85', hp: 4, maxHp: 4,
+          x: 0, y: .12, z: -36, speed: 3.2, seed: random() * 10, color: '#ff4d85', hp: 4, maxHp: 4,
         }
         target.onExpire = (id) => expireTarget(current, true, id, target.label)
         current.targetsCount = (current.targetsCount || 0) + 1
@@ -511,15 +513,15 @@ export default function Arcade3DGame({ hero: selectedHero, profile, onGameComple
         callbackRef.current.onNoniUpdate?.({ text: `¡Alerta, piloto! Se acerca ${target.label}. Tu aventura culmina con este reto.`, id: Date.now() })
         return
       }
-      const zombie = Math.random() < [.32, .27, .24][waveIndex]
-      const category = Math.random() < .56 ? hero.id : CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]
+      const zombie = random() < [.32, .27, .24][waveIndex]
+      const category = random() < .56 ? hero.id : CATEGORIES[randomInt(CATEGORIES.length)]
       const color = zombie ? '#ff608a' : HERO_CLASSES.find((entry) => entry.id === category)?.color || '#78f9d3'
       const options = PASSIONS[category]
       const target = {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, kind: zombie ? 'zombie' : 'passion', category,
-        label: zombie ? (AVERSIONS_BY_HERO[hero.id] || AVERSIONS_BY_HERO.tech)[Math.floor(Math.random() * (AVERSIONS_BY_HERO[hero.id] || AVERSIONS_BY_HERO.tech).length)] : options[Math.floor(Math.random() * options.length)],
-        x: (Math.random() * 2 - 1) * .72, y: (Math.random() * 2 - 1) * .56, z: -36,
-        speed: [3.05, 3.65, 4.35][waveIndex] * (Math.random() * .22 + .9), seed: Math.random() * 10, color,
+        id: `${Date.now()}-${random().toString(36).slice(2)}`, kind: zombie ? 'zombie' : 'passion', category,
+        label: zombie ? randomChoice(AVERSIONS_BY_HERO[hero.id] || AVERSIONS_BY_HERO.tech) : randomChoice(options),
+        x: (random() * 2 - 1) * .72, y: (random() * 2 - 1) * .56, z: -36,
+        speed: [3.05, 3.65, 4.35][waveIndex] * (random() * .22 + .9), seed: random() * 10, color,
       }
       target.onExpire = (id) => expireTarget(current, zombie, id, target.label)
       current.targetsCount = (current.targetsCount || 0) + 1

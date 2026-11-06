@@ -6,8 +6,11 @@ import { isSupabaseConfigured } from '../lib/db'
 function createFolio() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID()
   const bytes = new Uint8Array(16)
-  if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes)
-  else bytes.forEach((_value, index) => { bytes[index] = Math.floor(Math.random() * 256) })
+  if (globalThis.crypto?.getRandomValues) {
+    globalThis.crypto.getRandomValues(bytes)
+  } else {
+    throw new Error('Web Crypto API no está disponible para generar el folio.')
+  }
   bytes[6] = (bytes[6] & 0x0f) | 0x40
   bytes[8] = (bytes[8] & 0x3f) | 0x80
   const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
@@ -78,7 +81,7 @@ export default function IdentityDialog({ open, profile, onClose, onSave }) {
   }
 
   return (
-    <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div className="modal-backdrop" role="button" tabIndex={0} aria-label="Cerrar diálogo" onMouseDown={(event) => event.target === event.currentTarget && onClose()} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ' || event.key === 'Escape') onClose() }}>
       <section ref={dialogRef} className="identity-dialog cyber-dialog" role="dialog" aria-modal="true" aria-labelledby="identity-title" aria-describedby="identity-description">
         <div className="dialog-top">
           <span className="dialog-icon"><UserRound aria-hidden="true" /></span>
