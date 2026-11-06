@@ -1,128 +1,121 @@
 {
   "info": {
     "_postman_id": "edunexa-api-collection-v1",
-    "name": "EDUNEXA API Tests",
-    "description": "Matriz de pruebas para EDUNEXA API v1 (Spring Boot + SQL Server)",
+    "name": "EDUNEXA API - Pruebas de controladores",
+    "description": "Pruebas de HealthController y UsuarioController sobre la API v1.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:8080/api/v1"
+      "value": "http://edunexa-backend:8080"
     }
   ],
   "item": [
     {
-      "name": "1. Registro Usuario Valido (201)",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"nombre\": \"Gabriel Briseño\",\n  \"email\": \"gabriel.test@edunexa.com\",\n  \"password\": \"Password123!\"\n}"
-        },
-        "url": "{{baseUrl}}/usuarios/registro"
-      }
-    },
-    {
-      "name": "2. Registro Usuario Invalido (400)",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"nombre\": \"\",\n  \"email\": \"correo-invalido\",\n  \"password\": \"123\"\n}"
-        },
-        "url": "{{baseUrl}}/usuarios/registro"
-      }
-    },
-    {
-      "name": "3. Login Correcto (200)",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"gabriel.test@edunexa.com\",\n  \"password\": \"Password123!\"\n}"
-        },
-        "url": "{{baseUrl}}/usuarios/login"
-      }
-    },
-    {
-      "name": "4. Login Credenciales Incorrectas (401)",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"gabriel.test@edunexa.com\",\n  \"password\": \"Erronea123\"\n}"
-        },
-        "url": "{{baseUrl}}/usuarios/login"
-      }
-    },
-    {
-      "name": "5. Obtener Usuario Inexistente (404)",
+      "name": "1. Health - API disponible (200)",
       "request": {
         "method": "GET",
-        "url": "{{baseUrl}}/usuarios/00000000-0000-0000-0000-000000000000"
-      }
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('El estado HTTP es 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('La respuesta es JSON', function () {",
+              "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+              "    pm.expect(pm.response.json()).to.be.an('object');",
+              "});"
+            ]
+          }
+        }
+      ]
     },
     {
-      "name": "6. Evaluar Test Vocacional (200)",
+      "name": "2. Registrar usuario válido (201)",
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"usuarioId\": \"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11\",\n  \"intereses\": 0.85,\n  \"materias\": 0.90,\n  \"estiloVida\": 0.75,\n  \"geolocalizacion\": 0.95\n}"
+          "raw": "{\n  \"nombre\": \"Usuario QA\",\n  \"email\": \"qa+{{$guid}}@edunexa.test\",\n  \"password\": \"Password123!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         },
-        "url": "{{baseUrl}}/test/evaluate"
-      }
+        "url": "{{baseUrl}}/api/v1/usuarios/registro"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('El estado HTTP es 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('La respuesta es JSON', function () {",
+              "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+              "    pm.expect(pm.response.json()).to.be.an('object');",
+              "});",
+              "",
+              "pm.test('El tiempo de respuesta es menor a 500 ms', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(500);",
+              "});"
+            ]
+          }
+        }
+      ]
     },
     {
-      "name": "7. Evaluar Test Datos Invalidos (400)",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"intereses\": 5.0\n}"
-        },
-        "url": "{{baseUrl}}/test/evaluate"
-      }
-    },
-    {
-      "name": "8. Ruta Inexistente API (404)",
+      "name": "3. Usuario inexistente (404)",
       "request": {
         "method": "GET",
-        "url": "{{baseUrl}}/ruta-no-existente"
-      }
-    },
-    {
-      "name": "9. Eliminar Resultado Inexistente (404)",
-      "request": {
-        "method": "DELETE",
-        "url": "{{baseUrl}}/evaluaciones/9223372036854775807"
-      }
-    },
-    {
-      "name": "10. Obtener Compatibilidad Universidades (200)",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/evaluaciones/compatibilidad"
-      }
-    },
-    {
-      "name": "11. Evaluación Arcade y recomendación NONI (200)",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"usuarioId\": \"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11\",\n  \"intereses\": 0.85,\n  \"materias\": 0.90,\n  \"estiloVida\": 0.75,\n  \"geolocalizacion\": 0.95\n}"
-        },
-        "url": "{{baseUrl}}/test/arcade/evaluate?nickname=Gabriel"
-      }
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/v1/usuarios/00000000-0000-0000-0000-000000000000"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('El estado HTTP es 404 o 400', function () {",
+              "    pm.expect([400, 404]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
     }
   ]
 }
