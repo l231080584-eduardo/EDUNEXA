@@ -171,15 +171,20 @@ export default function ResultsDashboard({ result, report, careers, bonus, profi
   const [studentLocation, setStudentLocation] = useState(() => savedRecord?.studentLocation || null)
   const [locationMessage, setLocationMessage] = useState('')
   const [locating, setLocating] = useState(false)
+  const [backendLoaded, setBackendLoaded] = useState(false)
+  const [backendFailed, setBackendFailed] = useState(false)
   useEffect(() => {
     getCompatibleUniversities().then((data) => {
       if (!Array.isArray(data)) return
+      setBackendLoaded(true)
+      setBackendFailed(false)
       let cached = []
       try { cached = JSON.parse(localStorage.getItem('edunexa-universities-cache') || '[]') } catch { /* Ignore malformed optional cache. */ }
       const catalog = data.length ? data : Array.isArray(cached) ? cached : []
       setUniversities(mergeUniversityCatalog(catalog))
       if (data.length) try { localStorage.setItem('edunexa-universities-cache', JSON.stringify(data)) } catch { /* Offline directory cache is optional. */ }
     }).catch(() => {
+      setBackendFailed(true)
       try {
         const cached = JSON.parse(localStorage.getItem('edunexa-universities-cache') || '[]')
         if (Array.isArray(cached)) setUniversities(mergeUniversityCatalog(cached))
@@ -286,7 +291,8 @@ export default function ResultsDashboard({ result, report, careers, bonus, profi
 
       <section className="career-recommendations"><div className="universities-heading"><div><p className="eyebrow">Tu combinación de habilidades</p><h3>Carreras sugeridas según tu partida</h3></div><span className="api-label">{safeCareers.length} opciones de carrera</span></div>{safeCareers.length ? <div className="career-detail-list">{safeCareers.map((career, index) => <CareerCard key={career.name || index} career={career} index={index} miniTest={miniTest} metrics={safeMetrics} showTecnmNotice={(career.category === 'tech' || career.category === 'engineering') && shouldShowTecnmNotice} />)}</div> : <p className="state-message">No hubo suficientes recolecciones para formar una recomendación. Puedes repetir la misión para descubrir más rutas.</p>}</section>
 
-      <div className="universities-heading"><div><p className="eyebrow">Sedes compatibles más cercanas</p><h3>Instituciones para conocer</h3></div><span className="api-label"><span className="status-dot" /> {filteredUniversities.length ? `${Math.min(5, filteredUniversities.length)} de hasta 5 sedes` : 'Sin coincidencias de programas'}</span></div>
+      {backendFailed && <p className="location-status">Mostrando catálogo de respaldo sin conexión (6 sedes)</p>}
+      <div className="universities-heading"><div><p className="eyebrow">Sedes compatibles más cercanas</p><h3>Instituciones para conocer</h3></div><span className="api-label"><span className="status-dot" /> {backendLoaded ? `Catálogo TecNM ZMVM: ${universities.length} sedes` : filteredUniversities.length ? `${Math.min(5, filteredUniversities.length)} de hasta 5 sedes` : 'Sin coincidencias de programas'}</span></div>
       <div className="university-tools"><label className="university-search"><MapPin size={16} /><span className="sr-only">Buscar institución por nombre, carrera o dirección</span><input type="search" value={universityQuery} onChange={(event) => setUniversityQuery(event.target.value)} placeholder="Buscar por institución, carrera o dirección…" /></label><button type="button" className="locate-button" onClick={locateStudent} disabled={locating}><LocateFixed size={15} />{locating ? 'Localizando…' : studentLocation ? 'Actualizar mi ubicación' : 'Ordenar desde mi GPS'}</button></div>
       {locationMessage && <p className="location-status" aria-live="polite">{locationMessage}</p>}
       <div className="universities-grid">{filteredUniversities.slice(0, 5).map((university) => { const offered = matchingPrograms(university, safeCareers); return <article className="panel university-card" key={university.id || university.nombre}><span className="university-icon"><GraduationCap size={17} /></span>{university.esTecnmIztapalapa1 && <span className="mini-bonus">TecNM</span>}<div className="university-title"><h4>{university.nombre || university.name}</h4><p>{university.tipo || 'Institución educativa'} · {studentLocation ? `~${university.distanciaKm.toFixed(1)} km desde tu GPS` : 'Distancia disponible al activar GPS'}</p></div><p className="university-career-match">{offered.broad ? 'Áreas afines para explorar: ' : 'Carreras relacionadas: '}{offered.labels.join(' · ')}</p>{(offered.broad || university.localFallback) && <small className="catalog-note">{university.localFallback ? 'Sede de referencia offline; confirma campus y oferta vigente.' : 'Confirma la oferta vigente en el campus elegido.'}</small>}<div className="university-actions"><button className="map-select-button" type="button" onClick={() => { playClick(); setSelectedPlace(university); onNoniUpdate?.({ text: `Encontré ${university.nombre || university.name}. En el mapa puedes revisar cómo llegar desde tu ubicación.`, id: Date.now() }) }}><MapPin size={13} /> Ver en mapa</button>{university.sitioWeb && <a className="university-link" href={university.sitioWeb} target="_blank" rel="noreferrer">Conocer institución <ExternalLink size={12} /></a>}</div></article> })}</div>
