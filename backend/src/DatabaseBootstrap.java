@@ -12,16 +12,21 @@ public final class DatabaseBootstrap {
         String host = System.getenv().getOrDefault("DB_HOST", "db");
         String port = System.getenv().getOrDefault("DB_PORT", "1433");
         String user = System.getenv().getOrDefault("DB_USER", "sa");
-        String password = System.getenv().getOrDefault("DB_PASSWORD", "Upiicsa1");
-        String database = System.getenv().getOrDefault("DB_NAME", "ENUDEXA_DB").replace("]", "]]");
+        String password = System.getenv("DB_PASSWORD");
+        if (password == null || password.isBlank()) {
+            throw new IllegalStateException("DB_PASSWORD no está configurado en el entorno. Es obligatorio definir esta variable.");
+        }
+        String database = System.getenv().getOrDefault("DB_NAME", "ENUDEXA_DB");
+        if (!database.matches("[A-Za-z][A-Za-z0-9_]*")) {
+            throw new IllegalArgumentException("DB_NAME no es válido. Debe coincidir con [A-Za-z][A-Za-z0-9_]*. Valor recibido: " + database);
+        }
         String url = "jdbc:sqlserver://" + host + ":" + port
                 + ";databaseName=master;encrypt=false;trustServerCertificate=true;loginTimeout=5";
 
         for (int attempt = 1; attempt <= 90; attempt++) {
             try (Connection connection = DriverManager.getConnection(url, user, password);
                  Statement statement = connection.createStatement()) {
-                statement.execute("IF DB_ID(N'" + database.replace("'", "''")
-                        + "') IS NULL CREATE DATABASE [" + database + "]");
+                statement.execute("IF DB_ID(N'" + database + "') IS NULL CREATE DATABASE [" + database + "]");
                 break;
             } catch (Exception exception) {
                 if (attempt == 90) {
