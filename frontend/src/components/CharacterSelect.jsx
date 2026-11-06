@@ -18,15 +18,23 @@ const HeroIcon = ({ id, size = 19 }) => {
   return <Icon size={size} />
 }
 
-export default function CharacterSelect({ open, onClose, onSelect }) {
+export default function CharacterSelect({ open, onClose, onSelect, suggestedHeroId }) {
   const [stage, setStage] = useState('insert')
   const [selected, setSelected] = useState(HERO_CLASSES[2])
   const [hoveredId, setHoveredId] = useState(null)
   const activeHero = HERO_CLASSES.find((hero) => hero.id === hoveredId) || selected
 
   useEffect(() => {
-    if (open) { setStage('insert'); setSelected(HERO_CLASSES[2]) }
-  }, [open])
+    if (open) {
+      setStage('insert')
+      if (suggestedHeroId) {
+        const suggested = HERO_CLASSES.find((h) => h.id === suggestedHeroId)
+        setSelected(suggested || HERO_CLASSES[2])
+      } else {
+        setSelected(HERO_CLASSES[2])
+      }
+    }
+  }, [open, suggestedHeroId])
 
   useEffect(() => {
     if (stage !== 'intro') return undefined
@@ -56,7 +64,7 @@ export default function CharacterSelect({ open, onClose, onSelect }) {
     {stage === 'select' && <motion.div className="character-select-panel" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
       <div className="character-select-heading"><div><p className="eyebrow">MISIÓN 01 · CLASIFICACIÓN</p><h2 id="character-title">Choose your <span>fighter</span></h2><p>Elige tu equipo: cada clase abre una forma distinta de resolver la misión.</p></div><button className="character-back" type="button" onClick={onClose}><ArrowLeft size={15} /> Inicio</button></div>
       <div className="character-select-layout">
-        <div className="hero-class-grid">{HERO_CLASSES.map((hero, index) => <motion.button type="button" key={hero.id} className={`hero-class-card ${selected.id === hero.id ? 'is-equipped' : ''}`} style={{ '--hero-color': hero.color }} onMouseEnter={() => { if (hoveredId !== hero.id) playHover(); setHoveredId(hero.id) }} onMouseLeave={() => setHoveredId(null)} onFocus={() => setHoveredId(hero.id)} onBlur={() => setHoveredId(null)} onClick={() => { setSelected(hero); setHoveredId(hero.id); playClick(); playArcadeCallout('SOLDIER SELECT!') }} initial={{ opacity: 0, y: 13 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * .055 }} aria-pressed={selected.id === hero.id}><span className="hero-class-icon">{hero.icon}</span><span className="hero-class-area">{hero.area}</span><strong>{hero.name}</strong><span className="hero-class-weapon"><HeroIcon id={hero.id} size={14} /> {hero.weapon}</span><small>{hero.tools}</small></motion.button>)}</div>
+        <div className="hero-class-grid">{HERO_CLASSES.map((hero, index) => <motion.button type="button" key={hero.id} className={`hero-class-card ${selected.id === hero.id ? 'is-equipped' : ''} ${suggestedHeroId === hero.id ? 'is-suggested' : ''}`} style={{ '--hero-color': hero.color }} onMouseEnter={() => { if (hoveredId !== hero.id) playHover(); setHoveredId(hero.id) }} onMouseLeave={() => setHoveredId(null)} onFocus={() => setHoveredId(hero.id)} onBlur={() => setHoveredId(null)} onClick={() => { setSelected(hero); setHoveredId(hero.id); playClick(); playArcadeCallout('SOLDIER SELECT!') }} initial={{ opacity: 0, y: 13 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * .055 }} aria-pressed={selected.id === hero.id}>{suggestedHeroId === hero.id && <span className="suggested-badge">Sugerencia de NONI</span>}<span className="hero-class-icon">{hero.icon}</span><span className="hero-class-area">{hero.area}</span><strong>{hero.name}</strong><span className="hero-class-weapon"><HeroIcon id={hero.id} size={14} /> {hero.weapon}</span><small>{hero.tools}</small></motion.button>)}</div>
         <AnimatePresence mode="wait"><motion.aside key={activeHero.id} className="weapon-spec-panel" style={{ '--hero-color': activeHero.color }} initial={{ opacity: 0, x: 16, rotateY: -8 }} animate={{ opacity: 1, x: 0, rotateY: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: .22 }}>
           <div className="weapon-hologram"><span>{activeHero.icon}</span><i /><i /><i /></div><p className="eyebrow">EQUIPO DE CLASE</p><h3>{activeHero.weapon}</h3><p>{activeHero.impact}</p>
           <dl><div><dt>Cadencia</dt><dd>{activeHero.cadence}</dd></div><div><dt>Proyectil</dt><dd>{activeHero.projectile}</dd></div><div><dt>Herramientas</dt><dd>{activeHero.tools}</dd></div></dl><small>Vista previa: {activeHero.name}</small>

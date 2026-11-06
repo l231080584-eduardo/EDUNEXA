@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { ArrowRight, Gamepad2 } from 'lucide-react'
-import CharacterSelect from './components/CharacterSelect'
+import CharacterSelect, { HERO_CLASSES } from './components/CharacterSelect'
+import MiniTest from './components/MiniTest'
 import ArcadeCabinet from './components/ArcadeCabinet'
 import IdentityDialog from './components/IdentityDialog'
 import LandingSection from './components/LandingSection'
@@ -16,6 +17,7 @@ import { isSupabaseConfigured, loadRemoteGameRecord, loginPlayer, refreshPlayerS
 const STORAGE_KEY = 'edunexa-profile'
 const ACCESSIBILITY_KEY = 'edunexa-accessibility'
 const RECORD_STORAGE_KEY = 'edunexa-game-record'
+const MINITEST_STORAGE_KEY = 'edunexa-mini-test'
 const Arcade3DGame = lazy(() => import('./components/Arcade3DGame'))
 
 function loadStoredValue(key, fallback) {
@@ -26,9 +28,17 @@ export default function App() {
   const [profile, setProfile] = useState(() => loadStoredValue(STORAGE_KEY, null))
   const [record, setRecord] = useState(() => loadStoredValue(RECORD_STORAGE_KEY, null))
   const [settings, setSettings] = useState(() => loadStoredValue(ACCESSIBILITY_KEY, { fontScale: 0, highContrast: false, subtitles: true }))
-  const [dialogOpen, setDialogOpen] = useState(false); const [characterSelectOpen, setCharacterSelectOpen] = useState(false); const [hero, setHero] = useState(null)
-  const [result, setResult] = useState(() => loadStoredValue(RECORD_STORAGE_KEY, null)?.result || null); const [report, setReport] = useState(() => loadStoredValue(RECORD_STORAGE_KEY, null)?.report || ''); const [careers, setCareers] = useState(() => loadStoredValue(RECORD_STORAGE_KEY, null)?.careers || [])
-  const [careerCatalog, setCareerCatalog] = useState(CAREER_CATALOG); const [metrics, setMetrics] = useState(() => loadStoredValue(RECORD_STORAGE_KEY, null)?.metrics || { intereses: 0, materias: 0, estiloVida: 0, geolocalizacion: 0 })
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [characterSelectOpen, setCharacterSelectOpen] = useState(false)
+  const [miniTestOpen, setMiniTestOpen] = useState(false)
+  const [hero, setHero] = useState(null)
+  const [miniTest, setMiniTest] = useState(() => loadStoredValue(MINITEST_STORAGE_KEY, null))
+  const [suggestedHeroId, setSuggestedHeroId] = useState(null)
+  const [result, setResult] = useState(() => loadStoredValue(RECORD_STORAGE_KEY, null)?.result || null)
+  const [report, setReport] = useState(() => loadStoredValue(RECORD_STORAGE_KEY, null)?.report || '')
+  const [careers, setCareers] = useState(() => loadStoredValue(RECORD_STORAGE_KEY, null)?.careers || [])
+  const [careerCatalog, setCareerCatalog] = useState(CAREER_CATALOG)
+  const [metrics, setMetrics] = useState(() => loadStoredValue(RECORD_STORAGE_KEY, null)?.metrics || { intereses: 0, materias: 0, estiloVida: 0, geolocalizacion: 0 })
   const [noniMessage, setNoniMessage] = useState(null)
 
   useEffect(() => {
@@ -37,6 +47,7 @@ export default function App() {
   }, [settings])
   useEffect(() => { try { if (profile?.id) localStorage.setItem(STORAGE_KEY, JSON.stringify(profile)); else localStorage.removeItem(STORAGE_KEY) } catch { /* The mission remains playable without browser storage. */ } }, [profile])
   useEffect(() => { try { if (record) localStorage.setItem(RECORD_STORAGE_KEY, JSON.stringify(record)) } catch { /* Local record storage is best effort. */ } }, [record])
+  useEffect(() => { try { if (miniTest) localStorage.setItem(MINITEST_STORAGE_KEY, JSON.stringify(miniTest)); else localStorage.removeItem(MINITEST_STORAGE_KEY) } catch { /* Mini-test storage is best effort. */ } }, [miniTest])
   useEffect(() => {
     if (!profile?.session?.access_token) return undefined
     let active = true
@@ -70,21 +81,56 @@ export default function App() {
     })
   }, [])
 
+  function handleMiniTestComplete(miniTestResults, heroId) {
+    setMiniTest(miniTestResults)
+    setMiniTestOpen(false)
+    if (heroId) {
+      const selectedHero = HERO_CLASSES.find((h) => h.id === heroId)
+      if (selectedHero) {
+        setHero(selectedHero)
+        playArcadeCallout('OK! MISSION 1: START!')
+        startMusic()
+        window.requestAnimationFrame(() => document.getElementById('evaluacion')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+        return
+      }
+    }
+    setSuggestedHeroId(heroId || null)
+    setCharacterSelectOpen(true)
+  }
+
   function handleGameComplete(gameStats = {}) {
     const categoryCounts = gameStats?.gemCounts && typeof gameStats.gemCounts === 'object' ? gameStats.gemCounts : {}
     const totalXp = Math.max(0, Number(gameStats?.totalXp) || 0)
-    const localMetrics = buildGameMetrics(categoryCounts, gameStats?.gemEffectiveness)
+    const gameMetrics = buildGameMetrics(categoryCounts, gameStats?.gemEffectiveness)
+
+    let finalMetrics = gameMetrics
+    if (miniTest?.answers) {
+      const mt = miniTest
+      const getAnswer = (id) => (mt.answers[id] || 3) - 1
+      const intereses = (getAnswer('intereses-1') + getAnswer('intereses-2')) / 2 / 4
+      const materias = getAnswer('materias') / 4
+      const estiloVida = getAnswer('estilo-vida') / 4
+      const geolocalizacion = getAnswer('geolocalizacion') / 4
+      const miniMetrics = { intereses, materias, estiloVida, geolocalizacion }
+      finalMetrics = {
+        intereses: 0.4 * miniMetrics.intereses + 0.6 * gameMetrics.intereses,
+        materias: 0.4 * miniMetrics.materias + 0.6 * gameMetrics.materias,
+        estiloVida: 0.4 * miniMetrics.estiloVida + 0.6 * gameMetrics.estiloVida,
+        geolocalizacion: 0.4 * miniMetrics.geolocalizacion + 0.6 * gameMetrics.geolocalizacion,
+      }
+    }
+
     const interestedTecnm = Boolean(profile?.interesTecnm)
     const recommendedCareers = recommendCareers(categoryCounts, gameStats?.gemEffectiveness, careerCatalog)
     const careerNames = recommendedCareers.map((career) => career.name)
-    const generatedReport = createReport(localMetrics, careerNames, interestedTecnm)
-    const matchScore = Math.min(1, localMetrics.intereses * .45 + localMetrics.materias * .25 + localMetrics.estiloVida * .2 + localMetrics.geolocalizacion * .1)
-    const finalResult = { matchScore, resultadoId: `ARCADE-${globalThis.crypto?.randomUUID?.() || Date.now().toString(36)}`, xp: totalXp, score: Math.max(0, Number(gameStats?.score) || 0), gemCounts: categoryCounts, gemEffectiveness: gameStats?.gemEffectiveness || {}, hero: gameStats?.hero || hero?.id || 'tech' }
+    const generatedReport = createReport(finalMetrics, careerNames, interestedTecnm)
+    const matchScore = Math.min(1, finalMetrics.intereses * .45 + finalMetrics.materias * .25 + finalMetrics.estiloVida * .2 + finalMetrics.geolocalizacion * .1)
+    const finalResult = { matchScore, resultadoId: `ARCADE-${globalThis.crypto?.randomUUID?.() || Date.now().toString(36)}`, xp: totalXp, score: Math.max(0, Number(gameStats?.score) || 0), gemCounts: categoryCounts, gemEffectiveness: gameStats?.gemEffectiveness || {}, hero: gameStats?.hero || hero?.id || 'tech', miniTest: miniTest || null }
     const playerId = profile?.id || `guest-${globalThis.crypto?.randomUUID?.() || Date.now().toString(36)}`
-    const completedRecord = { playerId, heroClass: finalResult.hero, finalScore: finalResult.score, recommendedUniversities: [], selectedUniversity: null, studentLocation: null, result: finalResult, report: generatedReport, careers: recommendedCareers, metrics: localMetrics, savedAt: new Date().toISOString() }
-    setMetrics(localMetrics); setReport(generatedReport); setCareers(recommendedCareers); setResult(finalResult); setRecord(completedRecord)
+    const completedRecord = { playerId, heroClass: finalResult.hero, finalScore: finalResult.score, recommendedUniversities: [], selectedUniversity: null, studentLocation: null, result: finalResult, report: generatedReport, careers: recommendedCareers, metrics: finalMetrics, miniTest: miniTest || null, savedAt: new Date().toISOString() }
+    setMetrics(finalMetrics); setReport(generatedReport); setCareers(recommendedCareers); setResult(finalResult); setRecord(completedRecord)
     if (profile?.id) {
-      const payload = { usuarioId: profile.id, intereses: localMetrics.intereses, materias: localMetrics.materias, estiloVida: localMetrics.estiloVida, geolocalizacion: localMetrics.geolocalizacion, esTecnmIztapalapa1: interestedTecnm, vectorRespuestas: JSON.stringify(categoryCounts), topCarrerasJson: JSON.stringify(careerNames), reporteIa: generatedReport }
+      const payload = { usuarioId: profile.id, intereses: finalMetrics.intereses, materias: finalMetrics.materias, estiloVida: finalMetrics.estiloVida, geolocalizacion: finalMetrics.geolocalizacion, esTecnmIztapalapa1: interestedTecnm, vectorRespuestas: JSON.stringify(categoryCounts), topCarrerasJson: JSON.stringify(careerNames), reporteIa: generatedReport }
       evaluateTest(payload).catch(() => {})
     }
   }
@@ -130,6 +176,7 @@ export default function App() {
 
   function restartMission() {
     stopMusic(); setResult(null); setReport(''); setCareers([]); setHero(null); setMetrics({ intereses: 0, materias: 0, estiloVida: 0, geolocalizacion: 0 })
+    try { localStorage.removeItem(RECORD_STORAGE_KEY) } catch { /* Cleanup is best effort. */ }
     window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }))
   }
 
@@ -137,13 +184,14 @@ export default function App() {
     <a href="#contenido" className="skip-link">Saltar al contenido</a>
     <Navbar profile={profile} onLogin={() => setDialogOpen(true)} settings={settings} onSettingsChange={(change) => setSettings((current) => ({ ...current, ...change }))} hasResults={Boolean(result)} />
     <main id="contenido">
-      <LandingSection onStart={() => setCharacterSelectOpen(true)} />
+      <LandingSection onStart={() => { playClick(); setMiniTestOpen(true) }} />
       {result ? <section id="resultados" tabIndex="-1"><ResultsDashboard result={result} report={report} careers={careers} bonus={profile?.interesTecnm} profile={profile} metrics={metrics} savedRecord={record} onRecordUpdate={handleRecordUpdate} onRestart={restartMission} onNoniUpdate={setNoniMessage} /></section> : <>
         <section className="mission-launch-section" id="evaluacion" aria-label="Inicia la misión arcade">{hero ? <ArcadeCabinet hero={hero}><Suspense fallback={<div className="mission-launch-card webgl-loading"><span><Gamepad2 size={22} /></span><p className="eyebrow">CARGANDO ARCADE WEBGL</p><h2>Preparando tu máquina...</h2></div>}><Arcade3DGame key={`quest-${hero.id}`} hero={hero} profile={profile} onGameComplete={handleGameComplete} onNoniUpdate={setNoniMessage} /></Suspense></ArcadeCabinet> : <div className="mission-launch-card"><span><Gamepad2 size={22} /></span><p className="eyebrow">TU MISIÓN TE ESPERA</p><h2>Escoge una clase y toma el control.</h2><p>Seis áreas, una misión y un copiloto a tu lado. Explora sin presión: no hay una respuesta incorrecta.</p><button className="equip-hero-button" type="button" onClick={() => { playClick(); setCharacterSelectOpen(true) }}>ELEGIR MI HÉROE <ArrowRight size={16} /></button></div>}</section>
       </>}
     </main>
     <NoniWidget message={noniMessage} subtitles={settings.subtitles} />
-    <CharacterSelect open={characterSelectOpen} onClose={() => setCharacterSelectOpen(false)} onSelect={chooseHero} />
+    <MiniTest open={miniTestOpen} onComplete={handleMiniTestComplete} />
+    <CharacterSelect open={characterSelectOpen} onClose={() => setCharacterSelectOpen(false)} onSelect={chooseHero} suggestedHeroId={suggestedHeroId} />
     <IdentityDialog open={dialogOpen} profile={profile} onClose={() => setDialogOpen(false)} onSave={handleProfileSave} />
   </div>
 }
