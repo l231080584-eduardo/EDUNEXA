@@ -25,10 +25,10 @@ const NONI_MESSAGES = [
 ]
 
 function calculateScores(answers) {
-  const get = (id) => answers[id] || 3
-  const intereses = (get('intereses-1') + get('intereses-2')) / 2 / 5
-  const materias = get('materias') / 5
-  const estiloVida = get('estilo-vida') / 5
+  const get = (id) => (answers[id] || 3) - 1
+  const intereses = (get('intereses-1') + get('intereses-2')) / 2 / 4
+  const materias = get('materias') / 4
+  const estiloVida = get('estilo-vida') / 4
 
   const scores = {}
   CATEGORIES.forEach((cat) => {

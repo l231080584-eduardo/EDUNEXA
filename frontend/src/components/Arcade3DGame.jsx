@@ -7,6 +7,7 @@ import { Trophy } from 'lucide-react'
 import { HERO_CLASSES } from './CharacterSelect'
 import { playCoin, playExplosion, playNavigate, playReload, playShot, playSuccess, startMusic, stopMusic } from '../lib/audio'
 import { random, randomInt, randomChoice } from '../lib/random'
+import { pickNoniLine, rememberNoniContext } from '../lib/noni'
 
 const CATEGORIES = ['law', 'social', 'tech', 'engineering', 'design', 'business', 'humanities']
 const CATEGORY_LABELS = { law: 'Derecho', social: 'Salud', tech: 'Tecnología', engineering: 'Ingenierías', design: 'Artes', business: 'Negocios', humanities: 'Humanidades' }
@@ -39,7 +40,7 @@ function SceneLabel({ position, children, color = '#f2fff9', size = 10 }) {
 }
 
 function makeGame(hero) {
-  return { score: 0, xp: 0, freedom: 0, lives: 3, shots: 0, hits: 0, zombieHits: 0, passionHits: 0, wave: 0, counts: Object.fromEntries(CATEGORIES.map((category) => [category, 0])), hero, done: false }
+  return { score: 0, xp: 0, freedom: 0, lives: 3, shots: 0, hits: 0, zombieHits: 0, passionHits: 0, wave: 0, counts: Object.fromEntries(CATEGORIES.map((category) => [category, 0])), hero, done: false, passionStreak: 0, lowLivesNotified: false }
 }
 
 function GlowLine({ points, color = '#45f4d2', opacity = .45 }) {
@@ -404,7 +405,7 @@ export default function Arcade3DGame({ hero: selectedHero, profile, onGameComple
     finishRef.current?.()
     if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel()
     stopMusic(); playSuccess()
-    callbackRef.current.onNoniUpdate?.({ text: '¡Misión completa! Despejaste el camino y encontraste nuevas posibilidades. Aquí está tu mapa vocacional.', id: Date.now() })
+    callbackRef.current.onNoniUpdate?.({ text: pickNoniLine('gameComplete', { nickname: profile?.nickname }), id: Date.now() })
     const gemCounts = Object.fromEntries(CATEGORIES.map((category) => [category, Math.max(0, Number(game.counts?.[category]) || 0)]))
     const totalXp = Math.max(0, Number(game.xp) || 0)
     const stats = {
@@ -432,6 +433,7 @@ export default function Arcade3DGame({ hero: selectedHero, profile, onGameComple
     if (!game || game.done) return
     const target = targets.find((entry) => entry.id === id)
     if (!target || !consumeAmmo()) return
+    const noniCtx = { nickname: profile?.nickname }
     if (target.kind === 'boss' && target.hp > 1) {
       target.hp -= 1
       game.shots += 1; game.hits += 1; game.score += 250
@@ -444,7 +446,7 @@ export default function Arcade3DGame({ hero: selectedHero, profile, onGameComple
       shakeUntilRef.current = performance.now() + 55
       playShot(); playExplosion()
       setSubtitle(`IMPACTO CONFIRMADO · JEFE ${target.hp}/${target.maxHp} HP`)
-      callbackRef.current.onNoniUpdate?.({ text: `¡Buen impacto! El jefe está perdiendo fuerza. Mantén la mira, ${profile?.nickname || 'piloto'}.`, id: Date.now() })
+      callbackRef.current.onNoniUpdate?.({ text: pickNoniLine('bossHit', noniCtx), id: Date.now() })
       return
     }
     game.targetsCount = Math.max(0, (game.targetsCount || 1) - 1)
@@ -456,17 +458,22 @@ export default function Arcade3DGame({ hero: selectedHero, profile, onGameComple
     removeTarget(id); playShot(); playExplosion()
     if (target.kind === 'zombie') {
       game.zombieHits += 1; game.freedom += 100; game.score += 100
+      game.passionStreak = 0
       window.setTimeout(() => { const updated = gameRef.current; if (updated) { setFreedom(updated.freedom); setScore(updated.score) } }, 125)
       setSubtitle(`+100 LIBERTAD · ${target.label} despejado`)
-      if (game.zombieHits % 2 === 0) callbackRef.current.onNoniUpdate?.({ text: '¡Reflejos de primera! Esa rutina ya no decide tu futuro. Sigamos buscando lo que te prende.', id: Date.now() })
+      if (game.zombieHits % 2 === 0) callbackRef.current.onNoniUpdate?.({ text: pickNoniLine('zombieHit', noniCtx), id: Date.now() })
     } else {
       game.passionHits += 1; game.counts[target.category] += 1; game.xp += 500; game.score += 500
+      game.passionStreak += 1
+      if (game.passionStreak >= 3) {
+        callbackRef.current.onNoniUpdate?.({ text: pickNoniLine('streak', noniCtx), id: Date.now() })
+      }
       window.setTimeout(() => { const updated = gameRef.current; if (updated) { setXp(updated.xp); setScore(updated.score) } }, 125)
       setSubtitle(`+500 XP · ${CATEGORY_LABELS[target.category]} · ${target.label}`)
-      if (game.passionHits % 2 === 0) callbackRef.current.onNoniUpdate?.({ text: `¡Combo de pasiones! ${target.label} se suma a tu mapa. Vas formando una misión muy tuya.`, id: Date.now() })
+      if (game.passionHits % 2 === 0) callbackRef.current.onNoniUpdate?.({ text: pickNoniLine('passionHit', noniCtx), id: Date.now() })
     }
     if (target.kind === 'boss') {
-      callbackRef.current.onNoniUpdate?.({ text: `¡Jefe final superado! ${target.label} ya no bloquea tu camino.`, id: Date.now() })
+      callbackRef.current.onNoniUpdate?.({ text: pickNoniLine('bossDefeated', noniCtx), id: Date.now() })
       window.setTimeout(finishGame, 360)
     }
   }, [consumeAmmo, finishGame, profile?.nickname, removeTarget, targets])
@@ -480,19 +487,29 @@ export default function Arcade3DGame({ hero: selectedHero, profile, onGameComple
     let countdown = 0
     let stopped = false
     let bossSpawned = false
+    const noniCtx = { nickname: profile?.nickname, hero: hero.id }
+    rememberNoniContext(noniCtx)
     playCoin(); startMusic()
-    callbackRef.current.onNoniUpdate?.({ text: `¡Todo listo, ${profile?.nickname || 'piloto'}! Apunta a las señales de neón y descubre qué te mueve.`, id: Date.now() })
+    callbackRef.current.onNoniUpdate?.({ text: pickNoniLine('start', noniCtx), id: Date.now() })
     const expireTarget = (current, zombie, id, label) => {
       current.targetsCount = Math.max(0, (current.targetsCount || 1) - 1)
       removeTarget(id)
       if (!zombie) return
       current.lives = Math.max(0, Number(current.lives || 0) - 1)
+      current.passionStreak = 0
       setHealth(current.lives)
       shakeUntilRef.current = performance.now() + 210
       setDamageFlash(true); window.setTimeout(() => setDamageFlash(false), 260)
       playExplosion()
       setSubtitle(`IMPACTO · ${label} te alcanzó · ENERGÍA ${current.lives}/3`)
-      callbackRef.current.onNoniUpdate?.({ text: current.lives ? `¡Ojo, piloto! ${label} alcanzó tu nave. Toma aire y sigue con cuidado.` : '¡Último impacto! Terminó la partida, pero tu mapa vocacional ya está listo.', id: Date.now() })
+      if (current.lives === 1 && !current.lowLivesNotified) {
+        current.lowLivesNotified = true
+        callbackRef.current.onNoniUpdate?.({ text: pickNoniLine('lowLives', noniCtx), id: Date.now() })
+      } else if (current.lives > 0) {
+        callbackRef.current.onNoniUpdate?.({ text: pickNoniLine('damage', noniCtx), id: Date.now() })
+      } else {
+        callbackRef.current.onNoniUpdate?.({ text: '¡Último impacto! Terminó la partida, pero tu mapa vocacional ya está listo.', id: Date.now() })
+      }
       if (current.lives === 0) finishGame()
     }
     const spawn = () => {
@@ -510,7 +527,7 @@ export default function Arcade3DGame({ hero: selectedHero, profile, onGameComple
         current.targetsCount = (current.targetsCount || 0) + 1
         setTargets((existing) => [...existing, target])
         setSubtitle(`JEFE FINAL · ${target.label} · 4 IMPACTOS`)
-        callbackRef.current.onNoniUpdate?.({ text: `¡Alerta, piloto! Se acerca ${target.label}. Tu aventura culmina con este reto.`, id: Date.now() })
+        callbackRef.current.onNoniUpdate?.({ text: pickNoniLine('bossAppear', noniCtx), id: Date.now() })
         return
       }
       const zombie = random() < [.32, .27, .24][waveIndex]
@@ -533,7 +550,7 @@ export default function Arcade3DGame({ hero: selectedHero, profile, onGameComple
       const nextWave = Math.min(3, Math.floor(elapsed / 15) + 1)
       if (nextWave !== waveAnnounced) {
         waveAnnounced = nextWave; game.wave = nextWave - 1; setWave(nextWave); playNavigate()
-        callbackRef.current.onNoniUpdate?.({ text: nextWave === 2 ? '¡Buen ritmo! El mundo cambia de color: explora nuevos talentos y mantén la puntería.' : '¡Última vuelta! Sigue tu curiosidad: cada acierto ayuda a dibujar tu mapa vocacional.', id: Date.now() })
+        callbackRef.current.onNoniUpdate?.({ text: pickNoniLine(nextWave === 2 ? 'wave2' : 'wave3', noniCtx), id: Date.now() })
       }
       if (elapsed >= 45) finishGame()
     }

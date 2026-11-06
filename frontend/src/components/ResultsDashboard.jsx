@@ -90,18 +90,67 @@ function salaryReference(career) {
   return OLA_BENCHMARKS[career.category] || ['$19,494', 'promedio profesional nacional']
 }
 
-function CareerCard({ career, index }) {
+const SCALE_LABELS = ['Nada', 'Un poco', 'Más o menos', 'Bastante', 'Muchísimo']
+const QUESTION_IDS_LABEL = { 'intereses-1': 'Intereses personales', 'intereses-2': 'Intereses profesionales', materias: 'Materias favoritas', 'estilo-vida': 'Estilo de vida', geolocalizacion: 'Ubicación' }
+const CATEGORY_LABEL_ES = { law: 'Derecho', social: 'Salud', tech: 'Tecnología', engineering: 'Ingenierías', design: 'Artes', business: 'Negocios', humanities: 'Humanidades' }
+
+function CareerCard({ career, index, miniTest, metrics, showTecnmNotice }) {
   const benchmark = salaryReference(career)
   const skills = Array.isArray(career.skills) ? career.skills : []
   const tools = Array.isArray(career.tools) ? career.tools : []
   const roles = Array.isArray(career.roles) ? career.roles : []
   const sectors = Array.isArray(career.sectors) ? career.sectors : []
+  const egresoBullets = Array.isArray(career.egresoBullets) ? career.egresoBullets : []
+  const workplaces = Array.isArray(career.workplaces) ? career.workplaces : []
+
+  // Build "Por qué te queda" from real data
+  let whyFitParts = []
+  if (miniTest?.answers) {
+    // Find highest mini-test answer
+    let maxAnswer = 0, maxAnswerId = ''
+    Object.entries(miniTest.answers).forEach(([id, val]) => {
+      if (val > maxAnswer) { maxAnswer = val; maxAnswerId = id }
+    })
+    if (maxAnswerId) {
+      const label = QUESTION_IDS_LABEL[maxAnswerId] || maxAnswerId
+      const scaleLabel = SCALE_LABELS[maxAnswer - 1] || 'Más o menos'
+      whyFitParts.push(`En el mini-test marcaste "${scaleLabel}" en ${label}`)
+    }
+  }
+  if (metrics) {
+    // Find strongest game category
+    const catScores = Object.entries(GEM_CATEGORIES).map(([id, info]) => ({ id, label: info.label, score: metrics[id] || 0 }))
+    catScores.sort((a, b) => b.score - a.score)
+    if (catScores[0]?.score > 0) {
+      whyFitParts.push(`tu categoría más fuerte en el juego fue ${catScores[0].label}`)
+    }
+  }
+  if (career.matchScore != null) {
+    whyFitParts.push(`con ${career.matchScore}% de afinidad`)
+  }
+
+  const whyFitText = whyFitParts.length > 0
+    ? `Tu perfil muestra: ${whyFitParts.join(', ')}. Esta carrera encaja con tus resultados.`
+    : `Esta carrera encaja con tus resultados de afinidad (${career.matchScore}%).`
+
   return (
     <article className="career-detail-card">
       <div className="career-detail-heading"><span className="career-rank">0{index + 1}</span><div><p className="eyebrow">{GEM_CATEGORIES[career.category]?.label} · Afinidad {career.matchScore}%</p><h4>{career.name}</h4></div></div>
       <div className="career-detail-grid">
-        <section><h5>🎓 Perfil de egreso</h5><p>{career.profile || 'Explorarás herramientas y conocimientos propios del área para resolver retos reales.'}</p><strong>Habilidades y herramientas</strong><ul>{skills.map((skill) => <li key={skill}>{skill}</li>)}{tools.map((tool) => <li key={tool}>{tool}</li>)}</ul></section>
-        <section><h5>💼 Campo laboral</h5><strong>Puestos que podrías explorar</strong><ul>{roles.map((role) => <li key={role}>{role}</li>)}</ul><strong>Sectores</strong><p>{sectors.join(' · ') || 'Empresas, organizaciones e instituciones del área'}</p><strong>Referencia de ingreso mensual</strong><p>{formatSalary(career.salaryMonthly) || `${benchmark[0]} · ${benchmark[1]}`}</p><small className="salary-source">Ingreso profesional promedio publicado por OLA/ENOE (T2 2026); referencia por carrera o área, no salario específico de cada puesto ni garantía individual. <a href="https://www.observatoriolaboral.gob.mx/static/estudios-publicaciones/Tendencias_empleo.html" target="_blank" rel="noreferrer">Consultar fuente</a>.</small></section>
+        <section>
+          {whyFitText && <><h5>✨ Por qué te queda</h5><p>{whyFitText}</p></>}
+          <h5>🎓 Perfil de egreso</h5><p>{career.profile || 'Explorarás herramientas y conocimientos propios del área para resolver retos reales.'}</p>
+          {egresoBullets.length > 0 && <><strong>Lo que sabrás hacer</strong><ul>{egresoBullets.map((bullet) => <li key={bullet}>{bullet}</li>)}</ul></>}
+          <strong>Habilidades y herramientas</strong><ul>{skills.map((skill) => <li key={skill}>{skill}</li>)}{tools.map((tool) => <li key={tool}>{tool}</li>)}</ul>
+        </section>
+        <section>
+          <h5>💼 Campo laboral</h5><strong>Puestos que podrías explorar</strong><ul>{roles.map((role) => <li key={role}>{role}</li>)}</ul>
+          {workplaces.length > 0 && <><strong>Dónde puedes trabajar</strong><ul>{workplaces.map((wp) => <li key={wp}>{wp}</li>)}</ul></>}
+          <strong>Sectores</strong><p>{sectors.join(' · ') || 'Empresas, organizaciones e instituciones del área'}</p>
+          <strong>Referencia de ingreso mensual</strong><p>{formatSalary(career.salaryMonthly) || `${benchmark[0]} · ${benchmark[1]}`}</p>
+          <small className="salary-source">Ingreso profesional promedio publicado por OLA/ENOE (T2 2026); referencia por carrera o área, no salario específico de cada puesto ni garantía individual. <a href="https://www.observatoriolaboral.gob.mx/static/estudios-publicaciones/Tendencias_empleo.html" target="_blank" rel="noreferrer">Consultar fuente</a>.</small>
+          {showTecnmNotice && <p className="tecnm-notice">En el TecNM Plantel Iztapalapa 1 puedes estudiar Ingeniería en Sistemas Computacionales. Av. Telecomunicaciones s/n, Tepalcates, Iztapalapa.</p>}
+        </section>
       </div>
     </article>
   )
@@ -113,7 +162,7 @@ function formatSalary(value) {
   return Number.isFinite(amount) && amount > 0 ? `$${amount.toLocaleString('es-MX')} MXN/mes · estimación del catálogo` : ''
 }
 
-export default function ResultsDashboard({ result, report, careers, bonus, profile, metrics, savedRecord, onRecordUpdate, onRestart, onNoniUpdate }) {
+export default function ResultsDashboard({ result, report, careers, bonus, profile, metrics, savedRecord, onRecordUpdate, onRestart, onNoniUpdate, noniBackend, miniTest }) {
   const safeCareers = useMemo(() => Array.isArray(careers) ? careers.filter((career) => career && typeof career === 'object') : [], [careers])
   const safeMetrics = metrics && typeof metrics === 'object' ? metrics : {}
   const [universities, setUniversities] = useState(() => mergeUniversityCatalog([]))
@@ -152,6 +201,7 @@ export default function ResultsDashboard({ result, report, careers, bonus, profi
   }, [])
 
   const interestedTecnm = Boolean(bonus || profile?.interesTecnm)
+  const shouldShowTecnmNotice = interestedTecnm
   const catalog = useMemo(() => {
     const eligible = universities.filter((university) => universityOffersSuggestedCareer(university, safeCareers))
     const tecCandidate = eligible.find((university) => university.esTecnmIztapalapa1 || normalizeText(university.nombre || university.name).includes('tecnm plantel iztapalapa 1'))
@@ -230,10 +280,11 @@ export default function ResultsDashboard({ result, report, careers, bonus, profi
 
       <div className="results-grid"><article className="panel score-card"><div className="score-ring" style={{ '--score': `${percent}%` }}><div><strong>{percent}<span>%</span></strong><small>afinidad</small></div></div><div className="score-copy"><span className="pill"><Award size={13} /> TU PUNTO DE PARTIDA</span><h3>Tu récord de partida</h3><p>Clase: {heroLabel} · <strong>{Number(result?.score || savedRecord?.finalScore || 0).toLocaleString('es-MX')} puntos</strong></p><p>Este indicador combina tu afinidad y tus decisiones en los portales. No define ni limita tu futuro.</p>{bonus && <span className="bonus-badge"><Sparkles size={12} /> Interés TecNM registrado</span>}<p className="latest-answer">{result?.xp || 0} XP · {Object.values(result?.gemCounts || {}).reduce((sum, count) => sum + count, 0)} decisiones vocacionales · Folio {profile?.folio || result?.resultadoId || 'local'}</p></div></article>
         <article className="panel report-card"><div className="report-top"><span className="panel-icon"><Sparkles size={18} /></span><div><p className="eyebrow">Tu copiloto vocacional</p><h3>NONI IA</h3></div></div><p className="report-text">{report || 'Tus decisiones forman un mapa inicial de intereses. Puedes explorarlo y cambiar de rumbo cuando quieras.'}</p><div className="career-chips">{safeCareers.map((career, index) => <span key={career.name || index}>{career.name || 'Carrera por explorar'}</span>)}</div></article></div>
+      {noniBackend?.narrative && <article className="panel report-card"><div className="report-top"><span className="panel-icon"><Sparkles size={18} /></span><div><p className="eyebrow">Análisis del servidor</p><h3>Lo que NONI analizó en el servidor</h3></div></div><p className="report-text">{noniBackend.narrative}</p>{noniBackend.carrera && <p className="report-text"><strong>Carrera sugerida:</strong> {noniBackend.carrera}</p>}{noniBackend.universidad && <p className="report-text"><strong>Universidad sugerida:</strong> {noniBackend.universidad}</p>}{Array.isArray(noniBackend.badges) && noniBackend.badges.length > 0 && <div className="career-chips">{noniBackend.badges.map((badge, index) => <span key={index}>{badge}</span>)}</div>}</article>}
 
       <article className="panel metrics-panel"><div><p className="eyebrow">Radar de desempeño</p><h3>Tus portales trazan el perfil</h3></div><div className="metrics-list">{metricRows.map(([label, value]) => <div className="metric-item" key={label}><span>{label}</span><div className="metric-track"><span style={{ width: `${Math.round(Math.max(0, Math.min(1, value || 0)) * 100)}%` }} /></div><strong>{Math.round(Math.max(0, Math.min(1, value || 0)) * 100)}%</strong></div>)}</div></article>
 
-      <section className="career-recommendations"><div className="universities-heading"><div><p className="eyebrow">Tu combinación de habilidades</p><h3>Carreras sugeridas según tu partida</h3></div><span className="api-label">{safeCareers.length} opciones de carrera</span></div>{safeCareers.length ? <div className="career-detail-list">{safeCareers.map((career, index) => <CareerCard key={career.name || index} career={career} index={index} />)}</div> : <p className="state-message">No hubo suficientes recolecciones para formar una recomendación. Puedes repetir la misión para descubrir más rutas.</p>}</section>
+      <section className="career-recommendations"><div className="universities-heading"><div><p className="eyebrow">Tu combinación de habilidades</p><h3>Carreras sugeridas según tu partida</h3></div><span className="api-label">{safeCareers.length} opciones de carrera</span></div>{safeCareers.length ? <div className="career-detail-list">{safeCareers.map((career, index) => <CareerCard key={career.name || index} career={career} index={index} miniTest={miniTest} metrics={safeMetrics} showTecnmNotice={(career.category === 'tech' || career.category === 'engineering') && shouldShowTecnmNotice} />)}</div> : <p className="state-message">No hubo suficientes recolecciones para formar una recomendación. Puedes repetir la misión para descubrir más rutas.</p>}</section>
 
       <div className="universities-heading"><div><p className="eyebrow">Sedes compatibles más cercanas</p><h3>Instituciones para conocer</h3></div><span className="api-label"><span className="status-dot" /> {filteredUniversities.length ? `${Math.min(5, filteredUniversities.length)} de hasta 5 sedes` : 'Sin coincidencias de programas'}</span></div>
       <div className="university-tools"><label className="university-search"><MapPin size={16} /><span className="sr-only">Buscar institución por nombre, carrera o dirección</span><input type="search" value={universityQuery} onChange={(event) => setUniversityQuery(event.target.value)} placeholder="Buscar por institución, carrera o dirección…" /></label><button type="button" className="locate-button" onClick={locateStudent} disabled={locating}><LocateFixed size={15} />{locating ? 'Localizando…' : studentLocation ? 'Actualizar mi ubicación' : 'Ordenar desde mi GPS'}</button></div>

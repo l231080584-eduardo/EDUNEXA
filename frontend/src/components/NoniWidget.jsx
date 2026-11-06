@@ -26,8 +26,8 @@ export default function NoniWidget({ message, subtitles = true }) {
         const utterance = new SpeechSynthesisUtterance(text)
         if (voice) utterance.voice = voice
         utterance.lang = voice?.lang || 'es-MX'
-        utterance.pitch = 1.0
-        utterance.rate = 0.93
+        utterance.pitch = 1.05
+        utterance.rate = 0.95
         utterance.volume = 1.0
         utterance.onstart = () => { if (active) setSpeaking(true) }
         utterance.onboundary = (event) => {

@@ -10,7 +10,7 @@ import NoniWidget from './components/NoniWidget'
 import ResultsDashboard from './components/ResultsDashboard'
 import { buildGameMetrics, CAREER_CATALOG, recommendCareers } from './data/careers'
 import { createReport } from './data/questions'
-import { evaluateTest, getCareerCatalog } from './lib/api'
+import { evaluateArcadeNoni, evaluateTest, getCareerCatalog } from './lib/api'
 import { playArcadeCallout, playClick, startMusic, stopMusic } from './lib/audio'
 import { isSupabaseConfigured, loadRemoteGameRecord, loginPlayer, refreshPlayerSession, registerPlayer, saveRemoteGameRecord } from './lib/db'
 
@@ -40,6 +40,7 @@ export default function App() {
   const [careerCatalog, setCareerCatalog] = useState(CAREER_CATALOG)
   const [metrics, setMetrics] = useState(() => loadStoredValue(RECORD_STORAGE_KEY, null)?.metrics || { intereses: 0, materias: 0, estiloVida: 0, geolocalizacion: 0 })
   const [noniMessage, setNoniMessage] = useState(null)
+  const [noniBackend, setNoniBackend] = useState(null)
 
   useEffect(() => {
     document.documentElement.dataset.contrast = settings.highContrast ? 'high' : 'normal'; document.documentElement.dataset.fontScale = String(settings.fontScale)
@@ -121,7 +122,7 @@ export default function App() {
     }
 
     const interestedTecnm = Boolean(profile?.interesTecnm)
-    const recommendedCareers = recommendCareers(categoryCounts, gameStats?.gemEffectiveness, careerCatalog)
+    const recommendedCareers = recommendCareers(categoryCounts, gameStats?.gemEffectiveness, careerCatalog, finalMetrics)
     const careerNames = recommendedCareers.map((career) => career.name)
     const generatedReport = createReport(finalMetrics, careerNames, interestedTecnm)
     const matchScore = Math.min(1, finalMetrics.intereses * .45 + finalMetrics.materias * .25 + finalMetrics.estiloVida * .2 + finalMetrics.geolocalizacion * .1)
@@ -129,9 +130,19 @@ export default function App() {
     const playerId = profile?.id || `guest-${globalThis.crypto?.randomUUID?.() || Date.now().toString(36)}`
     const completedRecord = { playerId, heroClass: finalResult.hero, finalScore: finalResult.score, recommendedUniversities: [], selectedUniversity: null, studentLocation: null, result: finalResult, report: generatedReport, careers: recommendedCareers, metrics: finalMetrics, miniTest: miniTest || null, savedAt: new Date().toISOString() }
     setMetrics(finalMetrics); setReport(generatedReport); setCareers(recommendedCareers); setResult(finalResult); setRecord(completedRecord)
+    setNoniBackend(null)
     if (profile?.id) {
       const payload = { usuarioId: profile.id, intereses: finalMetrics.intereses, materias: finalMetrics.materias, estiloVida: finalMetrics.estiloVida, geolocalizacion: finalMetrics.geolocalizacion, esTecnmIztapalapa1: interestedTecnm, vectorRespuestas: JSON.stringify(categoryCounts), topCarrerasJson: JSON.stringify(careerNames), reporteIa: generatedReport }
       evaluateTest(payload).catch(() => {})
+      // Call evaluateArcadeNoni only if profile.id is a valid UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      if (uuidRegex.test(profile.id)) {
+        evaluateArcadeNoni(payload, profile?.nickname || 'Aspirante').then((data) => {
+          if (data?.narrative) {
+            setNoniBackend({ narrative: data.narrative, carrera: data.carrera, universidad: data.universidad, badges: data.badges })
+          }
+        }).catch(() => { /* Backend NONI is optional; results remain available. */ })
+      }
     }
   }
 
@@ -175,7 +186,7 @@ export default function App() {
   }
 
   function restartMission() {
-    stopMusic(); setResult(null); setReport(''); setCareers([]); setHero(null); setMetrics({ intereses: 0, materias: 0, estiloVida: 0, geolocalizacion: 0 })
+    stopMusic(); setResult(null); setReport(''); setCareers([]); setHero(null); setMetrics({ intereses: 0, materias: 0, estiloVida: 0, geolocalizacion: 0 }); setNoniBackend(null)
     try { localStorage.removeItem(RECORD_STORAGE_KEY) } catch { /* Cleanup is best effort. */ }
     window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }))
   }
@@ -185,7 +196,7 @@ export default function App() {
     <Navbar profile={profile} onLogin={() => setDialogOpen(true)} settings={settings} onSettingsChange={(change) => setSettings((current) => ({ ...current, ...change }))} hasResults={Boolean(result)} />
     <main id="contenido">
       <LandingSection onStart={() => { playClick(); setMiniTestOpen(true) }} />
-      {result ? <section id="resultados" tabIndex="-1"><ResultsDashboard result={result} report={report} careers={careers} bonus={profile?.interesTecnm} profile={profile} metrics={metrics} savedRecord={record} onRecordUpdate={handleRecordUpdate} onRestart={restartMission} onNoniUpdate={setNoniMessage} /></section> : <>
+      {result ? <section id="resultados" tabIndex="-1"><ResultsDashboard result={result} report={report} careers={careers} bonus={profile?.interesTecnm} profile={profile} metrics={metrics} savedRecord={record} onRecordUpdate={handleRecordUpdate} onRestart={restartMission} onNoniUpdate={setNoniMessage} noniBackend={noniBackend} miniTest={miniTest} /></section> : <>
         <section className="mission-launch-section" id="evaluacion" aria-label="Inicia la misión arcade">{hero ? <ArcadeCabinet hero={hero}><Suspense fallback={<div className="mission-launch-card webgl-loading"><span><Gamepad2 size={22} /></span><p className="eyebrow">CARGANDO ARCADE WEBGL</p><h2>Preparando tu máquina...</h2></div>}><Arcade3DGame key={`quest-${hero.id}`} hero={hero} profile={profile} onGameComplete={handleGameComplete} onNoniUpdate={setNoniMessage} /></Suspense></ArcadeCabinet> : <div className="mission-launch-card"><span><Gamepad2 size={22} /></span><p className="eyebrow">TU MISIÓN TE ESPERA</p><h2>Escoge una clase y toma el control.</h2><p>Seis áreas, una misión y un copiloto a tu lado. Explora sin presión: no hay una respuesta incorrecta.</p><button className="equip-hero-button" type="button" onClick={() => { playClick(); setCharacterSelectOpen(true) }}>ELEGIR MI HÉROE <ArrowRight size={16} /></button></div>}</section>
       </>}
     </main>
