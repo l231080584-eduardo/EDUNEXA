@@ -1,0 +1,320 @@
+{
+  "alcance": "ZMVM (22 campus: 12 CDMX + 10 Estado de México)",
+  "campus": [
+    {
+      "carreras": [
+        "Ingeniería en Gestión Empresarial",
+        "Ingeniería en Gestión Empresarial (a distancia)",
+        "Ingeniería en Tecnologías de la Información y Comunicaciones",
+        "Ingeniería en Diseño Industrial",
+        "Ingeniería en Inteligencia Artificial"
+      ],
+      "fuente": "https://aobregon.tecnm.mx",
+      "nombre": "Instituto Tecnológico de Álvaro Obregón",
+      "ubicacion": "Álvaro Obregón, CDMX"
+    },
+    {
+      "carreras": [
+        "Ingeniería Ambiental",
+        "Ingeniería Industrial",
+        "Ingeniería Ferroviaria",
+        "Ingeniería en Logística",
+        "Ingeniería en Gestión Empresarial",
+        "Ingeniería en Tecnologías de la Información y Comunicaciones",
+        "Ingeniería en Desarrollo de Aplicaciones",
+        "Contador Público",
+        "Ingeniería Industrial (virtual)",
+        "Ingeniería en Gestión Empresarial (virtual)"
+      ],
+      "fuente": "https://www.gamadero.tecnm.mx",
+      "nombre": "Instituto Tecnológico de Gustavo A. Madero",
+      "ubicacion": "Gustavo A. Madero, CDMX"
+    },
+    {
+      "carreras": [
+        "Arquitectura",
+        "Ingeniería Industrial",
+        "Ingeniería en Administración",
+        "Ingeniería en Tecnologías de la Información y Comunicaciones",
+        "Ingeniería Industrial (virtual)",
+        "Ingeniería en Administración (virtual)"
+      ],
+      "fuente": "https://www.gamadero2.tecnm.mx",
+      "nombre": "Instituto Tecnológico de Gustavo A. Madero II",
+      "ubicacion": "Gustavo A. Madero, CDMX"
+    },
+    {
+      "carreras": [
+        "Ingeniería en Sistemas Computacionales",
+        "Ingeniería Industrial",
+        "Ingeniería Mecatrónica",
+        "Ingeniería en Gestión Empresarial"
+      ],
+      "fuente": "https://www.iztapalapa.tecnm.mx/aspirantes/info.html",
+      "nombre": "Instituto Tecnológico de Iztapalapa",
+      "ubicacion": "Iztapalapa, CDMX — Av. Telecomunicaciones s/n, Chinampac de Juárez"
+    },
+    {
+      "carreras": [
+        "Ingeniería en Administración",
+        "Ingeniería en Logística",
+        "Ingeniería en Tecnologías de la Información y Comunicaciones"
+      ],
+      "fuente": "https://iztapalapa2.tecnm.mx/convocatorias/Convocatoriaago-dic2026escolarizado.pdf",
+      "nombre": "Instituto Tecnológico de Iztapalapa II",
+      "ubicacion": "Iztapalapa, CDMX"
+    },
+    {
+      "carreras": [
+        "Ingeniería Civil",
+        "Ingeniería Informática",
+        "Ingeniería en Gestión Empresarial",
+        "Ingeniería Industrial (virtual)",
+        "Ingeniería en Gestión Empresarial (virtual)",
+        "Ingeniería en Sistemas Computacionales (virtual)"
+      ],
+      "fuente": "https://iztapalapa3.tecnm.mx",
+      "nombre": "Instituto Tecnológico de Iztapalapa III",
+      "ubicacion": "Iztapalapa, CDMX — C. Orquídea #71, San Miguel Teotongo"
+    },
+    {
+      "carreras": [
+        "Ingeniería Bioquímica",
+        "Ingeniería en Sistemas Computacionales",
+        "Ingeniería en Industrias Alimentarias",
+        "Ingeniería en Gestión Empresarial"
+      ],
+      "fuente": "http://itmilpaalta.edu.mx/pdf/oferta_escolarizada_agosto_diciembre2026.pdf",
+      "nombre": "Instituto Tecnológico de Milpa Alta",
+      "ubicacion": "Milpa Alta, CDMX"
+    },
+    {
+      "carreras": [
+        "Licenciatura en Turismo",
+        "Ingeniería Industrial",
+        "Ingeniería en Gestión Empresarial",
+        "Ingeniería en Sistemas Computacionales"
+      ],
+      "fuente": "https://milpaalta2.tecnm.mx/admision/CONVOCATORIA_ITMAII.pdf",
+      "nombre": "Instituto Tecnológico de Milpa Alta II",
+      "ubicacion": "Milpa Alta, CDMX — Av. Guerrero Sur #171, San Juan Tepenáhuac"
+    },
+    {
+      "carreras": [
+        "Ingeniería en Electrónica",
+        "Ingeniería en Mecatrónica",
+        "Ingeniería Ferroviaria",
+        "Ingeniería en Sistemas Computacionales",
+        "Ingeniería en Sistemas Automotrices",
+        "Arquitectura",
+        "Licenciatura en Administración",
+        "Contador Público",
+        "Ingeniería Industrial (en línea)"
+      ],
+      "fuente": "https://tlahuac.tecnm.mx/",
+      "nombre": "Instituto Tecnológico de Tláhuac",
+      "ubicacion": "Tláhuac, CDMX"
+    },
+    {
+      "carreras": [
+        "Ingeniería en Gestión Empresarial",
+        "Ingeniería en Sistemas Computacionales (virtual)",
+        "Licenciatura en Turismo"
+      ],
+      "fuente": "https://tlahuac2.tecnm.mx/",
+      "nombre": "Instituto Tecnológico de Tláhuac II",
+      "ubicacion": "Tláhuac, CDMX — Camino Real 625, San Juan Ixtayopan"
+    },
+    {
+      "carreras": [
+        "Ingeniería en Administración",
+        "Ingeniería Informática",
+        "Ingeniería en Ciencia de Datos",
+        "Ingeniería Industrial",
+        "Ingeniería en Energías Renovables",
+        "Licenciatura en Turismo",
+        "Ingeniería en Gestión Empresarial (virtual)",
+        "Ingeniería en Desarrollo Comunitario (a distancia)"
+      ],
+      "fuente": "https://tlahuac3.ittlahuac3.edu.mx/2026/abril/pdf/Convocatoria_2026_final.pdf",
+      "nombre": "Instituto Tecnológico de Tláhuac III",
+      "ubicacion": "Tláhuac, CDMX — Av. Gral. Leandro Valle 595, Villa Centroamericana"
+    },
+    {
+      "carreras": [
+        "Ingeniería Electrónica",
+        "Ingeniería en Tecnologías de la Información y Comunicaciones",
+        "Ingeniería en Gestión Empresarial",
+        "Ingeniería en Sistemas Computacionales (en línea)",
+        "Licenciatura en Administración"
+      ],
+      "fuente": "https://www.tlalpan.tecnm.mx/pdf/convocatorias/TLALPAN_AGO_DIC_2025_V3.pdf",
+      "nombre": "Instituto Tecnológico de Tlalpan",
+      "ubicacion": "Tlalpan, CDMX — Cerrada de Santa Cruz 4, San Miguel Topilejo"
+    },
+    {
+      "nombre": "Instituto Tecnológico de Tlalnepantla",
+      "ubicacion": "Tlalnepantla de Baz, Estado de México",
+      "carreras": [
+        "Ingeniería Electrónica",
+        "Ingeniería Eléctrica",
+        "Ingeniería en Desarrollo de Aplicaciones",
+        "Ingeniería en Administración",
+        "Ingeniería Electromecánica",
+        "Ingeniería Mecánica",
+        "Ingeniería Mecatrónica",
+        "Ingeniería Industrial",
+        "Ingeniería en Gestión Empresarial",
+        "Ingeniería en Tecnologías de la Información y Comunicaciones",
+        "Ingeniería en Sistemas Computacionales (no escolarizada)",
+        "Ingeniería Industrial (no escolarizada)",
+        "Ingeniería en Gestión Empresarial (no escolarizada)"
+      ],
+      "fuente": "https://tlalnepantla.tecnm.mx/carreras"
+    },
+    {
+      "nombre": "Tecnológico de Estudios Superiores de Chalco",
+      "ubicacion": "Chalco de Díaz Covarrubias, Estado de México",
+      "carreras": [
+        "Ingeniería en Sistemas Computacionales",
+        "Ingeniería Industrial",
+        "Ingeniería en Informática",
+        "Ingeniería Electromecánica",
+        "Ingeniería Electrónica",
+        "Ingeniería en Administración"
+      ],
+      "fuente": "http://tescha.edomex.gob.mx/aspirantes"
+    },
+    {
+      "nombre": "Tecnológico de Estudios Superiores de Chicoloapan",
+      "ubicacion": "Chicoloapan, Estado de México",
+      "carreras": [
+        "Ingeniería en Semiconductores",
+        "Ingeniería en Desarrollo Comunitario",
+        "Ingeniería en Energías Renovables",
+        "Ingeniería en Gestión Empresarial",
+        "Ingeniería en Sistemas Computacionales",
+        "Ingeniería en Gestión Empresarial (mixta)"
+      ],
+      "fuente": "https://teschicoloapan.edomex.gob.mx/oferta_educativa"
+    },
+    {
+      "nombre": "Tecnológico de Estudios Superiores de Chimalhuacán",
+      "ubicacion": "Chimalhuacán, Estado de México — Calle Primavera s/n, Col. Santa María Nativitas",
+      "carreras": [
+        "Ingeniería en Animación Digital y Efectos Visuales",
+        "Ingeniería en Sistemas Computacionales",
+        "Ingeniería Industrial",
+        "Ingeniería Mecatrónica",
+        "Ingeniería Química",
+        "Licenciatura en Administración",
+        "Licenciatura en Gastronomía",
+        "Ingeniería Industrial (sistema abierto)",
+        "Licenciatura en Administración (sistema abierto)"
+      ],
+      "fuente": "https://www.teschi.edu.mx/mapa_del_sitio/"
+    },
+    {
+      "nombre": "Tecnológico de Estudios Superiores de Coacalco",
+      "ubicacion": "Coacalco de Berriozábal, Estado de México — Av. 16 de Septiembre No. 54",
+      "carreras": [
+        "Ingeniería Ambiental",
+        "Ingeniería Civil",
+        "Ingeniería Electromecánica",
+        "Ingeniería en Gestión Empresarial",
+        "Ingeniería en Materiales",
+        "Ingeniería en Sistemas Computacionales",
+        "Ingeniería en Tecnologías de Información y Comunicaciones",
+        "Ingeniería Industrial",
+        "Ingeniería Mecatrónica",
+        "Ingeniería Química",
+        "Ingeniería Ferroviaria",
+        "Licenciatura en Administración"
+      ],
+      "fuente": "http://tescoacalco.edomex.gob.mx/carreras"
+    },
+    {
+      "nombre": "Tecnológico de Estudios Superiores de Cuautitlán Izcalli",
+      "ubicacion": "Cuautitlán Izcalli, Estado de México — Av. San Antonio s/n, Col. Industrial Cuamatla",
+      "carreras": [
+        "Ingeniería Industrial",
+        "Ingeniería en Sistemas Computacionales",
+        "Contador Público",
+        "Ingeniería en Gestión Empresarial",
+        "Ingeniería en Logística",
+        "Ingeniería en Administración",
+        "Ingeniería Mecatrónica",
+        "Ingeniería en Tecnologías de la Información y Comunicaciones",
+        "Ingeniería Química",
+        "Ingeniería en Semiconductores",
+        "Ingeniería en Gestión Empresarial (a distancia)",
+        "Ingeniería Industrial (a distancia)"
+      ],
+      "fuente": "http://tesci.edomex.gob.mx/sites/tesci.edomex.gob.mx/files/files/oferta%20educativa/Revista%20TESCI.pdf"
+    },
+    {
+      "nombre": "Tecnológico de Estudios Superiores de Ecatepec",
+      "ubicacion": "Ecatepec de Morelos, Estado de México — Av. Tecnológico s/n, Col. Valle de Anáhuac",
+      "carreras": [
+        "Ingeniería Química",
+        "Ingeniería Bioquímica",
+        "Ingeniería en Electrónica",
+        "Ingeniería Mecánica",
+        "Ingeniería Industrial",
+        "Ingeniería en Sistemas Computacionales",
+        "Ingeniería en Informática",
+        "Ingeniería Mecatrónica",
+        "Ingeniería en Gestión Empresarial",
+        "Ingeniería Aeronáutica",
+        "Licenciatura en Contador Público"
+      ],
+      "fuente": "http://tese.edomex.gob.mx/oferta-educativa"
+    },
+    {
+      "nombre": "Tecnológico de Estudios Superiores de Huixquilucan",
+      "ubicacion": "Huixquilucan, Estado de México — La Magdalena Chichicaspa",
+      "carreras": [
+        "Ingeniería Civil",
+        "Licenciatura en Biología",
+        "Ingeniería en Sistemas Computacionales",
+        "Ingeniería Industrial",
+        "Licenciatura en Administración",
+        "Ingeniería en Mecatrónica",
+        "Licenciatura en Gastronomía"
+      ],
+      "fuente": "https://teshuixquilucan.edomex.gob.mx/acerca_tesh"
+    },
+    {
+      "nombre": "Tecnológico de Estudios Superiores de Ixtapaluca",
+      "ubicacion": "Ixtapaluca, Estado de México",
+      "carreras": [
+        "Ingeniería en Sistemas Computacionales",
+        "Ingeniería Ambiental",
+        "Ingeniería Electrónica",
+        "Ingeniería Biomédica",
+        "Ingeniería Informática",
+        "Licenciatura en Administración",
+        "Arquitectura"
+      ],
+      "fuente": "http://tesixtapaluca.edomex.gob.mx/oferta-educativa"
+    },
+    {
+      "nombre": "Tecnológico de Estudios Superiores del Oriente del Estado de México",
+      "ubicacion": "La Paz, Estado de México — Paraje San Isidro s/n, Col. Barrio de Tecamachalco, Los Reyes Acaquilpan",
+      "carreras": [
+        "Contador Público",
+        "Gastronomía",
+        "Ingeniería Ambiental",
+        "Ingeniería en Administración",
+        "Ingeniería en Sistemas Computacionales",
+        "Ingeniería en Tecnologías de la Información y Comunicaciones",
+        "Ingeniería en Energías Renovables",
+        "Ingeniería Industrial",
+        "Ingeniería en Sistemas Automotrices",
+        "Ingeniería en Sistemas Computacionales (virtual)"
+      ],
+      "fuente": "http://tesoem.edomex.gob.mx/oferta-educativa/licenciaturas"
+    }
+  ],
+  "nota": "Catálogo verificado de campus TecNM en la Zona Metropolitana del Valle de México (22 campus: 12 CDMX con 62 combinaciones campus-carrera + 10 del Estado de México con 84 programas presenciales y 9 no presenciales; total 160 combinaciones según el archivo). Fuente: sitios oficiales tecnm.mx / edomex.gob.mx, convocatorias oficiales 2025-2026 / 2027-A y portal Oferta Educativa de Nivel Superior del Gobierno del Estado de México (ofertaeducativaies.edugem.gob.mx). Verificación hecha 2026-11-05/06. El '17' es el Estado de México completo, no la CDMX. Posgrados excluidos. Por confirmar: Contador Público en Gustavo A. Madero II, Sistemas Computacionales virtual en Iztapalapa II, Sistemas Computacionales a distancia en Cuautitlán Izcalli, Sistemas Computacionales en línea en Ecatepec, Ing. en Administración e Ing. en Sistemas Computacionales no escolarizada en Tlalnepantla según ciclo (no aparecen en el flyer Ene-Jun 2027). Ing. Ferroviaria en Coacalco es nueva y no aparece aún en la página de carreras pero sí en documentos oficiales del TESCo. No usar directorios terceros (atribuyen carreras erróneas)."
+}
