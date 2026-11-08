@@ -129,7 +129,7 @@ public class TecnmCatalogSeeder implements CommandLineRunner {
                 // Extract coordinates from location if possible
                 Double lat = null;
                 Double lng = null;
-                Coordinates coords = estimateCoordinates(ubicacion);
+                Coordinates coords = coordinatesForCampus(nombre);
                 lat = coords.lat();
                 lng = coords.lng();
 
@@ -198,27 +198,56 @@ public class TecnmCatalogSeeder implements CommandLineRunner {
 
     private record Coordinates(Double lat, Double lng) {}
 
-    private Coordinates estimateCoordinates(String ubicacion) {
-        String normalized = normalize(ubicacion);
-        // CDMX
-        if (normalized.contains("iztapalapa")) return new Coordinates(19.3562, -99.0141);
-        if (normalized.contains("tlalpan")) return new Coordinates(19.2870, -99.1790);
-        if (normalized.contains("tlahuac")) return new Coordinates(19.2850, -99.0100);
-        if (normalized.contains("milpa alta")) return new Coordinates(19.1850, -98.9400);
-        if (normalized.contains("gustavo a. madero") || normalized.contains("gamadero")) return new Coordinates(19.4800, -99.0900);
-        if (normalized.contains("álvaro obregón") || normalized.contains("alvaro obregon")) return new Coordinates(19.3550, -99.2000);
-        // Estado de México
-        if (normalized.contains("tlalnepantla")) return new Coordinates(19.5300, -99.2010);
-        if (normalized.contains("chalco")) return new Coordinates(19.2800, -98.9100);
-        if (normalized.contains("chicoloapan")) return new Coordinates(19.4500, -98.8800);
-        if (normalized.contains("chimalhuacán") || normalized.contains("chimalhuacan")) return new Coordinates(19.4200, -98.9500);
-        if (normalized.contains("coacalco")) return new Coordinates(19.6300, -99.1000);
-        if (normalized.contains("cuautitlán") || normalized.contains("cuautitlan")) return new Coordinates(19.6500, -99.1700);
-        if (normalized.contains("ecatepec")) return new Coordinates(19.4100, -98.8900);
-        if (normalized.contains("huixquilucan")) return new Coordinates(19.2900, -99.2100);
-        if (normalized.contains("ixtapaluca")) return new Coordinates(19.3200, -98.7600);
-        if (normalized.contains("la paz") || normalized.contains("oriente del estado")) return new Coordinates(19.3500, -98.7000);
-        // Default ZMVM center
-        return new Coordinates(19.4326, -99.1332);
+    private Coordinates coordinatesForCampus(String nombre) {
+        return switch (nombre) {
+            case "Instituto Tecnológico de Álvaro Obregón" ->
+                    new Coordinates(19.3582, -99.2395);
+            case "Instituto Tecnológico de Gustavo A. Madero" ->
+                    new Coordinates(19.4622, -99.0618);
+            case "Instituto Tecnológico de Gustavo A. Madero II" ->
+                    new Coordinates(19.5540, -99.1475);
+            case "Instituto Tecnológico de Iztapalapa" ->
+                    new Coordinates(19.3800, -99.0528);
+            case "Instituto Tecnológico de Iztapalapa II" ->
+                    new Coordinates(19.3345, -98.9978);
+            case "Instituto Tecnológico de Iztapalapa III" ->
+                    new Coordinates(19.3364, -98.9852);
+            case "Instituto Tecnológico de Milpa Alta" ->
+                    new Coordinates(19.1930, -99.0975);
+            case "Instituto Tecnológico de Milpa Alta II" ->
+                    new Coordinates(19.1923, -98.9915);
+            case "Instituto Tecnológico de Tláhuac" ->
+                    new Coordinates(19.2895, -98.9986);
+            case "Instituto Tecnológico de Tláhuac II" ->
+                    new Coordinates(19.2317, -98.9914);
+            case "Instituto Tecnológico de Tláhuac III" ->
+                    new Coordinates(19.2800, -99.0572);
+            case "Instituto Tecnológico de Tlalpan" ->
+                    new Coordinates(19.1967, -99.1422);
+            case "Instituto Tecnológico de Tlalnepantla" ->
+                    new Coordinates(19.5334, -99.1869);
+            case "Tecnológico de Estudios Superiores de Chalco" ->
+                    new Coordinates(19.2324, -98.8416);
+            case "Tecnológico de Estudios Superiores de Chicoloapan" ->
+                    new Coordinates(19.4107, -98.8715);
+            case "Tecnológico de Estudios Superiores de Chimalhuacán" ->
+                    new Coordinates(19.4128, -98.9296);
+            case "Tecnológico de Estudios Superiores de Coacalco" ->
+                    new Coordinates(19.6305, -99.1061);
+            case "Tecnológico de Estudios Superiores de Cuautitlán Izcalli" ->
+                    new Coordinates(19.6466, -99.2284);
+            case "Tecnológico de Estudios Superiores de Ecatepec" ->
+                    new Coordinates(19.5105, -99.0404);
+            case "Tecnológico de Estudios Superiores de Huixquilucan" ->
+                    new Coordinates(19.4159, -99.3264);
+            case "Tecnológico de Estudios Superiores de Ixtapaluca" ->
+                    new Coordinates(19.3732, -98.8496);
+            case "Tecnológico de Estudios Superiores del Oriente del Estado de México" ->
+                    new Coordinates(19.3429, -98.9539);
+            default -> {
+                log.warn("Campus sin coordenada verificada: {}", nombre);
+                yield new Coordinates(19.4326, -99.1332);
+            }
+        };
     }
 }
