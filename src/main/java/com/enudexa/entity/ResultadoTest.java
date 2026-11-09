@@ -60,6 +60,9 @@ public class ResultadoTest {
 
     private Double puntajeMatch;
 
+    @Column(name = "universidad_recomendada", length = 255)
+    private String universidadRecomendada;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id")
     @ToString.Exclude

@@ -5,6 +5,7 @@ import CharacterSelect, { HERO_CLASSES } from './components/CharacterSelect'
 import MiniTest from './components/MiniTest'
 import ArcadeCabinet from './components/ArcadeCabinet'
 import AuthPage from './components/AuthPage'
+import AdminPage from './components/AdminPage'
 import LandingSection from './components/LandingSection'
 import Navbar from './components/Navbar'
 import NoniWidget from './components/NoniWidget'
@@ -114,15 +115,22 @@ export default function App() {
     setNoniBackend(null)
     if (profile?.id) {
       const payload = { usuarioId: profile.id, intereses: finalMetrics.intereses, materias: finalMetrics.materias, estiloVida: finalMetrics.estiloVida, geolocalizacion: finalMetrics.geolocalizacion, esTecnmIztapalapa1: interestedTecnm, vectorRespuestas: JSON.stringify(categoryCounts), topCarrerasJson: JSON.stringify(careerNames), reporteIa: generatedReport }
-      evaluateTest(payload).catch(() => {})
-      // Call evaluateArcadeNoni only if profile.id is a valid UUID
+      // Call evaluateArcadeNoni first, then evaluateTest with the university from NONI
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
       if (uuidRegex.test(profile.id)) {
         evaluateArcadeNoni(payload, profile?.nickname || 'Aspirante').then((data) => {
           if (data?.narrative) {
             setNoniBackend({ narrative: data.narrative, carrera: data.carrera, universidad: data.universidad, badges: data.badges })
           }
-        }).catch(() => { /* Backend NONI is optional; results remain available. */ })
+          // Call evaluateTest with universidadRecomendada from NONI response
+          evaluateTest({ ...payload, universidadRecomendada: data?.universidad?.nombre || null }).catch(() => {})
+        }).catch(() => {
+          /* Backend NONI is optional; results remain available. */
+          // NONI failed, call evaluateTest without university
+          evaluateTest(payload).catch(() => {})
+        })
+      } else {
+        evaluateTest(payload).catch(() => {})
       }
     }
     navigate('/resultados', { replace: true })
@@ -184,6 +192,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LandingSection onStart={() => { playClick(); navigate('/mini-test') }} />} />
         <Route path="/login" element={<AuthPage profile={profile} onSave={handleProfileSave} onClose={() => navigate('/')} />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="/mini-test" element={<MiniTest open={true} onComplete={handleMiniTestComplete} />} />
         <Route path="/juego" element={
           <ProtectedMiniTest>

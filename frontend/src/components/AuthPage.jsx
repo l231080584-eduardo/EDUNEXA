@@ -25,6 +25,7 @@ export default function AuthPage({ profile, onSave, onClose }) {
   const [password, setPassword] = useState('')
   const [escuela, setEscuela] = useState('')
   const [interesTecnm, setInteresTecnm] = useState(false)
+  const [consentimientoContacto, setConsentimientoContacto] = useState(false)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -66,6 +67,7 @@ export default function AuthPage({ profile, onSave, onClose }) {
           password,
           whatsapp: cleanedPhone,
           interesTecnm,
+          consentimientoContacto,
         })
       } else {
         response = await loginUser({ email: email.trim(), password })
@@ -80,6 +82,7 @@ export default function AuthPage({ profile, onSave, onClose }) {
         telefono: response.whatsapp || '',
         escuela: escuela.trim() || '',
         interesTecnm: response.interesTecnm || false,
+        consentimientoContacto: response.consentimientoContacto || false,
         folio,
       }
       onSave(usuario)
@@ -191,6 +194,14 @@ export default function AuthPage({ profile, onSave, onClose }) {
                   onChange={(e) => { playClick(); setInteresTecnm(e.target.checked) }}
                 />
                 Me interesa el TecNM Plantel Iztapalapa 1
+              </label>
+              <label className="admission-interest">
+                <input
+                  type="checkbox"
+                  checked={consentimientoContacto}
+                  onChange={(e) => { playClick(); setConsentimientoContacto(e.target.checked) }}
+                />
+                Acepto que el TecNM Iztapalapa me contacte con información sobre sus carreras.
               </label>
             </>
           )}

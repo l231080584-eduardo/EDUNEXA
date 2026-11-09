@@ -9,6 +9,7 @@ public record UsuarioResponse(
         String email,
         String whatsapp,
         Boolean interesTecnm,
+        Boolean consentimientoContacto,
         LocalDateTime fechaRegistro
 ) {
 }

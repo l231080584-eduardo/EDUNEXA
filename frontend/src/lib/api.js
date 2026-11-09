@@ -34,6 +34,12 @@ export async function getCareerCatalog() {
   return unwrap(await api.get('/evaluaciones/carreras'))
 }
 
+export async function getAdminEstudiantes(adminPassword) {
+  return unwrap(await api.get('/admin/estudiantes', {
+    headers: { 'X-Admin-Password': adminPassword },
+  }))
+}
+
 export function getApiError(error) {
   if (error.response?.status === 404 || error.response?.status === 500) {
     return 'El servidor no pudo procesar la solicitud. Comprueba que la API y su base de datos estén disponibles.'

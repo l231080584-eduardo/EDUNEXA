@@ -4,9 +4,12 @@ import com.enudexa.entity.ResultadoTest;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ResultadoTestRepository extends JpaRepository<ResultadoTest, Long> {
 
     List<ResultadoTest> findByUsuarioId(UUID usuarioId);
+
+    Optional<ResultadoTest> findTopByUsuarioIdOrderByFechaCreacionDesc(UUID usuarioId);
 }

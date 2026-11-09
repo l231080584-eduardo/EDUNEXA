@@ -9,6 +9,9 @@ import com.enudexa.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,6 +22,7 @@ public class EvaluacionService {
 
     private final ResultadoTestRepository resultadoTestRepository;
     private final UsuarioRepository usuarioRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public EvaluacionService(ResultadoTestRepository resultadoTestRepository,
                              UsuarioRepository usuarioRepository) {
@@ -39,6 +43,19 @@ public class EvaluacionService {
                 + normalizar(request.geolocalizacion()) * 0.15
                 + (esIztapalapa1 ? BONO_IZTAPALAPA_1 : 0.0);
         score = Math.min(1.0, score);
+        String carreraSugerida = null;
+        try {
+            List<String> carreras = objectMapper.readValue(
+                    request.topCarrerasJson() != null ? request.topCarrerasJson() : "[]",
+                    new TypeReference<List<String>>() {}
+            );
+            if (carreras != null && !carreras.isEmpty()) {
+                carreraSugerida = carreras.get(0);
+            }
+        } catch (Exception ignored) {
+            // If parsing fails, carreraSugerida remains null
+        }
+
         ResultadoTest resultado = ResultadoTest.builder()
                 .usuario(usuario)
                 .vectorRespuestas(request.vectorRespuestas())
@@ -46,6 +63,8 @@ public class EvaluacionService {
                 .reporteIa(request.reporteIa())
                 .puntajeGeneral(score)
                 .puntajeMatch(score)
+                .carreraSugerida(carreraSugerida)
+                .universidadRecomendada(request.universidadRecomendada())
                 .build();
 
         ResultadoTest guardado = resultadoTestRepository.save(resultado);

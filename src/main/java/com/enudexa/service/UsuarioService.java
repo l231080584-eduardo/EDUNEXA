@@ -44,6 +44,7 @@ public class UsuarioService {
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .whatsapp(whatsapp)
                 .interesTecnm(request.interesTecnm() != null && request.interesTecnm())
+                .consentimientoContacto(request.consentimientoContacto() != null && request.consentimientoContacto())
                 .build();
 
         try {
@@ -97,6 +98,7 @@ public class UsuarioService {
                 usuario.getEmail(),
                 usuario.getWhatsapp(),
                 usuario.getInteresTecnm(),
+                usuario.getConsentimientoContacto(),
                 usuario.getFechaRegistro()
         );
     }

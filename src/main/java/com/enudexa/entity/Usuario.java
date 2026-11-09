@@ -56,6 +56,10 @@ public class Usuario {
 
     @Builder.Default
     @Column(nullable = false)
+    private Boolean consentimientoContacto = false;
+
+    @Builder.Default
+    @Column(nullable = false)
     private LocalDateTime fechaRegistro = LocalDateTime.now();
 
     @Builder.Default

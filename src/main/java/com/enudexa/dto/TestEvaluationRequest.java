@@ -28,6 +28,7 @@ public record TestEvaluationRequest(
         Boolean esTecnmIztapalapa1,
         String vectorRespuestas,
         String topCarrerasJson,
-        String reporteIa
+        String reporteIa,
+        String universidadRecomendada
 ) {
 }

@@ -19,6 +19,7 @@ public record UsuarioRegistroRequest(
         @NotBlank(message = "El WhatsApp es obligatorio")
         @Pattern(regexp = "^\\d{10,20}$", message = "El WhatsApp debe contener solo dígitos (10 a 20)")
         String whatsapp,
-        Boolean interesTecnm
+        Boolean interesTecnm,
+        Boolean consentimientoContacto
 ) {
 }
