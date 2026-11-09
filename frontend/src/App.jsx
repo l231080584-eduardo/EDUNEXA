@@ -196,7 +196,7 @@ export default function App() {
         <Route path="/juego" element={
           <ProtectedMiniTest>
             <section className="mission-launch-section" id="evaluacion" aria-label="Inicia la misión arcade">
-              {hero ? <ArcadeCabinet hero={hero}><Arcade2DGame key={`quest-${hero.id}`} hero={hero} profile={profile} onGameComplete={handleGameComplete} onNoniUpdate={setNoniMessage} /></ArcadeCabinet> : <CharacterSelect open={true} onClose={() => navigate('/')} onSelect={chooseHero} suggestedHeroId={suggestedHeroId} />}
+              {hero ? <ArcadeCabinet hero={hero}><Arcade2DGame key={`quest-${hero.id}`} hero={hero} profile={profile} onGameComplete={handleGameComplete} /></ArcadeCabinet> : <CharacterSelect open={true} onClose={() => navigate('/')} onSelect={chooseHero} suggestedHeroId={suggestedHeroId} />}
             </section>
           </ProtectedMiniTest>
         } />

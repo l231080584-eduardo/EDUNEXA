@@ -145,21 +145,21 @@ function randomPassion(hero) {
   return random() < .56 ? hero : randomChoice(alternatives)
 }
 
-export default function Arcade2DGame({ hero = HERO, profile = null, onGameComplete = null, onNoniUpdate = null }) {
+export default function Arcade2DGame({ hero = HERO, profile = null, onGameComplete = null }) {
   const canvasRef = useRef(null)
   const gameRef = useRef(initialGame())
-  const callbackRef = useRef({ onGameComplete, onNoniUpdate })
+  const callbackRef = useRef({ onGameComplete })
   const artRef = useRef(null)
   const startNoniTimerRef = useRef(0)
   const [started, setStarted] = useState(false)
   const [hud, setHud] = useState({ time: 45, score: 0, xp: 0, freedom: 0, lives: 3, ammo: 12, wave: 1, progress: 0, bossHP: 4, bossName: BOSSES.tech, noniLine: gameRef.current.noniLine, done: false })
-  callbackRef.current = { onGameComplete, onNoniUpdate }
+  callbackRef.current = { onGameComplete }
 
   const say = useCallback((event, fixedLine = null) => {
     const game = gameRef.current
     const line = fixedLine || pickNoniLine(event, { nickname: profile?.nickname || profile?.nombre || 'piloto', hero: hero?.id || 'tech' })
     game.noniLine = `NONI: ${line}`
-    callbackRef.current.onNoniUpdate?.({ text: line, id: performance.now() })
+    window.dispatchEvent(new CustomEvent('edunexa:noni', { detail: { text: line, id: performance.now() } }))
   }, [hero, profile])
 
   const finishGame = useCallback(() => {

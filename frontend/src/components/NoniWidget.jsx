@@ -11,6 +11,43 @@ export default function NoniWidget({ message, subtitles = true }) {
   const speakTimerRef = useRef(null)
 
   useEffect(() => {
+    const handleNoniEvent = (event) => {
+      const text = event.detail?.text
+      if (!text || text === latestRef.current) return
+      latestRef.current = text
+      setCaption(text)
+      if (!voiceEnabled || !('speechSynthesis' in window)) return
+      window.speechSynthesis.cancel()
+      playRadioBeep()
+      let active = true
+      speakTimerRef.current = window.setTimeout(() => {
+        if (!active) return
+        waitForSpanishVoice(window.speechSynthesis).then((voice) => {
+          if (!active) return
+          const utterance = new SpeechSynthesisUtterance(text)
+          if (voice) utterance.voice = voice
+          utterance.lang = voice?.lang || 'es-MX'
+          utterance.pitch = 1.05
+          utterance.rate = 0.95
+          utterance.volume = 1.0
+          utterance.onstart = () => { if (active) setSpeaking(true) }
+          utterance.onboundary = (boundary) => {
+            if (active && typeof boundary.charIndex === 'number') setCaption(text.slice(0, boundary.charIndex + (boundary.charLength || 1)))
+          }
+          utterance.onend = () => { if (active) { setSpeaking(false); setCaption(text) } }
+          utterance.onerror = () => { if (active) setSpeaking(false) }
+          window.speechSynthesis.speak(utterance)
+        }).catch(() => { if (active) setSpeaking(false) })
+      }, 115)
+    }
+    window.addEventListener('edunexa:noni', handleNoniEvent)
+    return () => {
+      window.removeEventListener('edunexa:noni', handleNoniEvent)
+      window.clearTimeout(speakTimerRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
     const text = typeof message === 'string' ? message : message?.text
     if (!text || text === latestRef.current) return undefined
     latestRef.current = text
