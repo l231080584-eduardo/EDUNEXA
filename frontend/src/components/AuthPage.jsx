@@ -38,7 +38,7 @@ export default function AuthPage({ profile, onSave, onClose }) {
       return 'El correo debe contener @.'
     }
     const cleanedPhone = whatsapp.replace(/[\s\-+]/g, '')
-    if (cleanedPhone.length < 10 || !/^\d+$/.test(cleanedPhone)) {
+    if (mode === 'register' && (cleanedPhone.length < 10 || !/^\d+$/.test(cleanedPhone))) {
       return 'El WhatsApp debe tener al menos 10 dígitos.'
     }
     if (password.length < 8) {
@@ -87,7 +87,7 @@ export default function AuthPage({ profile, onSave, onClose }) {
       }
       onSave(usuario)
     } catch (err) {
-      const message = err?.message || getApiError(err) || 'No se pudo completar la operación.'
+      const message = getApiError(err) || err?.message || 'No se pudo completar la operación.'
       setError(message)
     } finally {
       setSaving(false)
