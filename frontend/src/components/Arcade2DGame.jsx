@@ -136,6 +136,7 @@ function initialGame() {
     targets: new Map(), liveIds: new Set(), bullets: [], particles: [], gemCounts: Object.fromEntries(CATEGORIES.map((key) => [key, 0])),
     passionHits: 0, zombieHits: 0, streak: 0, lowLivesNotified: false, lastReloadLine: -Infinity, input: { left: false, right: false, fire: false },
     wave: 1, banner: null, boss: null, bossSpawned: false, bossDefeatPending: false, lastBossLineAt: -Infinity,
+    shakeUntil: 0, shakeDuration: 0, shakeMagnitude: 0,
     noniLine: 'NONI: Lista para acompañarte. Presiona JUGAR cuando quieras iniciar.',
   }
 }
@@ -232,10 +233,10 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
         game.lastBossLineAt = performance.now()
         say('bossAppear')
       }
-      if (game.liveIds.size >= 5) return
+      if (game.liveIds.size >= 6) return
       const id = game.nextId++
       const wave = elapsed < 15 ? 1 : elapsed < 30 ? 2 : 3
-      const zombieChance = wave === 1 ? .32 : wave === 2 ? .27 : .24
+      const zombieChance = wave === 1 ? .35 : wave === 2 ? .30 : .27
       const isZombie = random() < zombieChance
       const target = isZombie
         ? { id, type: 'zombie', x: 970, y: FLOOR - 91, w: 68, h: 90, speed: 46 + random() * 22, frame: 0 }
@@ -268,8 +269,11 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
         if (target.hp <= 0 || game.bossDefeatPending) return
         target.hp -= 1
         game.score += 250
+        game.shakeUntil = now + 90
+        game.shakeDuration = 90
+        game.shakeMagnitude = 3
         playExplosion()
-        game.particles.push({ x: target.x + target.w / 2, y: target.y + 72, end: now + 320, color: '#ff7894' })
+        if (game.particles.length < 60) game.particles.push({ x: target.x + target.w / 2, y: target.y + 72, end: now + 320, color: '#ff7894' })
         if (target.hp === 0) {
           game.bossDefeatPending = true
           game.input.fire = false
@@ -298,7 +302,7 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       }
       playExplosion()
       removeTarget(target)
-      game.particles.push({ x: target.x + target.w / 2, y: target.y + target.h / 2, end: now + 320, color: target.type === 'zombie' ? '#ff456e' : GEM_CATEGORIES[target.category].color })
+      if (game.particles.length < 60) game.particles.push({ x: target.x + target.w / 2, y: target.y + target.h / 2, end: now + 320, color: target.type === 'zombie' ? '#ff456e' : GEM_CATEGORIES[target.category].color })
     }
 
     const takeDamage = (target, now) => {
@@ -306,6 +310,9 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       game.lives = Math.max(0, game.lives - 1)
       game.invulnerableUntil = now + 1000
       game.flashUntil = now + 260
+      game.shakeUntil = now + 150
+      game.shakeDuration = 150
+      game.shakeMagnitude = 5
       game.x = Math.max(40, game.x - 24)
       game.streak = 0
       if (target.type === 'boss') {
@@ -349,7 +356,7 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
     window.addEventListener('keydown', keyDown)
     window.addEventListener('keyup', keyUp)
     window.addEventListener('edunexa:arcade-control', control)
-    spawnInterval = window.setInterval(spawn, 880)
+    spawnInterval = window.setInterval(spawn, 700)
     const stopHandle = () => stopMusic()
     window.addEventListener('pagehide', stopHandle)
 
@@ -420,6 +427,11 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       }
 
       ctx.clearRect(0, 0, WIDTH, HEIGHT)
+      const shake = now < game.shakeUntil ? game.shakeMagnitude * ((game.shakeUntil - now) / game.shakeDuration) : 0
+      const shakeX = shake ? (random() * 2 - 1) * shake : 0
+      const shakeY = shake ? (random() * 2 - 1) * shake : 0
+      ctx.save()
+      ctx.translate(shakeX, shakeY)
       const waveIndex = Math.max(0, Math.min(2, game.wave - 1))
       ctx.drawImage(art.skies[waveIndex], 0, 0)
       const drawLayer = (layer, speed) => {
@@ -457,6 +469,7 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
         ctx.textAlign = 'center'; ctx.fillStyle = game.banner.color; ctx.font = '900 27px system-ui'; ctx.fillText(game.banner.title, WIDTH / 2, 103)
         ctx.fillStyle = '#f8f6ea'; ctx.font = '700 12px system-ui'; ctx.fillText(game.banner.subtitle, WIDTH / 2, 129)
       }
+      ctx.restore()
       if (game.done) {
         ctx.fillStyle = 'rgba(12,23,34,.78)'; ctx.fillRect(0, 0, WIDTH, HEIGHT)
         ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = '900 38px system-ui'; ctx.fillText(game.lives === 0 ? 'MISIÓN TERMINADA' : '¡MISIÓN COMPLETA!', WIDTH / 2, 245)
