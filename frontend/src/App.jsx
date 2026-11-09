@@ -1,6 +1,5 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, Routes, Route, Navigate } from 'react-router-dom'
-import { ArrowRight, Gamepad2 } from 'lucide-react'
 import CharacterSelect, { HERO_CLASSES } from './components/CharacterSelect'
 import MiniTest from './components/MiniTest'
 import ArcadeCabinet from './components/ArcadeCabinet'
@@ -21,7 +20,6 @@ const ACCESSIBILITY_KEY = 'edunexa-accessibility'
 const RECORD_STORAGE_KEY = 'edunexa-game-record'
 const MINITEST_STORAGE_KEY = 'edunexa-mini-test'
 const HERO_STORAGE_KEY = 'edunexa-hero'
-const Arcade3DGame = lazy(() => import('./components/Arcade3DGame'))
 
 function loadStoredValue(key, fallback) {
   try { const value = localStorage.getItem(key); return value ? { ...(fallback || {}), ...JSON.parse(value) } : fallback } catch { return fallback }
@@ -195,11 +193,10 @@ export default function App() {
         <Route path="/login" element={<AuthPage profile={profile} onSave={handleProfileSave} onClose={() => navigate('/')} />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/mini-test" element={<MiniTest open={true} onComplete={handleMiniTestComplete} />} />
-        <Route path="/preview-2d" element={<section className="mission-launch-section"><Arcade2DGame hero={HERO_CLASSES.find((item) => item.id === 'tech')} onGameComplete={() => {}} /></section>} />
         <Route path="/juego" element={
           <ProtectedMiniTest>
             <section className="mission-launch-section" id="evaluacion" aria-label="Inicia la misión arcade">
-              {hero ? <ArcadeCabinet hero={hero}><Suspense fallback={<div className="mission-launch-card webgl-loading"><span><Gamepad2 size={22} /></span><p className="eyebrow">CARGANDO ARCADE WEBGL</p><h2>Preparando tu máquina...</h2></div>}><Arcade3DGame key={`quest-${hero.id}`} hero={hero} profile={profile} onGameComplete={handleGameComplete} onNoniUpdate={setNoniMessage} /></Suspense></ArcadeCabinet> : <CharacterSelect open={true} onClose={() => navigate('/')} onSelect={chooseHero} suggestedHeroId={suggestedHeroId} />}
+              {hero ? <ArcadeCabinet hero={hero}><Arcade2DGame key={`quest-${hero.id}`} hero={hero} profile={profile} onGameComplete={handleGameComplete} onNoniUpdate={setNoniMessage} /></ArcadeCabinet> : <CharacterSelect open={true} onClose={() => navigate('/')} onSelect={chooseHero} suggestedHeroId={suggestedHeroId} />}
             </section>
           </ProtectedMiniTest>
         } />

@@ -85,6 +85,23 @@ class ArcadeAudioManager {
   playCoin() { [987.77, 1318.51, 1975.53].forEach((note, index) => this.tone(note, index * 0.075, .23, 'square', .035)) }
   playShot() { this.tone(180, 0, .09, 'sawtooth', .045); this.tone(680, 0, .055, 'square', .018) }
   playExplosion() { this.tone(115, 0, .2, 'triangle', .055); this.tone(78, .025, .29, 'sawtooth', .035); this.tone(440, .02, .11, 'sine', .035) }
+  playDamage() {
+    const ctx = this.init()
+    if (!ctx) return
+    try {
+      const oscillator = ctx.createOscillator()
+      const gain = ctx.createGain()
+      const start = ctx.currentTime
+      oscillator.type = 'sawtooth'
+      oscillator.frequency.setValueAtTime(220, start)
+      oscillator.frequency.exponentialRampToValueAtTime(90, start + .18)
+      gain.gain.setValueAtTime(.0001, start)
+      gain.gain.exponentialRampToValueAtTime(.055, start + .012)
+      gain.gain.exponentialRampToValueAtTime(.0001, start + .18)
+      oscillator.connect(gain); gain.connect(ctx.destination)
+      oscillator.start(start); oscillator.stop(start + .2)
+    } catch { /* SFX remain optional on devices without Web Audio support. */ }
+  }
   playReload() { [420, 310, 520].forEach((note, index) => this.tone(note, index * .075, .055, 'square', .024)) }
   playNavigate() { this.tone(440, 0, 0.08, 'triangle', 0.04); this.tone(660, 0.055, 0.1, 'triangle', 0.04) }
   playPortalJump() { [330, 440, 660, 880].forEach((note, index) => this.tone(note, index * 0.045, 0.18 - index * 0.02, 'sawtooth', 0.035)) }
@@ -175,6 +192,7 @@ export const playInsertCoin = playCoin
 export const playReload = () => playHowler('reload', () => arcadeAudio.playReload())
 export const playShot = () => playHowler('shot', () => arcadeAudio.playShot())
 export const playExplosion = () => playHowler('explosion', () => arcadeAudio.playExplosion())
+export const playDamage = () => arcadeAudio.playDamage()
 export const playNavigate = () => arcadeAudio.playNavigate()
 export const playPortalJump = () => arcadeAudio.playPortalJump()
 export function playArcadeCallout(text) {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { pickNoniLine, rememberNoniContext } from '../lib/noni'
-import { playArcadeCallout, playCoin, playExplosion, playNavigate, playReload, playShot, startMusic, stopMusic, waitForSpanishVoice } from '../lib/audio'
+import { playArcadeCallout, playCoin, playDamage, playExplosion, playNavigate, playReload, playShot, startMusic, stopMusic, waitForSpanishVoice } from '../lib/audio'
 import { random, randomChoice } from '../lib/random'
 import { GEM_CATEGORIES } from '../data/careers'
 
@@ -335,7 +335,7 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
         target.x = game.x + 18
         target.speed = 0
       }
-      playExplosion()
+      playDamage()
       if (game.lives > 1) say('damage')
       if (game.lives === 1 && !game.lowLivesNotified) { game.lowLivesNotified = true; say('lowLives') }
       if (game.lives === 0) finishGame()

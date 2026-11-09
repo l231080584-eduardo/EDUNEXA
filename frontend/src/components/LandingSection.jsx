@@ -4,7 +4,7 @@ import { playClick, playCoin } from '../lib/audio'
 
 const STEPS = [
   { icon: Shield, number: '01', title: 'Elige tu clase y equipamiento', text: 'Derecho, Salud, Tech, Artes, Negocios o Humanidades: entra al juego desde tu propia curiosidad.', color: '#9d8cff' },
-  { icon: Crosshair, number: '02', title: 'Combate Arcade 3D', text: 'Despeja las rutinas zombie y dispara a las pasiones que quieres explorar. Cada acierto deja una pista.', color: '#56efff' },
+  { icon: Crosshair, number: '02', title: 'Combate Arcade 2D', text: 'Despeja las rutinas zombie y dispara a las pasiones que quieres explorar. Cada acierto deja una pista.', color: '#56efff' },
   { icon: MapPinned, number: '03', title: 'Ruta GPS y diagnóstico laboral', text: 'Conoce carreras, campo laboral y sedes compatibles del catálogo nacional para planear el siguiente nivel.', color: '#ff74cf' },
 ]
 

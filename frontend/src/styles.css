@@ -462,11 +462,6 @@ kbd { display: inline-grid; min-width: 17px; height: 18px; place-items: center; 
 .arcade-screen-frame { position: relative; display: flex; min-height: 0; flex: 1; margin: clamp(7px, 1.2vh, 14px) 0; padding: clamp(5px, .8vw, 10px); overflow: hidden; border: 2px solid rgba(97, 239, 223, .62); border-radius: 19px; background: linear-gradient(145deg, #060812, #192036 52%, #060812); box-shadow: 0 0 12px rgba(47, 248, 220, .35), 0 0 35px rgba(72, 61, 240, .27), inset 0 0 17px rgba(79, 245, 220, .12); }
 .arcade-screen-glass { position: relative; display: flex; min-width: 0; min-height: 0; flex: 1; flex-direction: column; overflow: hidden; border: 1px solid rgba(171, 233, 255, .12); border-radius: 13px; background: #070914; box-shadow: inset 0 0 26px rgba(0, 0, 0, .8); }
 .arcade-screen-glass::after { position: absolute; z-index: 8; inset: 0; content: ""; pointer-events: none; border-radius: inherit; background: linear-gradient(126deg, rgba(255,255,255,.05), transparent 24%, transparent 79%, rgba(69,244,210,.045)), repeating-linear-gradient(0deg, transparent 0 4px, rgba(0,0,0,.12) 5px); }
-.arcade-cabinet .shooter-game { display: flex; height: 100%; min-height: 0; flex-direction: column; padding: 8px clamp(8px, 1.8vw, 22px); }
-.arcade-cabinet .arcade-game-heading { flex: 0 0 auto; }
-.arcade-cabinet .shooter-stage { height: 100%; min-height: 0; flex: 1; margin-top: 8px; }
-.arcade-cabinet .arcade-control-hint, .arcade-cabinet .shooter-legend { display: none; }
-.arcade-cabinet .webgl-crt-glass { opacity: .68; }
 .arcade-control-panel { display: grid; min-height: 84px; flex: 0 0 84px; grid-template-columns: 110px 1fr 150px; align-items: center; gap: clamp(8px, 2vw, 22px); padding: 5px clamp(12px, 3vw, 36px); border: 1px solid rgba(110, 114, 170, .28); border-radius: 8px 8px 18px 18px; background: linear-gradient(180deg, rgba(19, 24, 46, .96), rgba(8, 11, 26, .98)); box-shadow: inset 0 8px 18px rgba(0, 0, 0, .32); }
 .arcade-control-caption { display: block; margin-bottom: 7px; color: #99a8c4; font: 800 7px/1 ui-monospace, monospace; letter-spacing: .2em; text-align: center; }
 .arcade-joystick-area { justify-self: center; }
@@ -490,26 +485,11 @@ kbd { display: inline-grid; min-width: 17px; height: 18px; place-items: center; 
   .arcade-marquee-title { gap: 6px; }.arcade-marquee-title small { font-size: 6px; }.arcade-marquee-title strong { font-size: clamp(16px, 5vw, 22px); letter-spacing: .035em; }
   .arcade-marquee-star { font-size: 11px; }.arcade-coin-slot { gap: 4px; font-size: 6px; }.arcade-coin-slot b { height: 18px; }
   .arcade-screen-frame { margin: 7px 0; padding: 4px; border-radius: 11px; }.arcade-screen-glass { border-radius: 8px; }
-  .arcade-cabinet .shooter-game { padding: 6px 5px; }.arcade-cabinet .shooter-game h2 { font-size: clamp(19px, 6vw, 27px); }
-  .arcade-cabinet .shooter-stage { height: 100%; min-height: 0; max-height: none; flex: 1; margin-top: 6px; }
   .arcade-control-panel { min-height: 72px; flex-basis: 72px; grid-template-columns: 76px 1fr 100px; gap: 5px; padding: 4px 7px; border-radius: 6px 6px 12px 12px; }
   .arcade-joystick { width: 56px; height: 50px; }.joystick-up { left: 18px; }.joystick-down { left: 18px; }.joystick-left { top: 15px; }.joystick-right { top: 15px; right: 0; }.joystick-ball { top: 15px; left: 18px; width: 18px; height: 18px; }
   .arcade-panel-instructions { flex-wrap: wrap; gap: 5px; font-size: 6px; letter-spacing: .08em; }.arcade-action-buttons { grid-template-columns: repeat(2, 31px); gap: 6px; }.arcade-action-button { width: 30px; height: 25px; font-size: 8px; }
 }
-@media (max-width: 390px) {
-  .arcade-cabinet .shooter-stage { height: 100%; min-height: 0; }
-  .arcade-cabinet .shooter-class-chip { gap: 5px; padding: 6px; }.arcade-cabinet .shooter-class-chip strong { max-width: 105px; font-size: 7px; }.arcade-cabinet .shooter-class-chip small { max-width: 105px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .arcade-cabinet .webgl-hud { top: 8px; left: 8px; right: 8px; gap: 4px; font-size: 7px; letter-spacing: .03em; }
-}
-
-/* VOCATIONAL QUEST: native Canvas synthwave arcade */
-.arcade-game { position: relative; }
-.arcade-game-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 17px; }
-.arcade-game-heading .eyebrow { margin: 0; }
-.arcade-game-heading h2 { margin: 8px 0 0; font-size: clamp(25px, 4vw, 42px); font-weight: 780; letter-spacing: -.055em; text-shadow: 0 0 23px rgba(121, 102, 255, .3); }
-.arcade-game-heading h2 span { color: #f25bd4; }
-.arcade-stage { position: relative; height: clamp(470px, 65vw, 690px); overflow: hidden; border: 1px solid rgba(108, 232, 239, .55); border-radius: 17px; background: #090a1b; box-shadow: 0 0 25px rgba(47, 237, 236, .15), 0 0 80px rgba(190, 69, 255, .08), inset 0 0 35px rgba(79, 220, 245, .08); isolation: isolate; }
-.arcade-stage::after { position: absolute; z-index: 1; inset: 0; content: ""; pointer-events: none; background: repeating-linear-gradient(to bottom, transparent 0 3px, rgba(3, 4, 12, .11) 4px); mix-blend-mode: screen; }
+.arcade2d-game { isolation: isolate; }
 .arcade-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .route-estimate { display: grid; grid-template-columns: .8fr .8fr 1.5fr; gap: 12px; margin: 15px 0; padding: 14px; border: 1px solid rgba(101, 236, 228, .2); border-radius: 10px; background: rgba(101, 236, 228, .035); }
 .route-estimate > span { display: grid; gap: 5px; color: var(--cyan); font-size: 12px; }
@@ -559,8 +539,6 @@ kbd { display: inline-grid; min-width: 17px; height: 18px; place-items: center; 
 @keyframes noni-wave { from { height: 4px; opacity: .55; } to { height: 19px; opacity: 1; } }
 @keyframes noni-orbit { to { transform: rotate(360deg); } }
 @media (max-width: 640px) {
-  .arcade-game-heading { align-items: flex-start; flex-direction: column; }
-  .arcade-stage { height: min(75vh, 650px); min-height: 490px; }
   .route-estimate { grid-template-columns: 1fr 1fr; }
   .route-estimate > span:last-of-type { grid-column: 1 / -1; }
   .career-detail-grid { grid-template-columns: 1fr; gap: 9px; }
@@ -732,37 +710,6 @@ kbd { display: inline-grid; min-width: 17px; height: 18px; place-items: center; 
 .equip-footer p { margin: 0; color: #b9c9d9; font-size: 10px; line-height: 1.6; }
 .equip-footer p svg { margin-right: 5px; color: #ffcf72; vertical-align: middle; }
 .equip-hero-button { min-height: 42px; flex: 0 0 auto; }
-.shooter-game { padding: 20px 0 46px; scroll-margin-top: 95px; }
-.shooter-game h2 { margin: 3px 0; font-size: clamp(23px, 4vw, 39px); font-weight: 850; letter-spacing: -.055em; }
-.shooter-game h2 span { color: #ff78d4; text-shadow: 0 0 19px rgba(248, 100, 207, .37); }
-.shooter-class-chip { display: flex; align-items: center; gap: 9px; padding: 8px 11px; border: 1px solid color-mix(in srgb, var(--hero-color), transparent 58%); border-radius: 9px; background: color-mix(in srgb, var(--hero-color), transparent 95%); }
-.shooter-class-chip > span { font-size: 21px; }
-.shooter-class-chip div { display: grid; gap: 3px; }
-.shooter-class-chip strong { color: var(--hero-color); font-size: 9px; }
-.shooter-class-chip small { color: var(--muted); font-size: 8px; }
-.shooter-stage { min-height: 510px; height: min(69vh, 680px); margin-top: 12px; overflow: hidden; border: 1px solid transparent; border-radius: 15px; background: #0a0d20; background-clip: padding-box; box-shadow: 0 0 34px rgba(95, 111, 255, .09); }
-.shooter-stage::before { position: absolute; z-index: 1; inset: 0; content: ""; pointer-events: none; border: 1px solid rgba(102, 242, 242, .22); border-radius: inherit; box-shadow: inset 0 0 35px rgba(87, 138, 255, .09); }
-.webgl-stage { background: #070914; box-shadow: 0 0 28px rgba(53, 244, 192, .1), 0 0 70px rgba(255, 80, 196, .08); }
-.webgl-stage .shooter-canvas { position: absolute; inset: 0; z-index: 0; cursor: crosshair; }
-.webgl-crt-glass, .webgl-film-grain { position: absolute; z-index: 2; inset: 0; pointer-events: none; border-radius: inherit; }
-.webgl-crt-glass { background: linear-gradient(133deg, rgba(255,255,255,.025), transparent 31%, transparent 76%, rgba(57,255,216,.035)), repeating-linear-gradient(0deg, transparent 0 3px, rgba(8,14,22,.14) 4px); mix-blend-mode: screen; }
-.webgl-film-grain { z-index: 3; opacity: .15; background-image: repeating-radial-gradient(circle at 13% 37%, rgba(3,9,15,.45) 0 1px, transparent 1px 3px), repeating-linear-gradient(0deg, rgba(255,255,255,.045) 0 1px, transparent 1px 3px); mix-blend-mode: soft-light; animation: crt-noise .2s steps(2) infinite; }
-.webgl-hud, .webgl-subtitles { position: absolute; z-index: 4; display: flex; pointer-events: none; }
-.webgl-3d-label { display: block; max-width: 150px; color: inherit; font: 800 9px/1.15 ui-monospace, SFMono-Regular, Consolas, monospace; text-align: center; text-shadow: 0 1px 3px #071114, 0 0 7px currentColor; white-space: nowrap; }
-.webgl-hud { top: 13px; left: 14px; right: 14px; justify-content: space-between; gap: 8px; color: #abfff0; font: 800 9px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .11em; text-shadow: 0 0 8px rgba(44,255,207,.55); }
-.webgl-subtitles { bottom: 11px; left: 50%; width: min(500px, calc(100% - 26px)); justify-content: center; gap: 8px; padding: 7px 11px; transform: translateX(-50%); border: 1px solid rgba(44, 235, 189, .3); border-radius: 6px; color: #f0fff9; background: rgba(3, 19, 21, .88); box-shadow: 0 0 14px rgba(35, 225, 180, .1); font-size: 9px; line-height: 1.4; }
-.webgl-subtitles b { flex: 0 0 auto; color: #65f4d1; font: 800 8px/1.4 ui-monospace, monospace; letter-spacing: .13em; }
-.webgl-subtitles span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.webgl-damage-flash { position: absolute; z-index: 3; inset: 0; pointer-events: none; opacity: 0; border: 2px solid rgba(255, 55, 99, .8); background: radial-gradient(ellipse, transparent 35%, rgba(255, 26, 73, .3)); box-shadow: inset 0 0 75px rgba(255, 25, 75, .45); transition: opacity .08s linear; }
-.webgl-damage-flash.is-active { opacity: 1; animation: damage-pulse .26s ease-out forwards; }
-@keyframes damage-pulse { 0% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes crt-noise { 0% { background-position: 0 0, 0 0; } 50% { background-position: 2px -3px, 0 1px; } 100% { background-position: -2px 2px, 0 -1px; } }
-.shooter-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; color: var(--muted); font-size: 9px; }
-.shooter-legend > span { display: inline-flex; align-items: center; gap: 5px; }
-.shooter-legend small { color: var(--subtle); }
-.legend-zombie, .legend-passion { width: 9px; height: 9px; border-radius: 50%; background: #ff729a; box-shadow: 0 0 9px #ff729a; }
-.legend-passion { background: #67f3ef; box-shadow: 0 0 9px #67f3ef; }
-.shooter-badge { margin-left: auto; color: #ffcf72 !important; }
 @keyframes synth-grid { from { background-position: 0 0; } to { background-position: 0 30px; } }
 @keyframes blink { 50% { opacity: 0; } }
 @keyframes weapon-orbit { to { transform: rotate(360deg); } }
@@ -797,7 +744,6 @@ kbd { display: inline-grid; min-width: 17px; height: 18px; place-items: center; 
   .hero-class-card { min-height: 172px; padding: 10px; }
   .equip-footer { align-items: stretch; flex-direction: column; }
   .equip-hero-button { width: 100%; }
-  .shooter-stage { min-height: 480px; height: 66vh; }
   .minitest-overlay, .minitest-results { padding: 12px; }
   .minitest-card { padding: 20px 16px; }
   .minitest-scale { flex-wrap: wrap; }
