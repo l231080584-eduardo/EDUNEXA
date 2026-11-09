@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { useNavigate, Routes, Route, Navigate } from 'react-router-dom'
 import { ArrowRight, Gamepad2 } from 'lucide-react'
 import CharacterSelect, { HERO_CLASSES } from './components/CharacterSelect'
 import MiniTest from './components/MiniTest'
@@ -18,6 +19,7 @@ const STORAGE_KEY = 'edunexa-profile'
 const ACCESSIBILITY_KEY = 'edunexa-accessibility'
 const RECORD_STORAGE_KEY = 'edunexa-game-record'
 const MINITEST_STORAGE_KEY = 'edunexa-mini-test'
+const HERO_STORAGE_KEY = 'edunexa-hero'
 const Arcade3DGame = lazy(() => import('./components/Arcade3DGame'))
 
 function loadStoredValue(key, fallback) {
@@ -25,13 +27,20 @@ function loadStoredValue(key, fallback) {
 }
 
 export default function App() {
+  const navigate = useNavigate()
   const [profile, setProfile] = useState(() => loadStoredValue(STORAGE_KEY, null))
   const [record, setRecord] = useState(() => loadStoredValue(RECORD_STORAGE_KEY, null))
   const [settings, setSettings] = useState(() => loadStoredValue(ACCESSIBILITY_KEY, { fontScale: 0, highContrast: false, subtitles: true }))
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [characterSelectOpen, setCharacterSelectOpen] = useState(false)
-  const [miniTestOpen, setMiniTestOpen] = useState(false)
-  const [hero, setHero] = useState(null)
+  const [hero, setHero] = useState(() => {
+    try {
+      const storedHeroId = localStorage.getItem(HERO_STORAGE_KEY)
+      if (storedHeroId) {
+        const found = HERO_CLASSES.find((h) => h.id === storedHeroId)
+        return found || null
+      }
+    } catch { /* Hero persistence is best effort. */ }
+    return null
+  })
   const [miniTest, setMiniTest] = useState(() => loadStoredValue(MINITEST_STORAGE_KEY, null))
   const [suggestedHeroId, setSuggestedHeroId] = useState(null)
   const [result, setResult] = useState(() => loadStoredValue(RECORD_STORAGE_KEY, null)?.result || null)
@@ -73,10 +82,6 @@ export default function App() {
     saveRemoteGameRecord(record, profile.session).catch(() => { /* Local persistence is authoritative while the network is unavailable. */ })
   }, [profile, record])
   useEffect(() => {
-    if (!result) return
-    window.requestAnimationFrame(() => document.getElementById('resultados')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
-  }, [result])
-  useEffect(() => {
     getCareerCatalog().then((data) => { if (Array.isArray(data) && data.length) { setCareerCatalog(data); try { localStorage.setItem('edunexa-career-cache', JSON.stringify(data)) } catch { /* Optional catalog cache. */ } } }).catch(() => {
       try { const cached = JSON.parse(localStorage.getItem('edunexa-career-cache') || '[]'); if (Array.isArray(cached) && cached.length) setCareerCatalog(cached) } catch { /* The bundled catalog remains available. */ }
     })
@@ -84,19 +89,19 @@ export default function App() {
 
   function handleMiniTestComplete(miniTestResults, heroId) {
     setMiniTest(miniTestResults)
-    setMiniTestOpen(false)
     if (heroId) {
       const selectedHero = HERO_CLASSES.find((h) => h.id === heroId)
       if (selectedHero) {
         setHero(selectedHero)
+        try { localStorage.setItem(HERO_STORAGE_KEY, selectedHero.id) } catch { /* Hero persistence is best effort. */ }
         playArcadeCallout('OK! MISSION 1: START!')
         startMusic()
-        window.requestAnimationFrame(() => document.getElementById('evaluacion')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+        navigate('/juego', { replace: true })
         return
       }
     }
     setSuggestedHeroId(heroId || null)
-    setCharacterSelectOpen(true)
+    navigate('/juego', { replace: true })
   }
 
   function handleGameComplete(gameStats = {}) {
@@ -144,6 +149,7 @@ export default function App() {
         }).catch(() => { /* Backend NONI is optional; results remain available. */ })
       }
     }
+    navigate('/resultados', { replace: true })
   }
 
   async function handleProfileSave(savedProfile, auth = {}) {
@@ -181,28 +187,54 @@ export default function App() {
   }, [])
 
   function chooseHero(selection) {
-    playClick(); playArcadeCallout('OK! MISSION 1: START!'); startMusic(); setHero(selection); setCharacterSelectOpen(false)
-    window.requestAnimationFrame(() => document.getElementById('evaluacion')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+    playClick(); playArcadeCallout('OK! MISSION 1: START!'); startMusic(); setHero(selection)
+    try { localStorage.setItem(HERO_STORAGE_KEY, selection.id) } catch { /* Hero persistence is best effort. */ }
   }
 
   function restartMission() {
     stopMusic(); setResult(null); setReport(''); setCareers([]); setHero(null); setMetrics({ intereses: 0, materias: 0, estiloVida: 0, geolocalizacion: 0 }); setNoniBackend(null)
     try { localStorage.removeItem(RECORD_STORAGE_KEY) } catch { /* Cleanup is best effort. */ }
-    window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }))
+    try { localStorage.removeItem(HERO_STORAGE_KEY) } catch { /* Hero cleanup is best effort. */ }
+    navigate('/', { replace: true })
+  }
+
+  function ProtectedMiniTest({ children }) {
+    const hasMiniTest = Boolean(miniTest)
+    if (!hasMiniTest) return <Navigate to="/mini-test" replace />
+    return children
+  }
+
+  function ProtectedResults({ children }) {
+    const hasRecord = Boolean(loadStoredValue(RECORD_STORAGE_KEY, null)?.result)
+    if (!hasRecord) return <Navigate to="/" replace />
+    return children
   }
 
   return <div className="app-shell">
     <a href="#contenido" className="skip-link">Saltar al contenido</a>
-    <Navbar profile={profile} onLogin={() => setDialogOpen(true)} settings={settings} onSettingsChange={(change) => setSettings((current) => ({ ...current, ...change }))} hasResults={Boolean(result)} />
+    <Navbar profile={profile} onLogin={() => navigate('/login')} settings={settings} onSettingsChange={(change) => setSettings((current) => ({ ...current, ...change }))} hasResults={Boolean(result)} />
     <main id="contenido">
-      <LandingSection onStart={() => { playClick(); setMiniTestOpen(true) }} />
-      {result ? <section id="resultados" tabIndex="-1"><ResultsDashboard result={result} report={report} careers={careers} bonus={profile?.interesTecnm} profile={profile} metrics={metrics} savedRecord={record} onRecordUpdate={handleRecordUpdate} onRestart={restartMission} onNoniUpdate={setNoniMessage} noniBackend={noniBackend} miniTest={miniTest} /></section> : <>
-        <section className="mission-launch-section" id="evaluacion" aria-label="Inicia la misión arcade">{hero ? <ArcadeCabinet hero={hero}><Suspense fallback={<div className="mission-launch-card webgl-loading"><span><Gamepad2 size={22} /></span><p className="eyebrow">CARGANDO ARCADE WEBGL</p><h2>Preparando tu máquina...</h2></div>}><Arcade3DGame key={`quest-${hero.id}`} hero={hero} profile={profile} onGameComplete={handleGameComplete} onNoniUpdate={setNoniMessage} /></Suspense></ArcadeCabinet> : <div className="mission-launch-card"><span><Gamepad2 size={22} /></span><p className="eyebrow">TU MISIÓN TE ESPERA</p><h2>Escoge una clase y toma el control.</h2><p>Seis áreas, una misión y un copiloto a tu lado. Explora sin presión: no hay una respuesta incorrecta.</p><button className="equip-hero-button" type="button" onClick={() => { playClick(); setCharacterSelectOpen(true) }}>ELEGIR MI HÉROE <ArrowRight size={16} /></button></div>}</section>
-      </>}
+      <Routes>
+        <Route path="/" element={<LandingSection onStart={() => { playClick(); navigate('/mini-test') }} />} />
+        <Route path="/login" element={<IdentityDialog open={true} profile={profile} onClose={() => navigate('/')} onSave={handleProfileSave} />} />
+        <Route path="/mini-test" element={<MiniTest open={true} onComplete={handleMiniTestComplete} />} />
+        <Route path="/juego" element={
+          <ProtectedMiniTest>
+            <section className="mission-launch-section" id="evaluacion" aria-label="Inicia la misión arcade">
+              {hero ? <ArcadeCabinet hero={hero}><Suspense fallback={<div className="mission-launch-card webgl-loading"><span><Gamepad2 size={22} /></span><p className="eyebrow">CARGANDO ARCADE WEBGL</p><h2>Preparando tu máquina...</h2></div>}><Arcade3DGame key={`quest-${hero.id}`} hero={hero} profile={profile} onGameComplete={handleGameComplete} onNoniUpdate={setNoniMessage} /></Suspense></ArcadeCabinet> : <CharacterSelect open={true} onClose={() => navigate('/')} onSelect={chooseHero} suggestedHeroId={suggestedHeroId} />}
+            </section>
+          </ProtectedMiniTest>
+        } />
+        <Route path="/resultados" element={
+          <ProtectedResults>
+            <section id="resultados" tabIndex="-1">
+              <ResultsDashboard result={result} report={report} careers={careers} bonus={profile?.interesTecnm} profile={profile} metrics={metrics} savedRecord={record} onRecordUpdate={handleRecordUpdate} onRestart={restartMission} onNoniUpdate={setNoniMessage} noniBackend={noniBackend} miniTest={miniTest} />
+            </section>
+          </ProtectedResults>
+        } />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </main>
     <NoniWidget message={noniMessage} subtitles={settings.subtitles} />
-    <MiniTest open={miniTestOpen} onComplete={handleMiniTestComplete} />
-    <CharacterSelect open={characterSelectOpen} onClose={() => setCharacterSelectOpen(false)} onSelect={chooseHero} suggestedHeroId={suggestedHeroId} />
-    <IdentityDialog open={dialogOpen} profile={profile} onClose={() => setDialogOpen(false)} onSave={handleProfileSave} />
   </div>
 }
