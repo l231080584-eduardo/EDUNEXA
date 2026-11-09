@@ -40,7 +40,7 @@ services:
       DB_USER: sa
       DB_PASSWORD: Upiicsa1
       DB_URL: jdbc:sqlserver://db:1433;databaseName=ENUDEXA_DB;encrypt=false;trustServerCertificate=true
-      CORS_ORIGIN: http://localhost:5173,http://localhost:80,http://localhost
+      CORS_ORIGIN: http://localhost:5173,http://localhost:80,http://localhost,https://diy-reconstruction-previews-headers.trycloudflare.com,https://*.trycloudflare.com
       INGESTION_SOLO_TECNM: ${INGESTION_SOLO_TECNM:-false}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     ports:
