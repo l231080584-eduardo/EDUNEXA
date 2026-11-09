@@ -161,7 +161,11 @@ export default function App() {
 
   function handleProfileSave(usuario) {
     setProfile(usuario)
-    navigate('/mini-test', { replace: true })
+    if (miniTest) {
+      navigate('/juego', { replace: true })
+    } else {
+      navigate('/mini-test', { replace: true })
+    }
     if (record) setRecord((current) => current ? { ...current, playerId: usuario.id } : current)
   }
 
