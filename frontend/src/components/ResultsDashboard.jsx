@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Award, CheckCircle, ExternalLink, GraduationCap, MapPin, Navigation, RotateCcw, Sparkles, LocateFixed } from 'lucide-react'
 import { getCompatibleUniversities } from '../lib/api'
 import { GEM_CATEGORIES } from '../data/careers'
