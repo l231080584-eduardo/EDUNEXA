@@ -5,6 +5,11 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.core.io.ClassPathResource;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -24,6 +29,41 @@ import java.util.function.Predicate;
 public class IngestionService {
 
     private static final int JDBC_BATCH_SIZE = 1000;
+
+    /**
+     * Nombres normalizados de los 22 campus TecNM del catálogo.
+     * La ingesta del SIC NO debe crear carreras para estos campus.
+     */
+    private final Set<String> tecnmCatalogCampuses;
+
+    public IngestionService(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.tecnmCatalogCampuses = loadTecnmCatalogCampuses();
+    }
+
+    private Set<String> loadTecnmCatalogCampuses() {
+        Set<String> names = new HashSet<>();
+        try (InputStream is = new ClassPathResource("data/tecnmCatalog.json").getInputStream()) {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode catalog = mapper.readTree(is);
+            JsonNode campusNodes = catalog.path("campus");
+            if (campusNodes.isArray()) {
+                for (JsonNode campus : campusNodes) {
+                    String nombre = campus.path("nombre").asText("");
+                    if (!nombre.isBlank()) {
+                        names.add(normalize(nombre));
+                    }
+                }
+            }
+        } catch (IOException e) {
+            // Si no se puede cargar el catálogo, la ingesta funciona sin restricción
+        }
+        return names;
+    }
+
+    private boolean isTecnmCatalogCampus(String universidadNombre) {
+        return tecnmCatalogCampuses.contains(normalize(universidadNombre));
+    }
 
     private static final RowMapper<CarreraFila> CARRERA_ROW_MAPPER = (resultSet, rowNumber) ->
             new CarreraFila(
@@ -162,6 +202,11 @@ public class IngestionService {
         for (UniversidadIngestionDto universidad : datos) {
             UUID universidadId = idsUniversidadesPorNombre.get(normalizar(universidad.nombre()));
             if (universidadId == null) {
+                continue;
+            }
+
+            // PASO 1: Si es uno de los 22 campus del catálogo TecNM, no crear carreras
+            if (isTecnmCatalogCampus(universidad.nombre())) {
                 continue;
             }
 

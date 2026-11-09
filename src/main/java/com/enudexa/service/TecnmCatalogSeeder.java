@@ -24,7 +24,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-@Order(2)
+@Order(3)
 @RequiredArgsConstructor
 @Slf4j
 public class TecnmCatalogSeeder implements CommandLineRunner {
@@ -124,19 +124,19 @@ public class TecnmCatalogSeeder implements CommandLineRunner {
                             && ubicacion.contains("Telecomunicaciones");
                     existingUni.setEsTecnmIztapalapa1(esIztapalapa1);
 
-                    // Actualizar carreras
+                    // Actualizar carreras (conservar nombre completo con modalidad)
                     Set<Carrera> carrerasSet = new HashSet<>();
                     if (carrerasNode.isArray()) {
                         for (JsonNode carreraNode : carrerasNode) {
                             String carreraNombre = carreraNode.asText();
                             if (carreraNombre.isBlank()) continue;
-                            String carreraBase = carreraNombre.replaceAll("\\s*\\(.*?\\)", "").trim();
-                            String normalizedCarrera = normalize(carreraBase);
+                            String carreraCompleta = carreraNombre.trim();
+                            String normalizedCarrera = normalize(carreraCompleta);
                             Carrera carrera = careersByName.get(normalizedCarrera);
                             if (carrera == null) {
-                                String area = determineArea(carreraBase);
+                                String area = determineArea(carreraCompleta);
                                 carrera = new Carrera();
-                                carrera.setNombre(carreraBase);
+                                carrera.setNombre(carreraCompleta);
                                 carrera.setArea(area);
                                 carrera = carreraRepository.save(carrera);
                                 careersByName.put(normalizedCarrera, carrera);
@@ -168,19 +168,19 @@ public class TecnmCatalogSeeder implements CommandLineRunner {
                         String carreraNombre = carreraNode.asText();
                         if (carreraNombre.isBlank()) continue;
 
-                        String carreraBase = carreraNombre.replaceAll("\\s*\\(.*?\\)", "").trim();
-                        String normalizedCarrera = normalize(carreraBase);
+                        String carreraCompleta = carreraNombre.trim();
+                        String normalizedCarrera = normalize(carreraCompleta);
 
                         Carrera carrera = careersByName.get(normalizedCarrera);
                         if (carrera == null) {
-                            String area = determineArea(carreraBase);
+                            String area = determineArea(carreraCompleta);
                             carrera = new Carrera();
-                            carrera.setNombre(carreraBase);
+                            carrera.setNombre(carreraCompleta);
                             carrera.setArea(area);
                             carrera = carreraRepository.save(carrera);
                             careersByName.put(normalizedCarrera, carrera);
                             careersCreated++;
-                            log.debug("Carrera creada: {} (area: {})", carreraBase, area);
+                            log.debug("Carrera creada: {} (area: {})", carreraCompleta, area);
                         }
                         carrerasSet.add(carrera);
                     }
@@ -204,6 +204,9 @@ public class TecnmCatalogSeeder implements CommandLineRunner {
                 relationsCreated += carrerasSet.size();
                 log.info("Universidad TecNM creada: {} ({} carreras)", nombre, carrerasSet.size());
             }
+
+            // Limpiar relaciones extra de los 22 campus
+            cleanupExtraRelations();
 
             log.info("Catálogo TecNM cargado: {} creadas, {} actualizadas, {} carreras nuevas, {} relaciones",
                     universitiesCreated, universitiesUpdated, careersCreated, relationsCreated);
@@ -282,6 +285,64 @@ public class TecnmCatalogSeeder implements CommandLineRunner {
         universidad.setCarreras(exactSet);
         universidadRepository.save(universidad);
         log.info("Iztapalapa 1 carreras aseguradas: {} ({} carreras)", universidad.getNombre(), exactSet.size());
+    }
+
+    /**
+     * Al final del seeder, para cada uno de los 22 campus, eliminar las relaciones
+     * universidad-carrera que no estén en el catálogo (por nombre completo con modalidad).
+     * Esto limpia cualquier relación que la ingesta del SIC haya agregado.
+     */
+    private void cleanupExtraRelations() {
+        // Recargar el catálogo para obtener los nombres completos de carreras por campus
+        try (InputStream is = new ClassPathResource("data/tecnmCatalog.json").getInputStream()) {
+            JsonNode catalog = objectMapper.readTree(is);
+            JsonNode campusNodes = catalog.path("campus");
+            if (!campusNodes.isArray()) return;
+
+            // Cargar todas las carreras en un mapa por nombre normalizado
+            java.util.Map<String, Carrera> allCareers = new java.util.HashMap<>();
+            carreraRepository.findAll().forEach(c -> {
+                allCareers.put(normalize(c.getNombre()), c);
+            });
+
+            for (JsonNode campus : campusNodes) {
+                String nombre = campus.path("nombre").asText();
+                if (nombre.isBlank()) continue;
+
+                Universidad uni = universidadRepository.findAll().stream()
+                        .filter(u -> normalize(u.getNombre()).equals(normalize(nombre)))
+                        .findFirst().orElse(null);
+                if (uni == null) continue;
+
+                // Obtener las carreras del catálogo para este campus (nombre completo)
+                Set<UUID> catalogCareerIds = new HashSet<>();
+                JsonNode carrerasNode = campus.path("carreras");
+                if (carrerasNode.isArray()) {
+                    for (JsonNode carreraNode : carrerasNode) {
+                        String carreraNombre = carreraNode.asText().trim();
+                        Carrera c = allCareers.get(normalize(carreraNombre));
+                        if (c != null) {
+                            catalogCareerIds.add(c.getId());
+                        }
+                    }
+                }
+
+                // Obtener las carreras actuales de la universidad
+                Set<UUID> currentCareerIds = uni.getCarreras().stream()
+                        .map(Carrera::getId)
+                        .collect(Collectors.toSet());
+
+                // Eliminar las que no están en el catálogo
+                currentCareerIds.removeAll(catalogCareerIds);
+                if (!currentCareerIds.isEmpty()) {
+                    log.info("Eliminando {} carreras extra de {}", currentCareerIds.size(), nombre);
+                    uni.getCarreras().removeIf(c -> !catalogCareerIds.contains(c.getId()));
+                    universidadRepository.save(uni);
+                }
+            }
+        } catch (IOException e) {
+            log.warn("Error al limpiar relaciones extra: {}", e.getMessage());
+        }
     }
 
     private String determineArea(String carreraNombre) {
