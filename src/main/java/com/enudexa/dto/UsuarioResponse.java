@@ -7,6 +7,8 @@ public record UsuarioResponse(
         UUID id,
         String nombre,
         String email,
+        String whatsapp,
+        Boolean interesTecnm,
         LocalDateTime fechaRegistro
 ) {
 }

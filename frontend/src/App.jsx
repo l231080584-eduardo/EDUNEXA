@@ -4,7 +4,7 @@ import { ArrowRight, Gamepad2 } from 'lucide-react'
 import CharacterSelect, { HERO_CLASSES } from './components/CharacterSelect'
 import MiniTest from './components/MiniTest'
 import ArcadeCabinet from './components/ArcadeCabinet'
-import IdentityDialog from './components/IdentityDialog'
+import AuthPage from './components/AuthPage'
 import LandingSection from './components/LandingSection'
 import Navbar from './components/Navbar'
 import NoniWidget from './components/NoniWidget'
@@ -13,7 +13,6 @@ import { buildGameMetrics, CAREER_CATALOG, recommendCareers } from './data/caree
 import { createReport } from './data/questions'
 import { evaluateArcadeNoni, evaluateTest, getCareerCatalog } from './lib/api'
 import { playArcadeCallout, playClick, startMusic, stopMusic } from './lib/audio'
-import { isSupabaseConfigured, loadRemoteGameRecord, loginPlayer, refreshPlayerSession, registerPlayer, saveRemoteGameRecord } from './lib/db'
 
 const STORAGE_KEY = 'edunexa-profile'
 const ACCESSIBILITY_KEY = 'edunexa-accessibility'
@@ -58,29 +57,6 @@ export default function App() {
   useEffect(() => { try { if (profile?.id) localStorage.setItem(STORAGE_KEY, JSON.stringify(profile)); else localStorage.removeItem(STORAGE_KEY) } catch { /* The mission remains playable without browser storage. */ } }, [profile])
   useEffect(() => { try { if (record) localStorage.setItem(RECORD_STORAGE_KEY, JSON.stringify(record)) } catch { /* Local record storage is best effort. */ } }, [record])
   useEffect(() => { try { if (miniTest) localStorage.setItem(MINITEST_STORAGE_KEY, JSON.stringify(miniTest)); else localStorage.removeItem(MINITEST_STORAGE_KEY) } catch { /* Mini-test storage is best effort. */ } }, [miniTest])
-  useEffect(() => {
-    if (!profile?.session?.access_token) return undefined
-    let active = true
-    loadRemoteGameRecord(profile.session).then((remoteRecord) => {
-      if (!active || !remoteRecord?.result) return
-      setRecord(remoteRecord); setResult(remoteRecord.result); setReport(remoteRecord.report || ''); setCareers(remoteRecord.careers || []); setMetrics(remoteRecord.metrics || {})
-    }).catch(() => { /* The saved local record stays available when cloud sync is offline. */ })
-    return () => { active = false }
-  }, [profile?.session?.access_token, profile?.id])
-  useEffect(() => {
-    const session = profile?.session
-    if (!session?.refresh_token || Number(session.expires_at || 0) * 1000 > Date.now() + 60000) return undefined
-    let active = true
-    refreshPlayerSession(session.refresh_token).then((refreshed) => {
-      if (!active || !refreshed?.access_token) return
-      setProfile((current) => current?.id === profile.id ? { ...current, session: { access_token: refreshed.access_token, refresh_token: refreshed.refresh_token || session.refresh_token, expires_at: refreshed.expires_at, user: { id: current.id } } } : current)
-    }).catch(() => { /* The record remains available from the local memory card. */ })
-    return () => { active = false }
-  }, [profile?.id, profile?.session?.expires_at, profile?.session?.refresh_token])
-  useEffect(() => {
-    if (!record || !profile?.session?.access_token || record.playerId !== profile.id) return
-    saveRemoteGameRecord(record, profile.session).catch(() => { /* Local persistence is authoritative while the network is unavailable. */ })
-  }, [profile, record])
   useEffect(() => {
     getCareerCatalog().then((data) => { if (Array.isArray(data) && data.length) { setCareerCatalog(data); try { localStorage.setItem('edunexa-career-cache', JSON.stringify(data)) } catch { /* Optional catalog cache. */ } } }).catch(() => {
       try { const cached = JSON.parse(localStorage.getItem('edunexa-career-cache') || '[]'); if (Array.isArray(cached) && cached.length) setCareerCatalog(cached) } catch { /* The bundled catalog remains available. */ }
@@ -152,34 +128,15 @@ export default function App() {
     navigate('/resultados', { replace: true })
   }
 
-  async function handleProfileSave(savedProfile, auth = {}) {
-    let nextProfile = { ...savedProfile }
-    if (isSupabaseConfigured) {
-      const authResult = auth.mode === 'login'
-        ? await loginPlayer(auth.email, auth.password)
-        : await registerPlayer(auth.email, auth.password, savedProfile)
-      const user = authResult.user || authResult.session?.user
-      if (user?.id) {
-        const metadata = user.user_metadata || {}
-        const details = auth.mode === 'login' ? {} : savedProfile
-        nextProfile = {
-          ...details,
-          id: user.id,
-          nombre: metadata.nombre || details.nombre || user.email?.split('@')[0] || 'Jugador EDUNEXA',
-          nickname: metadata.nickname || details.nickname || '',
-          telefono: metadata.telefono || details.telefono || '',
-          escuela: metadata.escuela || details.escuela || '',
-          interesTecnm: metadata.interesTecnm ?? details.interesTecnm ?? false,
-          folio: metadata.folio || details.folio || `EDU-${globalThis.crypto?.randomUUID?.() || Date.now().toString(36)}`,
-          email: user.email || auth.email,
-          session: authResult.session ? { access_token: authResult.session.access_token, refresh_token: authResult.session.refresh_token, expires_at: authResult.session.expires_at, user: { id: user.id } } : null,
-        }
-      }
-      if (!authResult.session && auth.mode !== 'login') setNoniMessage({ text: 'Tu tarjeta se creó. Revisa tu correo para confirmar la cuenta y activar la sincronización en la nube.', id: Date.now() })
-    }
-    setProfile(nextProfile)
-    if (record) setRecord((current) => current ? { ...current, playerId: nextProfile.id } : current)
-    return nextProfile
+  function handleProfileSave(usuario) {
+    setProfile(usuario)
+    if (record) setRecord((current) => current ? { ...current, playerId: usuario.id } : current)
+  }
+
+  function handleLogout() {
+    setProfile(null)
+    try { localStorage.removeItem(STORAGE_KEY) } catch { /* Cleanup is best effort. */ }
+    navigate('/', { replace: true })
   }
 
   const handleRecordUpdate = useCallback((mapData) => {
@@ -198,13 +155,23 @@ export default function App() {
     navigate('/', { replace: true })
   }
 
+  function ProtectedSession({ children }) {
+    const hasProfile = Boolean(profile?.id)
+    if (!hasProfile) return <Navigate to="/login" replace />
+    return children
+  }
+
   function ProtectedMiniTest({ children }) {
+    const hasProfile = Boolean(profile?.id)
+    if (!hasProfile) return <Navigate to="/login" replace />
     const hasMiniTest = Boolean(miniTest)
     if (!hasMiniTest) return <Navigate to="/mini-test" replace />
     return children
   }
 
   function ProtectedResults({ children }) {
+    const hasProfile = Boolean(profile?.id)
+    if (!hasProfile) return <Navigate to="/login" replace />
     const hasRecord = Boolean(result) || Boolean(loadStoredValue(RECORD_STORAGE_KEY, null)?.result)
     if (!hasRecord) return <Navigate to="/" replace />
     return children
@@ -212,11 +179,11 @@ export default function App() {
 
   return <div className="app-shell">
     <a href="#contenido" className="skip-link">Saltar al contenido</a>
-    <Navbar profile={profile} onLogin={() => navigate('/login')} settings={settings} onSettingsChange={(change) => setSettings((current) => ({ ...current, ...change }))} hasResults={Boolean(result)} />
+    <Navbar profile={profile} onLogin={() => navigate('/login')} onLogout={handleLogout} settings={settings} onSettingsChange={(change) => setSettings((current) => ({ ...current, ...change }))} hasResults={Boolean(result)} />
     <main id="contenido">
       <Routes>
         <Route path="/" element={<LandingSection onStart={() => { playClick(); navigate('/mini-test') }} />} />
-        <Route path="/login" element={<IdentityDialog open={true} profile={profile} onClose={() => navigate('/')} onSave={handleProfileSave} />} />
+        <Route path="/login" element={<AuthPage profile={profile} onSave={handleProfileSave} onClose={() => navigate('/')} />} />
         <Route path="/mini-test" element={<MiniTest open={true} onComplete={handleMiniTestComplete} />} />
         <Route path="/juego" element={
           <ProtectedMiniTest>

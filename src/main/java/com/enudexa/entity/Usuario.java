@@ -47,6 +47,13 @@ public class Usuario {
     @ToString.Exclude
     private String passwordHash;
 
+    @Column(length = 20)
+    private String whatsapp;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean interesTecnm = false;
+
     @Builder.Default
     @Column(nullable = false)
     private LocalDateTime fechaRegistro = LocalDateTime.now();

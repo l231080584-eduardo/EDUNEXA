@@ -37,10 +37,13 @@ public class UsuarioService {
         }
 
         validarLongitudPassword(request.password());
+        String whatsapp = request.whatsapp() != null ? request.whatsapp().replaceAll("[^0-9]", "") : null;
         Usuario usuario = Usuario.builder()
                 .nombre(request.nombre().trim())
                 .email(email)
                 .passwordHash(passwordEncoder.encode(request.password()))
+                .whatsapp(whatsapp)
+                .interesTecnm(request.interesTecnm() != null && request.interesTecnm())
                 .build();
 
         try {
@@ -92,6 +95,8 @@ public class UsuarioService {
                 usuario.getId(),
                 usuario.getNombre(),
                 usuario.getEmail(),
+                usuario.getWhatsapp(),
+                usuario.getInteresTecnm(),
                 usuario.getFechaRegistro()
         );
     }
