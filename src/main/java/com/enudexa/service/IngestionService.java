@@ -36,6 +36,8 @@ public class IngestionService {
      */
     private final Set<String> tecnmCatalogCampuses;
 
+    private final JdbcTemplate jdbcTemplate;
+
     public IngestionService(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
         this.tecnmCatalogCampuses = loadTecnmCatalogCampuses();
@@ -51,7 +53,7 @@ public class IngestionService {
                 for (JsonNode campus : campusNodes) {
                     String nombre = campus.path("nombre").asText("");
                     if (!nombre.isBlank()) {
-                        names.add(normalize(nombre));
+                        names.add(normalizar(nombre));
                     }
                 }
             }
@@ -62,7 +64,7 @@ public class IngestionService {
     }
 
     private boolean isTecnmCatalogCampus(String universidadNombre) {
-        return tecnmCatalogCampuses.contains(normalize(universidadNombre));
+        return tecnmCatalogCampuses.contains(normalizar(universidadNombre));
     }
 
     private static final RowMapper<CarreraFila> CARRERA_ROW_MAPPER = (resultSet, rowNumber) ->
@@ -70,12 +72,6 @@ public class IngestionService {
                     UUID.fromString(resultSet.getString("id")),
                     resultSet.getString("nombre"),
                     resultSet.getString("area"));
-
-    private final JdbcTemplate jdbcTemplate;
-
-    public IngestionService(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
 
     @Transactional
     public void procesarIngestion(List<UniversidadIngestionDto> datos) {
