@@ -1,5 +1,6 @@
 package com.enudexa.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -45,6 +46,7 @@ public class Usuario {
 
     @Column(nullable = false)
     @ToString.Exclude
+    @JsonIgnore
     private String passwordHash;
 
     @Column(length = 20)
@@ -65,6 +67,7 @@ public class Usuario {
     @Builder.Default
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
+    @JsonIgnore
     private Set<ResultadoTest> resultadosTest = new HashSet<>();
 
     @PrePersist
