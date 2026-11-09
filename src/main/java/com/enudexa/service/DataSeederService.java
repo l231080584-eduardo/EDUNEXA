@@ -142,23 +142,8 @@ public class DataSeederService implements CommandLineRunner {
             log.info("Catálogo base de carreras cargado.");
         }
 
-        if (universidadRepository.findByEsTecnmIztapalapa1True().isEmpty()) {
-            Carrera sistemas = carreraRepository.findAll().stream()
-                    .filter(carrera -> carrera.getNombre().contains("Sistemas Computacionales"))
-                    .findFirst().orElse(null);
-            Universidad plantel = Universidad.builder()
-                    .nombre("TecNM Plantel Iztapalapa 1")
-                    .tipo("Instituto tecnológico")
-                    .latitud(19.3562)
-                    .longitud(-99.0141)
-                    .direccion("Av. Telecomunicaciones s/n, Tepalcates, Iztapalapa, Ciudad de México")
-                    .sitioWeb("https://iztapalapa1.tecnm.mx/")
-                    .esTecnmIztapalapa1(true)
-                    .carreras(sistemas == null ? Set.of() : Set.of(sistemas))
-                    .build();
-            universidadRepository.save(plantel);
-            log.info("Plantel TecNM Iztapalapa 1 agregado al catálogo base.");
-        }
+        // TecNM Iztapalapa 1 ya no se crea aquí: el catálogo TecNM (TecnmCatalogSeeder)
+        // es la única fuente de los 22 campus, incluyendo Instituto Tecnológico de Iztapalapa.
     }
 
     private Carrera crearCarrera(

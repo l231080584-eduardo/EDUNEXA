@@ -18,8 +18,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.Normalizer;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Order(2)
@@ -56,6 +58,10 @@ public class TecnmCatalogSeeder implements CommandLineRunner {
     public void run(String... args) {
         try {
             log.info("Cargando catálogo TecNM desde JSON...");
+
+            // PASO 3: Limpiar duplicados de Iztapalapa 1 antes de procesar el catálogo
+            cleanupIztapalapaDuplicates();
+
             JsonNode catalog;
             try (InputStream is = new ClassPathResource("data/tecnmCatalog.json").getInputStream()) {
                 catalog = objectMapper.readTree(is);
@@ -74,6 +80,7 @@ public class TecnmCatalogSeeder implements CommandLineRunner {
             });
 
             int universitiesCreated = 0;
+            int universitiesUpdated = 0;
             int careersCreated = 0;
             int relationsCreated = 0;
 
@@ -85,32 +92,85 @@ public class TecnmCatalogSeeder implements CommandLineRunner {
 
                 if (nombre.isBlank()) continue;
 
-                // Check if university already exists
+                // PASO 1: Upsert en vez de saltar — buscar por nombre normalizado
+                // El alias "TecNM Plantel Iztapalapa 1" solo se busca cuando el campus es Iztapalapa
                 String normalizedNombre = normalize(nombre);
-                boolean exists = universidadRepository.findAll().stream()
-                        .anyMatch(u -> normalize(u.getNombre()).equals(normalizedNombre));
+                boolean isIztapalapaCampus = nombre.contains("Iztapalapa") && !nombre.contains("II") && !nombre.contains("III");
+                Universidad existingUni = universidadRepository.findAll().stream()
+                        .filter(u -> {
+                            String uNorm = normalize(u.getNombre());
+                            if (uNorm.equals(normalizedNombre)) return true;
+                            // Alias solo para Iztapalapa
+                            if (isIztapalapaCampus && uNorm.equals("tecnm plantel iztapalapa 1")) return true;
+                            return false;
+                        })
+                        .findFirst()
+                        .orElse(null);
 
-                if (exists) {
-                    log.debug("Universidad ya existe: {}", nombre);
+                if (existingUni != null) {
+                    // Actualizar el registro existente (upsert)
+                    if (normalize(existingUni.getNombre()).equals("tecnm plantel iztapalapa 1")) {
+                        // Es el alias viejo, renombrar al nombre oficial
+                        existingUni.setNombre(nombre);
+                        log.info("Alias actualizado: TecNM Plantel Iztapalapa 1 -> {}", nombre);
+                    }
+                    existingUni.setLatitud(coordinatesForCampus(nombre).lat());
+                    existingUni.setLongitud(coordinatesForCampus(nombre).lng());
+                    existingUni.setDireccion(ubicacion);
+                    existingUni.setSitioWeb(fuente);
+                    existingUni.setTipo("Instituto tecnológico");
+
+                    boolean esIztapalapa1 = nombre.contains("Iztapalapa") && !nombre.contains("II") && !nombre.contains("III")
+                            && ubicacion.contains("Telecomunicaciones");
+                    existingUni.setEsTecnmIztapalapa1(esIztapalapa1);
+
+                    // Actualizar carreras
+                    Set<Carrera> carrerasSet = new HashSet<>();
+                    if (carrerasNode.isArray()) {
+                        for (JsonNode carreraNode : carrerasNode) {
+                            String carreraNombre = carreraNode.asText();
+                            if (carreraNombre.isBlank()) continue;
+                            String carreraBase = carreraNombre.replaceAll("\\s*\\(.*?\\)", "").trim();
+                            String normalizedCarrera = normalize(carreraBase);
+                            Carrera carrera = careersByName.get(normalizedCarrera);
+                            if (carrera == null) {
+                                String area = determineArea(carreraBase);
+                                carrera = new Carrera();
+                                carrera.setNombre(carreraBase);
+                                carrera.setArea(area);
+                                carrera = carreraRepository.save(carrera);
+                                careersByName.put(normalizedCarrera, carrera);
+                                careersCreated++;
+                            }
+                            carrerasSet.add(carrera);
+                        }
+                    }
+                    existingUni.setCarreras(carrerasSet);
+                    universidadRepository.save(existingUni);
+                    universitiesUpdated++;
+                    relationsCreated += carrerasSet.size();
+                    log.info("Universidad TecNM actualizada (upsert): {} ({} carreras)", nombre, carrerasSet.size());
+
+                    // PASO 3 especial: si es Iztapalapa, asegurar exactamente 4 carreras
+                    if (esIztapalapa1) {
+                        ensureIztapalapaExactCareers(existingUni, careersByName);
+                    }
                     continue;
                 }
 
-                // Determine if this is Iztapalapa 1
+                // No existe, crear nueva
                 boolean esIztapalapa1 = nombre.contains("Iztapalapa") && !nombre.contains("II") && !nombre.contains("III")
                         && ubicacion.contains("Telecomunicaciones");
 
-                // Create careers for this campus
                 Set<Carrera> carrerasSet = new HashSet<>();
                 if (carrerasNode.isArray()) {
                     for (JsonNode carreraNode : carrerasNode) {
                         String carreraNombre = carreraNode.asText();
                         if (carreraNombre.isBlank()) continue;
 
-                        // Skip virtual/distance variants for the main career entry
                         String carreraBase = carreraNombre.replaceAll("\\s*\\(.*?\\)", "").trim();
                         String normalizedCarrera = normalize(carreraBase);
 
-                        // Find or create the career
                         Carrera carrera = careersByName.get(normalizedCarrera);
                         if (carrera == null) {
                             String area = determineArea(carreraBase);
@@ -126,19 +186,13 @@ public class TecnmCatalogSeeder implements CommandLineRunner {
                     }
                 }
 
-                // Extract coordinates from location if possible
-                Double lat = null;
-                Double lng = null;
                 Coordinates coords = coordinatesForCampus(nombre);
-                lat = coords.lat();
-                lng = coords.lng();
 
-                // Create university
                 Universidad universidad = Universidad.builder()
                         .nombre(nombre)
                         .tipo("Instituto tecnológico")
-                        .latitud(lat)
-                        .longitud(lng)
+                        .latitud(coords.lat())
+                        .longitud(coords.lng())
                         .direccion(ubicacion)
                         .sitioWeb(fuente)
                         .esTecnmIztapalapa1(esIztapalapa1)
@@ -151,11 +205,83 @@ public class TecnmCatalogSeeder implements CommandLineRunner {
                 log.info("Universidad TecNM creada: {} ({} carreras)", nombre, carrerasSet.size());
             }
 
-            log.info("Catálogo TecNM cargado: {} universidades, {} carreras nuevas, {} relaciones",
-                    universitiesCreated, careersCreated, relationsCreated);
+            log.info("Catálogo TecNM cargado: {} creadas, {} actualizadas, {} carreras nuevas, {} relaciones",
+                    universitiesCreated, universitiesUpdated, careersCreated, relationsCreated);
         } catch (IOException e) {
             log.error("Error al cargar catálogo TecNM: {}", e.getMessage(), e);
         }
+    }
+
+    /**
+     * PASO 3: Eliminar duplicados de Iztapapa 1 antes de procesar el catálogo.
+     * Si hay dos registros con esTecnmIztapalapa1=true, se elimina el viejo "TecNM Plantel Iztapalapa 1"
+     * con todas sus relaciones de carrera.
+     */
+    private void cleanupIztapalapaDuplicates() {
+        List<Universidad> iztapalapaList = universidadRepository.findByEsTecnmIztapalapa1True();
+        if (iztapalapaList.size() <= 1) {
+            return;
+        }
+        log.warn("Detectados {} duplicados de Iztapalapa 1, limpiando...", iztapalapaList.size());
+
+        // Buscar el registro del catálogo (nombre oficial) y el viejo alias
+        Universidad catalogVersion = null;
+        Universidad oldAlias = null;
+        for (Universidad u : iztapalapaList) {
+            String norm = normalize(u.getNombre());
+            if (norm.equals("instituto tecnologico de iztapalapa") && !norm.equals("tecnm plantel iztapalapa 1")) {
+                catalogVersion = u;
+            } else if (norm.equals("tecnm plantel iztapalapa 1")) {
+                oldAlias = u;
+            }
+        }
+
+        // Si hay el alias viejo, eliminarlo con sus relaciones
+        if (oldAlias != null) {
+            log.info("Eliminando duplicado viejo: {} (id: {})", oldAlias.getNombre(), oldAlias.getId());
+            // Primero limpiar las relaciones de carrera
+            oldAlias.setCarreras(new HashSet<>());
+            universidadRepository.save(oldAlias);
+            universidadRepository.delete(oldAlias);
+            log.info("Duplicado eliminado y relaciones limpiadas.");
+        } else if (iztapalapaList.size() > 1) {
+            // Si hay más de uno y no es el alias conocido, quedarse con el primero y eliminar los demás
+            Universidad keep = iztapalapaList.get(0);
+            for (int i = 1; i < iztapalapaList.size(); i++) {
+                Universidad toDelete = iztapalapaList.get(i);
+                log.info("Eliminando duplicado extra: {} (id: {})", toDelete.getNombre(), toDelete.getId());
+                toDelete.setCarreras(new HashSet<>());
+                universidadRepository.save(toDelete);
+                universidadRepository.delete(toDelete);
+            }
+        }
+    }
+
+    /**
+     * PASO 3: Asegurar que Iztapalapa tenga exactamente 4 carreras y ninguna otra.
+     */
+    private void ensureIztapalapaExactCareers(Universidad universidad, java.util.Map<String, Carrera> careersByName) {
+        String[] exactCareers = {
+                "Ingeniería en Sistemas Computacionales",
+                "Ingeniería Industrial",
+                "Ingeniería Mecatrónica",
+                "Ingeniería en Gestión Empresarial"
+        };
+
+        Set<Carrera> exactSet = new HashSet<>();
+        for (String careerName : exactCareers) {
+            Carrera c = careersByName.get(normalize(careerName));
+            if (c != null) {
+                exactSet.add(c);
+            } else {
+                log.warn("Carrera no encontrada para Iztapalapa: {}", careerName);
+            }
+        }
+
+        // Reemplazar todas las carreras con exactamente estas 4
+        universidad.setCarreras(exactSet);
+        universidadRepository.save(universidad);
+        log.info("Iztapalapa 1 carreras aseguradas: {} ({} carreras)", universidad.getNombre(), exactSet.size());
     }
 
     private String determineArea(String carreraNombre) {
