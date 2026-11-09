@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { pickNoniLine, rememberNoniContext } from '../lib/noni'
-import { playArcadeCallout, playCoin, playDamage, playExplosion, playNavigate, playReload, playShot, startMusic, stopMusic, waitForSpanishVoice } from '../lib/audio'
+import { playArcadeCallout, playCoin, playDamage, playExplosion, playNavigate, playReload, playShot, startMusic, stopMusic } from '../lib/audio'
 import { random, randomChoice } from '../lib/random'
 import { GEM_CATEGORIES } from '../data/careers'
 
@@ -150,7 +150,6 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
   const gameRef = useRef(initialGame())
   const callbackRef = useRef({ onGameComplete, onNoniUpdate })
   const artRef = useRef(null)
-  const speechSequenceRef = useRef(0)
   const startNoniTimerRef = useRef(0)
   const [started, setStarted] = useState(false)
   const [hud, setHud] = useState({ time: 45, score: 0, xp: 0, freedom: 0, lives: 3, ammo: 12, wave: 1, progress: 0, bossHP: 4, bossName: BOSSES.tech, noniLine: gameRef.current.noniLine, done: false })
@@ -161,24 +160,6 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
     const line = fixedLine || pickNoniLine(event, { nickname: profile?.nickname || profile?.nombre || 'piloto', hero: hero?.id || 'tech' })
     game.noniLine = `NONI: ${line}`
     callbackRef.current.onNoniUpdate?.({ text: line, id: performance.now() })
-    const synthesis = window.speechSynthesis
-    if (!synthesis || typeof SpeechSynthesisUtterance === 'undefined') return
-    if (event !== 'gameComplete') synthesis.cancel()
-    const speechSequence = event === 'gameComplete' ? speechSequenceRef.current : ++speechSequenceRef.current
-    const speak = async () => {
-      const voice = await waitForSpanishVoice(synthesis, 900)
-      if (gameRef.current !== game || speechSequence !== speechSequenceRef.current) return
-      try {
-        const utterance = new SpeechSynthesisUtterance(line)
-        if (voice) utterance.voice = voice
-        utterance.lang = voice?.lang || 'es-MX'
-        utterance.rate = .95
-        utterance.pitch = 1.05
-        utterance.volume = 1
-        synthesis.speak(utterance)
-      } catch { /* Captions remain available when speech synthesis is unsupported. */ }
-    }
-    speak()
   }, [hero, profile])
 
   const finishGame = useCallback(() => {
