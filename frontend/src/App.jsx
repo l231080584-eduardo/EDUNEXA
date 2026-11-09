@@ -25,6 +25,28 @@ function loadStoredValue(key, fallback) {
   try { const value = localStorage.getItem(key); return value ? { ...(fallback || {}), ...JSON.parse(value) } : fallback } catch { return fallback }
 }
 
+function ProtectedSession({ children, profile }) {
+  const hasProfile = Boolean(profile?.id)
+  if (!hasProfile) return <Navigate to="/login" replace />
+  return children
+}
+
+function ProtectedMiniTest({ children, profile, miniTest }) {
+  const hasProfile = Boolean(profile?.id)
+  if (!hasProfile) return <Navigate to="/login" replace />
+  const hasMiniTest = Boolean(miniTest)
+  if (!hasMiniTest) return <Navigate to="/mini-test" replace />
+  return children
+}
+
+function ProtectedResults({ children, profile, result }) {
+  const hasProfile = Boolean(profile?.id)
+  if (!hasProfile) return <Navigate to="/login" replace />
+  const hasRecord = Boolean(result) || Boolean(loadStoredValue(RECORD_STORAGE_KEY, null)?.result)
+  if (!hasRecord) return <Navigate to="/" replace />
+  return children
+}
+
 export default function App() {
   const navigate = useNavigate()
   const [profile, setProfile] = useState(() => loadStoredValue(STORAGE_KEY, null))
@@ -165,28 +187,6 @@ export default function App() {
     navigate('/', { replace: true })
   }
 
-  function ProtectedSession({ children }) {
-    const hasProfile = Boolean(profile?.id)
-    if (!hasProfile) return <Navigate to="/login" replace />
-    return children
-  }
-
-  function ProtectedMiniTest({ children }) {
-    const hasProfile = Boolean(profile?.id)
-    if (!hasProfile) return <Navigate to="/login" replace />
-    const hasMiniTest = Boolean(miniTest)
-    if (!hasMiniTest) return <Navigate to="/mini-test" replace />
-    return children
-  }
-
-  function ProtectedResults({ children }) {
-    const hasProfile = Boolean(profile?.id)
-    if (!hasProfile) return <Navigate to="/login" replace />
-    const hasRecord = Boolean(result) || Boolean(loadStoredValue(RECORD_STORAGE_KEY, null)?.result)
-    if (!hasRecord) return <Navigate to="/" replace />
-    return children
-  }
-
   return <div className="app-shell">
     <a href="#contenido" className="skip-link">Saltar al contenido</a>
     <Navbar profile={profile} onLogin={() => navigate('/login')} onLogout={handleLogout} settings={settings} onSettingsChange={(change) => setSettings((current) => ({ ...current, ...change }))} hasResults={Boolean(result)} />
@@ -197,14 +197,14 @@ export default function App() {
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/mini-test" element={<MiniTest open={true} onComplete={handleMiniTestComplete} />} />
         <Route path="/juego" element={
-          <ProtectedMiniTest>
+          <ProtectedMiniTest profile={profile} miniTest={miniTest}>
             <section className="mission-launch-section" id="evaluacion" aria-label="Inicia la misión arcade">
               {hero ? <ArcadeCabinet hero={hero}><Arcade2DGame key={`quest-${hero.id}`} hero={hero} profile={profile} onGameComplete={handleGameComplete} /></ArcadeCabinet> : <CharacterSelect open={true} onClose={() => navigate('/')} onSelect={chooseHero} suggestedHeroId={suggestedHeroId} />}
             </section>
           </ProtectedMiniTest>
         } />
         <Route path="/resultados" element={
-          <ProtectedResults>
+          <ProtectedResults profile={profile} result={result}>
             <section id="resultados" tabIndex="-1">
               <ResultsDashboard result={result} report={report} careers={careers} bonus={profile?.interesTecnm} profile={profile} metrics={metrics} savedRecord={record} onRecordUpdate={handleRecordUpdate} onRestart={restartMission} onNoniUpdate={setNoniMessage} noniBackend={noniBackend} miniTest={miniTest} />
             </section>
