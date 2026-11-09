@@ -71,7 +71,8 @@ function mergeUniversityCatalog(primary, fallback = offlineUniversities) {
 }
 
 function routeEmbed(place, origin) {
-  const originQuery = hasCoordinates(origin) ? `${origin.latitud},${origin.longitud}` : 'My+Location'
+  if (!hasCoordinates(origin)) return `https://maps.google.com/maps?q=${place.latitud},${place.longitud}&z=15&output=embed`
+  const originQuery = `${origin.latitud},${origin.longitud}`
   return `https://maps.google.com/maps?saddr=${originQuery}&daddr=${place.latitud},${place.longitud}&z=13&output=embed`
 }
 
