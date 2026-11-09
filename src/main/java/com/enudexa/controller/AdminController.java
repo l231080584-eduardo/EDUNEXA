@@ -85,7 +85,7 @@ public class AdminController {
         }
 
         // Sort: users with results by fechaCreacion desc, users without results at the end by fechaRegistro desc
-        resultado.sort(Comparator.<AdminEstudianteDTO, Integer>comparingInt(
+        resultado.sort(Comparator.<AdminEstudianteDTO>comparingInt(
                         dto -> dto.carreraRecomendada() != null ? 0 : 1)
                 .thenComparing(
                         dto -> dto.fechaCreacion() != null ? dto.fechaCreacion() : java.time.LocalDateTime.MIN,
