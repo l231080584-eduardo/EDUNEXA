@@ -205,7 +205,7 @@ export default function App() {
   }
 
   function ProtectedResults({ children }) {
-    const hasRecord = Boolean(loadStoredValue(RECORD_STORAGE_KEY, null)?.result)
+    const hasRecord = Boolean(result) || Boolean(loadStoredValue(RECORD_STORAGE_KEY, null)?.result)
     if (!hasRecord) return <Navigate to="/" replace />
     return children
   }
