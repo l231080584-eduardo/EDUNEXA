@@ -3,7 +3,7 @@ export const GEM_CATEGORIES = {
   tech: { label: 'Tecnología e IA', color: '#55e8ff', field: 'Ingeniería en Sistemas Computacionales' },
   design: { label: 'Diseño y creatividad', color: '#bd83ff', field: 'Diseño Digital' },
   business: { label: 'Gestión e innovación', color: '#6df2a3', field: 'Gestión Empresarial' },
-  engineering: { label: 'Ingeniería y robótica', color: '#ffe16a', field: 'Ingenierías' },
+  engineering: { label: 'Ingeniería y robótica', color: '#ff9f1c', field: 'Ingenierías' },
   social: { label: 'Salud y ciencias de la vida', color: '#ff708d', field: 'Ciencias de la Salud' },
   humanities: { label: 'Humanidades y educación', color: '#ff8f61', field: 'Humanidades y Educación' },
 }

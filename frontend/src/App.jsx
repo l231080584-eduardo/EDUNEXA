@@ -4,6 +4,7 @@ import { ArrowRight, Gamepad2 } from 'lucide-react'
 import CharacterSelect, { HERO_CLASSES } from './components/CharacterSelect'
 import MiniTest from './components/MiniTest'
 import ArcadeCabinet from './components/ArcadeCabinet'
+import Arcade2DGame from './components/Arcade2DGame'
 import AuthPage from './components/AuthPage'
 import AdminPage from './components/AdminPage'
 import LandingSection from './components/LandingSection'
@@ -194,6 +195,7 @@ export default function App() {
         <Route path="/login" element={<AuthPage profile={profile} onSave={handleProfileSave} onClose={() => navigate('/')} />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/mini-test" element={<MiniTest open={true} onComplete={handleMiniTestComplete} />} />
+        <Route path="/preview-2d" element={<section className="mission-launch-section"><Arcade2DGame hero={HERO_CLASSES.find((item) => item.id === 'tech')} onGameComplete={() => {}} /></section>} />
         <Route path="/juego" element={
           <ProtectedMiniTest>
             <section className="mission-launch-section" id="evaluacion" aria-label="Inicia la misión arcade">

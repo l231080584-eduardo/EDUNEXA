@@ -619,6 +619,49 @@ kbd { display: inline-grid; min-width: 17px; height: 18px; place-items: center; 
 .mission-launch-card > span { display: grid; width: 49px; height: 49px; place-items: center; margin: 0 auto 12px; color: var(--cyan); border: 1px solid var(--border-bright); border-radius: 15px; background: rgba(101, 236, 228, .07); }
 .mission-launch-card h2 { margin: 7px 0; font-size: clamp(23px, 3vw, 32px); letter-spacing: -.045em; }
 .mission-launch-card > p:not(.eyebrow) { max-width: 420px; margin: 10px auto 18px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+
+/* Original Canvas 2D side-scrolling mission preview. */
+.arcade2d-game { position: relative; width: min(100%, 1120px); margin: 0 auto; padding: 20px; border: 1px solid rgba(105, 226, 232, .4); border-radius: 18px; background: linear-gradient(145deg, rgba(16, 27, 42, .97), rgba(8, 13, 24, .98)); box-shadow: 0 18px 60px rgba(3, 10, 21, .32), 0 0 36px rgba(85, 232, 255, .08); }
+.arcade2d-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.arcade2d-heading .eyebrow { margin: 0; color: #ff9f1c; }
+.arcade2d-heading h2 { margin: 5px 0 0; font-size: clamp(22px, 4vw, 36px); font-weight: 900; letter-spacing: -.05em; }
+.arcade2d-heading h2 span { color: #ff9f1c; }
+.arcade2d-hero-chip { padding: 9px 12px; border: 1px solid rgba(104, 245, 165, .35); border-radius: 999px; color: #a9ffd2; background: rgba(44, 141, 92, .12); font-size: 11px; font-weight: 800; }
+.arcade2d-hud { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+.arcade2d-hud-item { display: grid; gap: 3px; min-width: 0; padding: 8px 10px; border: 1px solid rgba(112, 183, 210, .19); border-radius: 9px; background: rgba(17, 32, 47, .82); }
+.arcade2d-hud-item small { color: #9cb6c7; font-size: 9px; font-weight: 800; letter-spacing: .12em; }
+.arcade2d-hud-item strong { overflow: hidden; color: #f4f8fa; font: 800 15px/1.15 ui-monospace, Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
+.arcade2d-hud-item:nth-child(4) strong { color: #ff708d; letter-spacing: .1em; }
+.arcade2d-canvas-frame { position: relative; width: 100%; overflow: hidden; border: 1px solid rgba(246, 226, 156, .4); border-radius: 10px; background: #65c8ff; }
+.arcade2d-canvas { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; }
+.arcade2d-status { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 42px; padding: 7px 2px 0; }
+.arcade2d-status > p { margin: 0; color: #bde8ef; font-size: 11px; line-height: 1.45; }
+.arcade2d-status > div { display: flex; justify-content: flex-end; gap: 10px; color: #d9e5ed; font: 700 9px ui-monospace, Consolas, monospace; }
+.arcade2d-status > div span { white-space: nowrap; }
+.arcade2d-status b { color: #fff; }
+.arcade2d-start-overlay { position: absolute; z-index: 2; top: 50%; left: 50%; display: grid; width: min(390px, calc(100% - 32px)); gap: 9px; padding: 24px; transform: translate(-50%, -42%); border: 1px solid rgba(255, 224, 120, .58); border-radius: 15px; background: rgba(11, 25, 36, .93); box-shadow: 0 14px 45px rgba(0, 0, 0, .35); text-align: center; }
+.arcade2d-start-overlay .eyebrow { margin: 0; color: #ffdd6c; }
+.arcade2d-start-overlay h3 { margin: 0; color: #fff; font-size: 25px; }
+.arcade2d-start-overlay p:not(.eyebrow) { margin: 0 0 6px; color: #c4d5df; font-size: 13px; line-height: 1.55; }
+.arcade2d-start-overlay button, .arcade2d-end-card button { justify-self: center; min-width: 150px; min-height: 46px; padding: 0 20px; border: 0; border-radius: 8px; color: #1b2631; background: #ffe16a; box-shadow: 0 5px 0 #bd8023; cursor: pointer; font-weight: 950; letter-spacing: .1em; }
+.arcade2d-start-overlay button:hover, .arcade2d-end-card button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.arcade2d-end-card { position: absolute; z-index: 3; top: 52%; left: 50%; display: grid; width: min(390px, calc(100% - 32px)); gap: 12px; padding: 20px; transform: translate(-50%, -30%); border: 1px solid rgba(255, 224, 120, .6); border-radius: 14px; background: rgba(11, 25, 36, .96); text-align: center; }
+.arcade2d-end-card strong { color: #ffe16a; font-size: 20px; }
+.arcade2d-end-card span { color: #e7f0f1; font-size: 12px; line-height: 1.5; }
+.arcade2d-controls { margin: 12px 0 0; color: #9cb6c7; font-size: 10px; text-align: center; }
+@media (max-width: 650px) {
+  .arcade2d-game { padding: 11px; border-radius: 12px; }
+  .arcade2d-heading { align-items: flex-start; }
+  .arcade2d-hero-chip { max-width: 48%; font-size: 9px; }
+  .arcade2d-hud { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+  .arcade2d-hud-item { padding: 6px 5px; }
+  .arcade2d-hud-item small { font-size: 7px; }
+  .arcade2d-hud-item strong { font-size: 10px; }
+  .arcade2d-status { align-items: flex-start; flex-direction: column; }
+  .arcade2d-status > div { flex-wrap: wrap; justify-content: flex-start; }
+  .arcade2d-start-overlay { padding: 14px; }
+  .arcade2d-start-overlay h3 { font-size: 20px; }
+}
 .character-modal { position: fixed; z-index: 50; inset: 0; display: grid; place-items: center; overflow: auto; padding: 24px; background: rgba(3, 5, 14, .88); backdrop-filter: blur(12px); }
 .character-crt { position: fixed; inset: 0; pointer-events: none; background: repeating-linear-gradient(to bottom, transparent 0 4px, rgba(122, 220, 255, .025) 5px); }
 .character-insert, .character-cinematic, .character-select-panel { position: relative; width: min(970px, 100%); padding: clamp(22px, 4vw, 40px); border: 1px solid transparent; border-radius: 17px; background: linear-gradient(#0c1020, #0c1020) padding-box, linear-gradient(135deg, #5df6eb, #8d77fa 52%, #fd68ce) border-box; box-shadow: 0 0 55px rgba(103, 123, 255, .18), inset 0 0 55px rgba(90, 80, 195, .08); }
