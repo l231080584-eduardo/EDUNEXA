@@ -76,6 +76,8 @@ export default function App() {
         return
       }
     }
+    setHero(null)
+    try { localStorage.removeItem(HERO_STORAGE_KEY) } catch { /* Hero persistence is best effort. */ }
     setSuggestedHeroId(heroId || null)
     navigate('/juego', { replace: true })
   }
