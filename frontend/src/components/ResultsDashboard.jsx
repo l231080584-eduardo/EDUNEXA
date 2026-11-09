@@ -198,7 +198,6 @@ export default function ResultsDashboard({ result, report, careers, bonus, profi
     setLocating(true)
     navigator.geolocation.getCurrentPosition(({ coords }) => {
       setStudentLocation({ latitud: coords.latitude, longitud: coords.longitude })
-      if (!savedRecord?.selectedUniversity) setSelectedPlace(null)
       setLocationMessage('Ubicación lista: sedes ordenadas por cercanía.')
       setLocating(false)
     }, () => {
@@ -271,7 +270,6 @@ export default function ResultsDashboard({ result, report, careers, bonus, profi
     setLocating(true); setLocationMessage('Obteniendo tu ubicación…')
     navigator.geolocation.getCurrentPosition(({ coords }) => {
       setStudentLocation({ latitud: coords.latitude, longitud: coords.longitude })
-      setSelectedPlace(null)
       setLocationMessage('Ubicación lista: ordenamos las sedes por cercanía.')
       setLocating(false)
     }, () => { setLocationMessage('No pudimos leer tu ubicación. Las sedes se muestran por compatibilidad; puedes activar el GPS cuando quieras.'); setLocating(false) }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 })
