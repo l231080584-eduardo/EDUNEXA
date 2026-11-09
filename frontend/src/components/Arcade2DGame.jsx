@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { pickNoniLine, rememberNoniContext } from '../lib/noni'
-import { playCoin, playExplosion, playNavigate, playReload, playShot, startMusic, stopMusic, waitForSpanishVoice } from '../lib/audio'
+import { playArcadeCallout, playCoin, playExplosion, playNavigate, playReload, playShot, startMusic, stopMusic, waitForSpanishVoice } from '../lib/audio'
 import { random, randomChoice } from '../lib/random'
 import { GEM_CATEGORIES } from '../data/careers'
 
@@ -18,6 +18,7 @@ const PASSIONS = {
   humanities: ['Psicología', 'Educación', 'Cultura'],
 }
 const HERO = { id: 'tech', name: 'El Hacker Maestro', area: 'Tecnología e Ingenierías', color: '#68f5a5', icon: '🥷' }
+const BOSSES = { tech: 'El Titán del Monolito Legacy', law: 'El Demonio del Litigio Eterno', design: 'El Espectro de la Copia Automatizada', business: 'El Monstruo de la Inflación', engineering: 'El Coloso de la Máquina Obsoleta', social: 'El Enjambre del Colapso Hospitalario', humanities: 'El Leviatán del Algoritmo Ciego' }
 
 function canvasOf(width, height, draw) {
   const canvas = document.createElement('canvas')
@@ -29,25 +30,59 @@ function canvasOf(width, height, draw) {
 }
 
 function makeArt() {
-  const background = canvasOf(WIDTH, HEIGHT, (ctx) => {
+  const skies = [
+    ['#63c7ff', '#b8edff', '#fbe4af', '#fff1a6'],
+    ['#fa9b70', '#f8bf8c', '#efc98f', '#ffe3a0'],
+    ['#e66a73', '#d99077', '#9e6977', '#ffb55e'],
+  ].map(([top, middle, horizon, sun]) => canvasOf(WIDTH, HEIGHT, (ctx) => {
     const sky = ctx.createLinearGradient(0, 0, 0, FLOOR)
-    sky.addColorStop(0, '#65c8ff'); sky.addColorStop(.64, '#b9edff'); sky.addColorStop(1, '#f8d994')
+    sky.addColorStop(0, top); sky.addColorStop(.64, middle); sky.addColorStop(1, horizon)
     ctx.fillStyle = sky; ctx.fillRect(0, 0, WIDTH, FLOOR)
-    ctx.fillStyle = '#fff1a6'; ctx.beginPath(); ctx.arc(760, 105, 43, 0, Math.PI * 2); ctx.fill()
-    ctx.fillStyle = 'rgba(255,255,255,.72)'
+    ctx.fillStyle = sun; ctx.beginPath(); ctx.arc(760, 105, 43, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = 'rgba(255,255,255,.56)'
     for (const [x, y, s] of [[130, 92, 1], [390, 135, .7], [820, 220, .6]]) {
       ctx.beginPath(); ctx.ellipse(x, y, 44 * s, 13 * s, 0, 0, Math.PI * 2); ctx.ellipse(x + 28 * s, y - 8 * s, 28 * s, 18 * s, 0, 0, Math.PI * 2); ctx.ellipse(x - 25 * s, y - 6 * s, 24 * s, 16 * s, 0, 0, Math.PI * 2); ctx.fill()
     }
-    ctx.fillStyle = '#72a6b4'
-    for (const [x, w, h] of [[0, 95, 165], [112, 68, 116], [218, 112, 198], [365, 75, 137], [468, 100, 178], [602, 83, 126], [718, 104, 190], [854, 106, 148]]) {
-      ctx.fillRect(x, FLOOR - h, w, h); ctx.fillStyle = '#577f91'; ctx.fillRect(x, FLOOR - h, w, 8); ctx.fillStyle = '#d9f4ed'
-      for (let wy = FLOOR - h + 24; wy < FLOOR - 15; wy += 28) for (let wx = x + 13; wx < x + w - 8; wx += 25) ctx.fillRect(wx, wy, 10, 13)
-      ctx.fillStyle = '#72a6b4'
-    }
-    ctx.fillStyle = '#56975e'; ctx.fillRect(0, FLOOR - 9, WIDTH, 10)
+    ctx.fillStyle = '#6a8a88'; ctx.fillRect(0, FLOOR - 8, WIDTH, 10)
     ctx.fillStyle = '#797b78'; ctx.fillRect(0, FLOOR, WIDTH, HEIGHT - FLOOR)
     ctx.fillStyle = '#b6b3a5'; ctx.fillRect(0, FLOOR, WIDTH, 7)
     ctx.fillStyle = '#d0c3a0'; for (let x = 20; x < WIDTH; x += 120) ctx.fillRect(x, FLOOR + 42, 57, 5)
+  }))
+
+  const far = canvasOf(1920, HEIGHT, (ctx) => {
+    ctx.fillStyle = '#739d9b'; ctx.beginPath(); ctx.moveTo(0, 370); ctx.lineTo(170, 305); ctx.lineTo(315, 354); ctx.lineTo(460, 277); ctx.lineTo(640, 365); ctx.lineTo(770, 318); ctx.lineTo(980, 372); ctx.lineTo(1145, 300); ctx.lineTo(1300, 365); ctx.lineTo(1455, 288); ctx.lineTo(1620, 359); ctx.lineTo(1780, 320); ctx.lineTo(1920, 368); ctx.lineTo(1920, 470); ctx.lineTo(0, 470); ctx.closePath(); ctx.fill()
+    ctx.fillStyle = '#456d64'; ctx.beginPath(); ctx.moveTo(160, 350); ctx.lineTo(315, 354); ctx.lineTo(460, 277); ctx.lineTo(640, 365); ctx.lineTo(770, 318); ctx.lineTo(980, 372); ctx.closePath(); ctx.fill()
+    ctx.fillStyle = '#fff4d9'; ctx.font = 'bold 12px system-ui'; ctx.fillText('CERRO DE LA ESTRELLA', 367, 337)
+    for (const x of [1020, 1590]) {
+      ctx.fillStyle = '#d9e9db'; ctx.fillRect(x, 305, 104, 72); ctx.fillStyle = '#236b62'; ctx.fillRect(x + 8, 318, 88, 52); ctx.fillStyle = '#fff5d6'; ctx.font = 'bold 11px system-ui'; ctx.fillText('TecNM', x + 28, 340); ctx.font = 'bold 7px system-ui'; ctx.fillText('IZTAPALAPA', x + 22, 354)
+    }
+    ctx.fillStyle = '#6d9884'; ctx.fillRect(0, 402, 1920, 68)
+  })
+
+  const mid = canvasOf(1920, HEIGHT, (ctx) => {
+    for (const [x, w, h, color] of [[35, 104, 128, '#b27664'], [170, 78, 96, '#d29a68'], [296, 125, 164, '#ca7962'], [466, 93, 119, '#e0ad72'], [610, 118, 154, '#b96659'], [780, 84, 111, '#d39a69'], [935, 116, 151, '#bd7869'], [1097, 91, 113, '#d8a273'], [1240, 136, 172, '#c1705e'], [1420, 100, 126, '#dcab73'], [1570, 119, 163, '#b9685b'], [1738, 125, 120, '#d5996d']]) {
+      ctx.fillStyle = color; ctx.fillRect(x, FLOOR - h, w, h); ctx.fillStyle = 'rgba(255,232,185,.7)'
+      for (let wy = FLOOR - h + 18; wy < FLOOR - 12; wy += 25) for (let wx = x + 13; wx < x + w - 9; wx += 25) ctx.fillRect(wx, wy, 9, 12)
+    }
+    // Taquería de barrio, painted into the middle parallax layer.
+    ctx.fillStyle = '#f5e6bd'; ctx.fillRect(520, 350, 118, 74); ctx.fillStyle = '#cc463d'; ctx.fillRect(512, 336, 134, 23); ctx.fillStyle = '#fff7d9'; ctx.font = 'bold 13px system-ui'; ctx.fillText('TACOS', 553, 353)
+    ctx.fillStyle = '#6f3b78'; ctx.fillRect(700, 367, 8, 54); ctx.fillStyle = '#5c8a63'
+    for (const [x, y, r] of [[680, 355, 25], [709, 344, 31], [738, 358, 25]]) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill() }
+    ctx.fillStyle = '#d79bd8'; for (const [x, y] of [[675, 345], [700, 326], [727, 345], [715, 362]]) { ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill() }
+  })
+
+  const near = canvasOf(1920, HEIGHT, (ctx) => {
+    ctx.fillStyle = '#6f984e'
+    for (const x of [45, 180, 355, 845, 1010, 1320, 1535, 1790]) { ctx.beginPath(); ctx.ellipse(x, 442, 42, 18, 0, 0, Math.PI * 2); ctx.fill() }
+    ctx.fillStyle = '#738078'; ctx.fillRect(0, 451, 1920, 19); ctx.fillStyle = '#d2c6a6'; ctx.fillRect(0, 452, 1920, 4)
+    for (const x of [120, 580, 1060, 1600]) { ctx.fillStyle = '#263e48'; ctx.fillRect(x, 417, 84, 28); ctx.fillStyle = '#f5d265'; ctx.font = 'bold 9px system-ui'; ctx.fillText('IZTAPALAPA', x + 5, 434) }
+  })
+
+  const platforms = canvasOf(1920, HEIGHT, (ctx) => {
+    for (const x of [245, 785, 1285, 1740]) {
+      ctx.fillStyle = '#776655'; ctx.fillRect(x, 400, 148, 12); ctx.fillStyle = '#c9a66a'; ctx.fillRect(x, 398, 148, 4)
+      ctx.fillStyle = '#9bd5cb'; ctx.fillRect(x + 16, 403, 25, 3); ctx.fillRect(x + 78, 403, 25, 3)
+    }
   })
 
   const heroFrames = [0, 1].map((step) => canvasOf(HERO_WIDTH * 2, HERO_HEIGHT * 2, (ctx) => {
@@ -72,6 +107,16 @@ function makeArt() {
     ctx.fillStyle = '#fff0f4'; ctx.fillRect(0, 0, 136, 12); ctx.fillStyle = '#d6336c'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('RUTINA ZOMBIE', 68, 9)
   }))
 
+  const boss = canvasOf(190, 156, (ctx) => {
+    ctx.fillStyle = '#374951'; ctx.fillRect(29, 47, 126, 96); ctx.fillStyle = '#778a88'; ctx.fillRect(39, 19, 108, 46)
+    ctx.fillStyle = '#d7ddd2'; ctx.fillRect(36, 16, 114, 15); ctx.fillStyle = '#172934'; ctx.fillRect(50, 36, 15, 10); ctx.fillRect(118, 36, 15, 10)
+    ctx.fillStyle = '#ffcc5b'; ctx.fillRect(57, 39, 6, 4); ctx.fillRect(124, 39, 6, 4)
+    ctx.fillStyle = '#d54155'; ctx.beginPath(); ctx.moveTo(86, 65); ctx.lineTo(100, 65); ctx.lineTo(96, 121); ctx.lineTo(89, 106); ctx.closePath(); ctx.fill()
+    ctx.fillStyle = '#26383f'; ctx.fillRect(12, 68, 28, 15); ctx.fillRect(144, 73, 32, 16); ctx.fillRect(46, 136, 35, 14); ctx.fillRect(112, 136, 35, 14)
+    ctx.fillStyle = '#251c29'; ctx.fillRect(17, 79, 14, 14); ctx.fillRect(157, 87, 14, 14)
+    ctx.fillStyle = '#f5d6a5'; ctx.fillRect(18, 8, 154, 12); ctx.fillStyle = '#9d1d39'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('JEFE: MONOLITO LEGACY', 95, 17)
+  })
+
   const orbs = Object.fromEntries(CATEGORIES.map((category) => [category, canvasOf(120, 60, (ctx) => {
     const color = GEM_CATEGORIES[category].color
     ctx.fillStyle = color; ctx.beginPath(); ctx.arc(27, 27, 20, 0, Math.PI * 2); ctx.fill()
@@ -80,16 +125,17 @@ function makeArt() {
     ctx.fillStyle = '#172331'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'left'; ctx.fillText(CATEGORY_SHORT[category], 53, 30, 64)
   })]))
 
-  return { background, heroFrames, zombies, orbs }
+  return { skies, far, mid, near, platforms, heroFrames, zombies, boss, orbs }
 }
 
 function initialGame() {
   return {
-    started: false, done: false, startTime: 0, lastTime: 0, score: 0, xp: 0, freedom: 0, lives: 3,
+    started: false, done: false, startTime: 0, lastTime: 0, worldDistance: 0, score: 0, xp: 0, freedom: 0, lives: 3,
     shots: 0, hits: 0, ammo: 12, x: 220, y: FLOOR - HERO_HEIGHT, vy: 0, onGround: true,
     invulnerableUntil: 0, flashUntil: 0, nextShotAt: 0, nextId: 1, spawnTimer: 0,
     targets: new Map(), liveIds: new Set(), bullets: [], particles: [], gemCounts: Object.fromEntries(CATEGORIES.map((key) => [key, 0])),
     passionHits: 0, zombieHits: 0, streak: 0, lowLivesNotified: false, lastReloadLine: -Infinity, input: { left: false, right: false, fire: false },
+    wave: 1, banner: null, boss: null, bossSpawned: false, bossDefeatPending: false, lastBossLineAt: -Infinity,
     noniLine: 'NONI: Lista para acompañarte. Presiona JUGAR cuando quieras iniciar.',
   }
 }
@@ -105,8 +151,9 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
   const callbackRef = useRef({ onGameComplete, onNoniUpdate })
   const artRef = useRef(null)
   const speechSequenceRef = useRef(0)
+  const startNoniTimerRef = useRef(0)
   const [started, setStarted] = useState(false)
-  const [hud, setHud] = useState({ time: 45, score: 0, xp: 0, freedom: 0, lives: 3, ammo: 12, noniLine: gameRef.current.noniLine, done: false })
+  const [hud, setHud] = useState({ time: 45, score: 0, xp: 0, freedom: 0, lives: 3, ammo: 12, wave: 1, progress: 0, bossHP: 4, bossName: BOSSES.tech, noniLine: gameRef.current.noniLine, done: false })
   callbackRef.current = { onGameComplete, onNoniUpdate }
 
   const say = useCallback((event, fixedLine = null) => {
@@ -117,7 +164,7 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
     const synthesis = window.speechSynthesis
     if (!synthesis || typeof SpeechSynthesisUtterance === 'undefined') return
     if (event !== 'gameComplete') synthesis.cancel()
-    const speechSequence = ++speechSequenceRef.current
+    const speechSequence = event === 'gameComplete' ? speechSequenceRef.current : ++speechSequenceRef.current
     const speak = async () => {
       const voice = await waitForSpanishVoice(synthesis, 900)
       if (gameRef.current !== game || speechSequence !== speechSequenceRef.current) return
@@ -138,6 +185,7 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
     const game = gameRef.current
     if (game.done) return
     game.done = true
+    window.clearTimeout(startNoniTimerRef.current)
     game.input.left = false; game.input.right = false; game.input.fire = false
     if (game.lives === 0) say('gameComplete', '¡Último impacto! Terminó la partida, pero tu mapa vocacional ya está listo.')
     else say('gameComplete')
@@ -155,9 +203,13 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
     game.started = true
     game.startTime = performance.now()
     game.lastTime = game.startTime
+    game.wave = 1
+    game.banner = { title: 'MISSION 1 START', subtitle: 'AÑO 2026 · IZTAPALAPA', color: '#ffdf62', until: game.startTime + 2600 }
     setStarted(true)
     rememberNoniContext({ nickname: profile?.nickname || profile?.nombre || 'piloto', hero: hero?.id || 'tech' })
-    say('start')
+    playArcadeCallout('OK! MISSION 1: START!')
+    window.clearTimeout(startNoniTimerRef.current)
+    startNoniTimerRef.current = window.setTimeout(() => say('start'), 1450)
   }, [hero, profile, say])
 
   useEffect(() => {
@@ -170,7 +222,7 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
     let raf = 0
     let hudTimer = 0
     let spawnInterval = 0
-    let frame = 0
+    let bossFinishTimer = 0
     artRef.current ||= makeArt()
     const art = artRef.current
 
@@ -183,18 +235,35 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
     resize()
 
     const spawn = () => {
-      if (stopped || game.done || game.liveIds.size >= 5) return
+      if (stopped || game.done || game.bossDefeatPending) return
+      const elapsed = (performance.now() - game.startTime) / 1000
+      if (elapsed > 30 && !game.bossSpawned) {
+        while (game.liveIds.size >= 4) {
+          const oldest = [...game.targets.values()].find((target) => target.type !== 'boss')
+          if (!oldest) break
+          removeTarget(oldest)
+        }
+        const bossName = BOSSES[hero?.id] || BOSSES.tech
+        game.boss = { id: game.nextId++, type: 'boss', x: 990, y: FLOOR - 156, w: 190, h: 156, speed: 54, hp: 4, name: bossName, retreatUntil: 0 }
+        game.targets.set(game.boss.id, game.boss)
+        game.liveIds.add(game.boss.id)
+        game.bossSpawned = true
+        game.lastBossLineAt = performance.now()
+        say('bossAppear')
+      }
+      if (game.liveIds.size >= 5) return
       const id = game.nextId++
-      const isZombie = random() < .32
+      const wave = elapsed < 15 ? 1 : elapsed < 30 ? 2 : 3
+      const zombieChance = wave === 1 ? .32 : wave === 2 ? .27 : .24
+      const isZombie = random() < zombieChance
       const target = isZombie
         ? { id, type: 'zombie', x: 970, y: FLOOR - 91, w: 68, h: 90, speed: 46 + random() * 22, frame: 0 }
         : (() => {
             const category = randomPassion(hero?.id || 'tech')
             const heights = [430, 330, 380]
-            return { id, type: 'passion', category, label: randomChoice(PASSIONS[category]), x: 970, y: heights[Math.floor(random() * heights.length)], baseY: heights[Math.floor(random() * heights.length)], phase: random() * Math.PI * 2, w: 120, h: 60, speed: 22 }
+            const y = heights[Math.floor(random() * heights.length)]
+            return { id, type: 'passion', category, label: randomChoice(PASSIONS[category]), x: 970, y, baseY: y, phase: random() * Math.PI * 2, w: 120, h: 60, speed: 22 }
           })()
-      // Select the same three-level offset for both initial and base Y.
-      if (target.type === 'passion') target.baseY = target.y
       game.targets.set(id, target)
       game.liveIds.add(id)
     }
@@ -214,6 +283,23 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
 
     const hitTarget = (target, now) => {
       game.hits += 1
+      if (target.type === 'boss') {
+        if (target.hp <= 0 || game.bossDefeatPending) return
+        target.hp -= 1
+        game.score += 250
+        playExplosion()
+        game.particles.push({ x: target.x + target.w / 2, y: target.y + 72, end: now + 320, color: '#ff7894' })
+        if (target.hp === 0) {
+          game.bossDefeatPending = true
+          game.input.fire = false
+          say('bossDefeated')
+          bossFinishTimer = window.setTimeout(() => finishGame(), 360)
+        } else if (target.hp > 1 && now - game.lastBossLineAt >= 2000) {
+          game.lastBossLineAt = now
+          say('bossHit')
+        }
+        return
+      }
       if (target.type === 'passion') {
         game.gemCounts[target.category] += 1
         game.passionHits += 1
@@ -241,8 +327,14 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       game.flashUntil = now + 260
       game.x = Math.max(40, game.x - 24)
       game.streak = 0
-      target.x = game.x + 18
-      target.speed = 0
+      if (target.type === 'boss') {
+        target.x = WIDTH + 100
+        target.speed = 0
+        target.retreatUntil = now + 2000
+      } else {
+        target.x = game.x + 18
+        target.speed = 0
+      }
       playExplosion()
       if (game.lives > 1) say('damage')
       if (game.lives === 1 && !game.lowLivesNotified) { game.lowLivesNotified = true; say('lowLives') }
@@ -286,6 +378,13 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       game.lastTime = now
       if (!game.done) {
         const elapsed = (now - game.startTime) / 1000
+        const wave = elapsed < 15 ? 1 : elapsed < 30 ? 2 : 3
+        if (wave !== game.wave) {
+          game.wave = wave
+          if (wave === 2) { game.banner = { title: 'OLA 2', subtitle: 'NUEVOS RETOS · NUEVAS PASIONES', color: '#42e7ff', until: now + 2300 }; playNavigate(); say('wave2') }
+          if (wave === 3) { game.banner = { title: 'OLA 3 · JEFE FINAL', subtitle: BOSSES[hero?.id] || BOSSES.tech, color: '#ff668a', until: now + 2600 }; playNavigate(); say('wave3') }
+        }
+        game.worldDistance += dt * 72
         if (elapsed >= 45) finishGame()
         if (!game.done) {
           if (game.input.left) game.x -= 230 * dt
@@ -309,15 +408,22 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
           for (const bullet of game.bullets) bullet.x += bullet.vx * dt
           game.bullets = game.bullets.filter((bullet) => bullet.x < WIDTH)
           for (const target of game.targets.values()) {
-            target.x -= target.speed * dt
+            if (target.type === 'boss' && target.hp <= 0) continue
+            if (target.type === 'boss' && target.retreatUntil && now < target.retreatUntil) target.x = WIDTH + 100
+            else {
+              if (target.type === 'boss' && target.retreatUntil) { target.retreatUntil = 0; target.x = WIDTH + 60; target.speed = 54 }
+              target.x -= target.speed * dt
+            }
             if (target.type === 'passion') target.y = target.baseY + Math.sin(now / 360 + target.phase) * 8
             if (target.type === 'zombie') target.frame = Math.floor(now / 180) % 2
             const heroBox = { left: game.x + 7, right: game.x + 42, top: game.y + 8, bottom: game.y + HERO_HEIGHT - 2 }
-            const targetBox = target.type === 'zombie'
+            const targetBox = target.type === 'boss'
+              ? { left: target.x + 20, right: target.x + 174, top: target.y + 10, bottom: target.y + target.h }
+              : target.type === 'zombie'
               ? { left: target.x + 18, right: target.x + 54, top: target.y + 8, bottom: target.y + target.h }
               : { left: target.x + 1, right: target.x + 53, top: target.y + 2, bottom: target.y + 54 }
             const overlap = heroBox.left < targetBox.right && heroBox.right > targetBox.left && heroBox.top < targetBox.bottom && heroBox.bottom > targetBox.top
-            if (overlap && target.type === 'zombie' && (game.onGround || game.vy > 0)) takeDamage(target, now)
+            if (overlap && (target.type === 'zombie' || target.type === 'boss') && (game.onGround || game.vy > 0)) takeDamage(target, now)
             for (let index = game.bullets.length - 1; index >= 0; index -= 1) {
               const bullet = game.bullets[index]
               if (bullet.x >= targetBox.left - 26 && bullet.x <= targetBox.right + 26 && bullet.y >= targetBox.top - 26 && bullet.y <= targetBox.bottom + 26) {
@@ -326,17 +432,31 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
                 break
               }
             }
-            if (target.x < -target.w) removeTarget(target)
+            if (target.type !== 'boss' && target.x < -target.w) removeTarget(target)
           }
           game.particles = game.particles.filter((particle) => particle.end > now)
         }
       }
 
       ctx.clearRect(0, 0, WIDTH, HEIGHT)
-      ctx.drawImage(art.background, 0, 0)
+      const waveIndex = Math.max(0, Math.min(2, game.wave - 1))
+      ctx.drawImage(art.skies[waveIndex], 0, 0)
+      const drawLayer = (layer, speed) => {
+        const offset = (game.worldDistance * speed) % layer.width
+        ctx.drawImage(layer, -offset, 0)
+        ctx.drawImage(layer, layer.width - offset, 0)
+      }
+      drawLayer(art.far, .15)
+      drawLayer(art.mid, .4)
+      drawLayer(art.platforms, .4)
+      drawLayer(art.near, .8)
       for (const target of game.targets.values()) {
+        if (target.type === 'boss') {
+          if (target.hp > 0 && target.x < WIDTH + 140) ctx.drawImage(art.boss, target.x, target.y)
+          continue
+        }
         if (target.type === 'zombie') ctx.drawImage(art.zombies[target.frame], target.x, target.y)
-        else ctx.drawImage(art.orbs[target.category], target.x, target.y + Math.sin(now / 360 + target.phase) * 8)
+        else ctx.drawImage(art.orbs[target.category], target.x, target.y)
       }
       for (const bullet of game.bullets) {
         ctx.fillStyle = '#fff486'; ctx.fillRect(bullet.x, bullet.y, 17, 4)
@@ -350,21 +470,23 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       const blinking = now < game.invulnerableUntil && Math.floor(now / 90) % 2 === 0
       if (!blinking) ctx.drawImage(art.heroFrames[Math.floor(now / 110) % 2], game.x, game.y)
       if (now < game.flashUntil) { ctx.fillStyle = 'rgba(255,39,70,.22)'; ctx.fillRect(0, 0, WIDTH, HEIGHT) }
+      if (game.banner && now < game.banner.until) {
+        ctx.fillStyle = 'rgba(12,25,36,.84)'; ctx.fillRect(265, 68, 430, 82)
+        ctx.strokeStyle = game.banner.color; ctx.lineWidth = 2; ctx.strokeRect(265, 68, 430, 82)
+        ctx.textAlign = 'center'; ctx.fillStyle = game.banner.color; ctx.font = '900 27px system-ui'; ctx.fillText(game.banner.title, WIDTH / 2, 103)
+        ctx.fillStyle = '#f8f6ea'; ctx.font = '700 12px system-ui'; ctx.fillText(game.banner.subtitle, WIDTH / 2, 129)
+      }
       if (game.done) {
         ctx.fillStyle = 'rgba(12,23,34,.78)'; ctx.fillRect(0, 0, WIDTH, HEIGHT)
         ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = '900 38px system-ui'; ctx.fillText(game.lives === 0 ? 'MISIÓN TERMINADA' : '¡MISIÓN COMPLETA!', WIDTH / 2, 245)
         ctx.fillStyle = '#ffe16a'; ctx.font = '700 18px system-ui'; ctx.fillText(`${game.score.toString().padStart(6, '0')} PUNTOS`, WIDTH / 2, 282)
-      }
-      if ((frame++ % 30) === 0) {
-        const remaining = Math.max(0, 45 - (now - game.startTime) / 1000)
-        setHud({ time: Math.ceil(remaining), score: game.score, xp: game.xp, freedom: game.freedom, lives: game.lives, ammo: game.ammo, noniLine: game.noniLine, done: game.done })
       }
       if (!game.done) raf = window.requestAnimationFrame(draw)
     }
     raf = window.requestAnimationFrame(draw)
     hudTimer = window.setInterval(() => {
       const elapsed = (performance.now() - game.startTime) / 1000
-      setHud({ time: Math.max(0, Math.ceil(45 - elapsed)), score: game.score, xp: game.xp, freedom: game.freedom, lives: game.lives, ammo: game.ammo, noniLine: game.noniLine, done: game.done })
+      setHud({ time: Math.max(0, Math.ceil(45 - elapsed)), score: game.score, xp: game.xp, freedom: game.freedom, lives: game.lives, ammo: game.ammo, wave: game.wave, progress: Math.min(1, elapsed / 45), bossHP: game.boss?.hp ?? 4, bossName: game.boss?.name || BOSSES[hero?.id] || BOSSES.tech, noniLine: game.noniLine, done: game.done })
     }, 250)
 
     return () => {
@@ -372,6 +494,8 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       window.cancelAnimationFrame(raf)
       window.clearInterval(spawnInterval)
       window.clearInterval(hudTimer)
+      window.clearTimeout(bossFinishTimer)
+      window.clearTimeout(startNoniTimerRef.current)
       window.removeEventListener('keydown', keyDown)
       window.removeEventListener('keyup', keyUp)
       window.removeEventListener('edunexa:arcade-control', control)
@@ -380,18 +504,25 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
     }
   }, [started, hero, finishGame, say])
 
-  useEffect(() => () => { stopMusic() }, [])
+  useEffect(() => () => { window.clearTimeout(startNoniTimerRef.current); stopMusic() }, [])
 
   const gems = Object.entries(hud && gameRef.current.gemCounts).filter(([, count]) => count > 0)
   return <section className="arcade2d-game" aria-label="Juego arcade 2D">
     <header className="arcade2d-heading"><div><p className="eyebrow">EDUNEXA ARCADE · IZTAPALAPA 2026</p><h2>CIUDAD <span>FUTURO</span></h2></div><span className="arcade2d-hero-chip">{hero?.icon || HERO.icon} {hero?.name || HERO.name}</span></header>
+    <div className="arcade2d-mission-progress" aria-label={`Progreso de misión: ${Math.round(hud.progress * 100)} por ciento`}>
+      <div className="arcade2d-progress-track"><span className="arcade2d-progress-fill" style={{ width: `${hud.progress * 100}%` }} /><i className="arcade2d-boss-marker" aria-label="Jefe final, segundo 30" /><b className="arcade2d-hero-marker" style={{ left: `${hud.progress * 100}%` }}>{hero?.icon || HERO.icon}</b></div>
+      <div className="arcade2d-progress-labels"><span>0:00 · MISIÓN 1</span><span>0:15 · OLA 2</span><span>0:30 · JEFE FINAL</span><span>0:45</span></div>
+    </div>
     <div className="arcade2d-hud" aria-live="polite">
-      <div className="arcade2d-hud-item"><small>TIEMPO</small><strong>00:{String(hud.time).padStart(2, '0')}</strong></div>
+      <div className="arcade2d-hud-item"><small>OLA</small><strong>{hud.wave} / 3</strong></div>
       <div className="arcade2d-hud-item"><small>PTS</small><strong>{String(hud.score).padStart(6, '0')}</strong></div>
       <div className="arcade2d-hud-item"><small>XP</small><strong>{hud.xp}</strong></div>
       <div className="arcade2d-hud-item"><small>VIDAS</small><strong>{'♥'.repeat(hud.lives)}{'♡'.repeat(3 - hud.lives)}</strong></div>
       <div className="arcade2d-hud-item"><small>AMMO</small><strong>{String(hud.ammo).padStart(2, '0')} / 12</strong></div>
+      <div className="arcade2d-hud-item"><small>LIBERTAD</small><strong>{hud.freedom}</strong></div>
+      <div className="arcade2d-hud-item"><small>TIEMPO</small><strong>00:{String(hud.time).padStart(2, '0')}</strong></div>
     </div>
+    {hud.wave === 3 && <div className="arcade2d-boss-health" aria-label={`${hud.bossName}, ${hud.bossHP} de 4 vidas`}><strong>{hud.bossName}</strong><div>{[0, 1, 2, 3].map((segment) => <i className={segment < hud.bossHP ? 'is-active' : ''} key={segment} />)}</div><small>{hud.bossHP} / 4 HP</small></div>}
     <div className="arcade2d-canvas-frame"><canvas ref={canvasRef} className="arcade2d-canvas" width={WIDTH} height={HEIGHT} aria-label="Ciudad Futuro, campo de juego" /></div>
     <div className="arcade2d-status"><p aria-live="polite">{hud.noniLine}</p><div><span>LIBERTAD <b>{hud.freedom}</b></span><span>RACHA <b>{gameRef.current.streak}</b></span>{gems.map(([category, count]) => <span key={category} style={{ color: GEM_CATEGORIES[category].color }}>{CATEGORY_SHORT[category]} <b>{count}</b></span>)}</div></div>
     {!started && <div className="arcade2d-start-overlay"><p className="eyebrow">MISIÓN DE ENTRENAMIENTO</p><h3>La ciudad te necesita.</h3><p>Corre, salta y dispara para encontrar tus pasiones. Evita a los zombies de oficina.</p><button type="button" onClick={startGame}>▶ JUGAR</button></div>}

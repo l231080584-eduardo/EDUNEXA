@@ -627,11 +627,24 @@ kbd { display: inline-grid; min-width: 17px; height: 18px; place-items: center; 
 .arcade2d-heading h2 { margin: 5px 0 0; font-size: clamp(22px, 4vw, 36px); font-weight: 900; letter-spacing: -.05em; }
 .arcade2d-heading h2 span { color: #ff9f1c; }
 .arcade2d-hero-chip { padding: 9px 12px; border: 1px solid rgba(104, 245, 165, .35); border-radius: 999px; color: #a9ffd2; background: rgba(44, 141, 92, .12); font-size: 11px; font-weight: 800; }
-.arcade2d-hud { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+.arcade2d-mission-progress { margin: 7px 2px 12px; }
+.arcade2d-progress-track { position: relative; height: 10px; overflow: visible; border: 1px solid rgba(196, 216, 223, .34); border-radius: 999px; background: rgba(179, 198, 210, .2); }
+.arcade2d-progress-track::after { position: absolute; inset: 0; content: ''; border-radius: inherit; background: linear-gradient(90deg, transparent calc(33.33% - 1px), rgba(15, 28, 42, .9) calc(33.33% - 1px) 33.33%, transparent 33.33% calc(66.66% - 1px), rgba(15, 28, 42, .9) calc(66.66% - 1px) 66.66%, transparent 66.66%); pointer-events: none; }
+.arcade2d-progress-fill { position: absolute; z-index: 1; top: 0; bottom: 0; left: 0; border-radius: inherit; background: linear-gradient(90deg, #ffdc65 0 33.33%, #42e7ff 33.33% 66.66%, #f67790 66.66%); transition: width .22s linear; }
+.arcade2d-boss-marker { position: absolute; z-index: 2; top: -4px; left: 66.66%; width: 3px; height: 16px; border-radius: 3px; background: #ff4276; box-shadow: 0 0 8px #ff4276; }
+.arcade2d-hero-marker { position: absolute; z-index: 3; top: -12px; display: grid; width: 23px; height: 23px; place-items: center; transform: translateX(-50%); border: 1px solid rgba(13, 37, 51, .7); border-radius: 50%; background: #fff; font-size: 13px; transition: left .22s linear; }
+.arcade2d-progress-labels { display: flex; justify-content: space-between; margin-top: 7px; color: #9cb6c7; font: 700 8px ui-monospace, Consolas, monospace; }
+.arcade2d-hud { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
 .arcade2d-hud-item { display: grid; gap: 3px; min-width: 0; padding: 8px 10px; border: 1px solid rgba(112, 183, 210, .19); border-radius: 9px; background: rgba(17, 32, 47, .82); }
 .arcade2d-hud-item small { color: #9cb6c7; font-size: 9px; font-weight: 800; letter-spacing: .12em; }
 .arcade2d-hud-item strong { overflow: hidden; color: #f4f8fa; font: 800 15px/1.15 ui-monospace, Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
 .arcade2d-hud-item:nth-child(4) strong { color: #ff708d; letter-spacing: .1em; }
+.arcade2d-boss-health { display: grid; grid-template-columns: minmax(0, 1fr) minmax(100px, 260px) auto; align-items: center; gap: 10px; margin: 0 0 10px; padding: 8px 10px; border: 1px solid rgba(255, 92, 130, .38); border-radius: 8px; color: #ffe5eb; background: rgba(113, 24, 50, .24); }
+.arcade2d-boss-health strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.arcade2d-boss-health > div { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.arcade2d-boss-health i { height: 9px; border: 1px solid rgba(255, 139, 161, .4); border-radius: 3px; background: rgba(110, 27, 52, .5); }
+.arcade2d-boss-health i.is-active { border-color: #ff7894; background: linear-gradient(90deg, #ff5378, #ff9e7d); box-shadow: 0 0 8px rgba(255, 81, 121, .5); }
+.arcade2d-boss-health small { color: #ffc0cf; font: 800 9px ui-monospace, Consolas, monospace; }
 .arcade2d-canvas-frame { position: relative; width: 100%; overflow: hidden; border: 1px solid rgba(246, 226, 156, .4); border-radius: 10px; background: #65c8ff; }
 .arcade2d-canvas { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; }
 .arcade2d-status { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 42px; padding: 7px 2px 0; }
@@ -653,12 +666,16 @@ kbd { display: inline-grid; min-width: 17px; height: 18px; place-items: center; 
   .arcade2d-game { padding: 11px; border-radius: 12px; }
   .arcade2d-heading { align-items: flex-start; }
   .arcade2d-hero-chip { max-width: 48%; font-size: 9px; }
-  .arcade2d-hud { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+  .arcade2d-hud { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
   .arcade2d-hud-item { padding: 6px 5px; }
   .arcade2d-hud-item small { font-size: 7px; }
   .arcade2d-hud-item strong { font-size: 10px; }
   .arcade2d-status { align-items: flex-start; flex-direction: column; }
   .arcade2d-status > div { flex-wrap: wrap; justify-content: flex-start; }
+  .arcade2d-progress-labels { font-size: 6px; }
+  .arcade2d-boss-health { grid-template-columns: minmax(0, 1fr) auto; }
+  .arcade2d-boss-health > div { grid-row: 2; grid-column: 1 / -1; }
+  .arcade2d-boss-health small { grid-column: 2; grid-row: 1; }
   .arcade2d-start-overlay { padding: 14px; }
   .arcade2d-start-overlay h3 { font-size: 20px; }
 }
