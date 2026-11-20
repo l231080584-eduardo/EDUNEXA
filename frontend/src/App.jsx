@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate, Routes, Route, Navigate } from 'react-router-dom'
+import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom'
 import CharacterSelect, { HERO_CLASSES } from './components/CharacterSelect'
 import MiniTest from './components/MiniTest'
 import ArcadeCabinet from './components/ArcadeCabinet'
@@ -10,10 +10,11 @@ import LandingSection from './components/LandingSection'
 import Navbar from './components/Navbar'
 import NoniWidget from './components/NoniWidget'
 import ResultsDashboard from './components/ResultsDashboard'
-import { buildGameMetrics, CAREER_CATALOG, recommendCareers } from './data/careers'
+import { CAREER_CATALOG, GEM_CATEGORIES, recommendCareers } from './data/careers'
 import { createReport } from './data/questions'
 import { evaluateArcadeNoni, evaluateTest, getCareerCatalog } from './lib/api'
-import { playArcadeCallout, playClick, startMusic, stopMusic } from './lib/audio'
+import { playArcadeCallout, playClick, stopMusic } from './lib/audio'
+import { stopArcadeMusic } from './lib/arcadeAudio'
 
 const STORAGE_KEY = 'edunexa-profile'
 const ACCESSIBILITY_KEY = 'edunexa-accessibility'
@@ -47,8 +48,15 @@ function ProtectedResults({ children, profile, result }) {
   return children
 }
 
+function MissionLaunch({ hero, profile, onGameComplete, onExit, onSelectHero, suggestedHeroId }) {
+  return <section className="mission-launch-section" id="evaluacion" aria-label="Inicia la misión arcade">
+    {hero ? <ArcadeCabinet hero={hero}><Arcade2DGame key={`quest-${hero.id}`} hero={hero} profile={profile} onGameComplete={onGameComplete} onExit={onExit} /></ArcadeCabinet> : <CharacterSelect open={true} onClose={onExit} onSelect={onSelectHero} suggestedHeroId={suggestedHeroId} />}
+  </section>
+}
+
 export default function App() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [profile, setProfile] = useState(() => loadStoredValue(STORAGE_KEY, null))
   const [record, setRecord] = useState(() => loadStoredValue(RECORD_STORAGE_KEY, null))
   const [settings, setSettings] = useState(() => loadStoredValue(ACCESSIBILITY_KEY, { fontScale: 0, highContrast: false, subtitles: true }))
@@ -80,6 +88,14 @@ export default function App() {
   useEffect(() => { try { if (record) localStorage.setItem(RECORD_STORAGE_KEY, JSON.stringify(record)) } catch { /* Local record storage is best effort. */ } }, [record])
   useEffect(() => { try { if (miniTest) localStorage.setItem(MINITEST_STORAGE_KEY, JSON.stringify(miniTest)); else localStorage.removeItem(MINITEST_STORAGE_KEY) } catch { /* Mini-test storage is best effort. */ } }, [miniTest])
   useEffect(() => {
+    // In local demos the Spring API may not be running; the bundled catalog is complete.
+    if (import.meta.env.DEV) {
+      try {
+        const cached = JSON.parse(localStorage.getItem('edunexa-career-cache') || '[]')
+        if (Array.isArray(cached) && cached.length) setCareerCatalog(cached)
+      } catch { /* The bundled catalog remains available. */ }
+      return
+    }
     getCareerCatalog().then((data) => { if (Array.isArray(data) && data.length) { setCareerCatalog(data); try { localStorage.setItem('edunexa-career-cache', JSON.stringify(data)) } catch { /* Optional catalog cache. */ } } }).catch(() => {
       try { const cached = JSON.parse(localStorage.getItem('edunexa-career-cache') || '[]'); if (Array.isArray(cached) && cached.length) setCareerCatalog(cached) } catch { /* The bundled catalog remains available. */ }
     })
@@ -87,17 +103,6 @@ export default function App() {
 
   function handleMiniTestComplete(miniTestResults, heroId) {
     setMiniTest(miniTestResults)
-    if (heroId) {
-      const selectedHero = HERO_CLASSES.find((h) => h.id === heroId)
-      if (selectedHero) {
-        setHero(selectedHero)
-        try { localStorage.setItem(HERO_STORAGE_KEY, selectedHero.id) } catch { /* Hero persistence is best effort. */ }
-        playArcadeCallout('OK! MISSION 1: START!')
-        startMusic()
-        navigate('/juego', { replace: true })
-        return
-      }
-    }
     setHero(null)
     try { localStorage.removeItem(HERO_STORAGE_KEY) } catch { /* Hero persistence is best effort. */ }
     setSuggestedHeroId(heroId || null)
@@ -107,31 +112,32 @@ export default function App() {
   function handleGameComplete(gameStats = {}) {
     const categoryCounts = gameStats?.gemCounts && typeof gameStats.gemCounts === 'object' ? gameStats.gemCounts : {}
     const totalXp = Math.max(0, Number(gameStats?.totalXp) || 0)
-    const gameMetrics = buildGameMetrics(categoryCounts, gameStats?.gemEffectiveness)
-
-    let finalMetrics = gameMetrics
-    if (miniTest?.answers) {
-      const mt = miniTest
-      const getAnswer = (id) => (mt.answers[id] || 3) - 1
-      const intereses = (getAnswer('intereses-1') + getAnswer('intereses-2')) / 2 / 4
-      const materias = getAnswer('materias') / 4
-      const estiloVida = getAnswer('estilo-vida') / 4
-      const geolocalizacion = getAnswer('geolocalizacion') / 4
-      const miniMetrics = { intereses, materias, estiloVida, geolocalizacion }
-      finalMetrics = {
-        intereses: 0.4 * miniMetrics.intereses + 0.6 * gameMetrics.intereses,
-        materias: 0.4 * miniMetrics.materias + 0.6 * gameMetrics.materias,
-        estiloVida: 0.4 * miniMetrics.estiloVida + 0.6 * gameMetrics.estiloVida,
-        geolocalizacion: 0.4 * miniMetrics.geolocalizacion + 0.6 * gameMetrics.geolocalizacion,
-      }
+    const chosenHero = gameStats?.hero || hero?.id || 'tech'
+    const gameDecisionTotal = Object.values(categoryCounts).reduce((sum, value) => sum + Math.max(0, Number(value) || 0), 0)
+    const answerValue = (id) => Math.max(0, Math.min(1, ((Number(miniTest?.answers?.[id]) || 3) - 1) / 4))
+    const miniScores = miniTest?.scores || {}
+    const familyScores = Object.fromEntries(Object.keys(GEM_CATEGORIES).map((family) => {
+      const gameShare = gameDecisionTotal ? (Number(categoryCounts[family]) || 0) / gameDecisionTotal : 0
+      const miniScore = Math.max(0, Math.min(1, Number(miniScores[family]) || 0))
+      const selectedScore = chosenHero === family ? 1 : 0
+      return [family, 0.3 * miniScore + 0.35 * selectedScore + 0.35 * gameShare]
+    }))
+    const finalMetrics = {
+      intereses: (familyScores.tech + familyScores.life) / 2,
+      materias: (familyScores.industry + familyScores.energy) / 2,
+      estiloVida: (familyScores.construction + familyScores.business) / 2,
+      geolocalizacion: answerValue('geolocalizacion'),
+      familyScores,
+      hero: chosenHero,
+      weights: { miniTest: 0.3, hero: 0.35, gameplay: 0.35 },
     }
 
     const interestedTecnm = Boolean(profile?.interesTecnm)
     const recommendedCareers = recommendCareers(categoryCounts, gameStats?.gemEffectiveness, careerCatalog, finalMetrics)
     const careerNames = recommendedCareers.map((career) => career.name)
     const generatedReport = createReport(finalMetrics, careerNames, interestedTecnm)
-    const matchScore = Math.min(1, finalMetrics.intereses * .45 + finalMetrics.materias * .25 + finalMetrics.estiloVida * .2 + finalMetrics.geolocalizacion * .1)
-    const finalResult = { matchScore, resultadoId: `ARCADE-${globalThis.crypto?.randomUUID?.() || Date.now().toString(36)}`, xp: totalXp, score: Math.max(0, Number(gameStats?.score) || 0), gemCounts: categoryCounts, gemEffectiveness: gameStats?.gemEffectiveness || {}, hero: gameStats?.hero || hero?.id || 'tech', miniTest: miniTest || null }
+    const matchScore = Math.max(...Object.values(familyScores))
+    const finalResult = { matchScore, familyScores, weights: finalMetrics.weights, resultadoId: `ARCADE-${globalThis.crypto?.randomUUID?.() || Date.now().toString(36)}`, xp: totalXp, score: Math.max(0, Number(gameStats?.score) || 0), gemCounts: categoryCounts, gemEffectiveness: gameStats?.gemEffectiveness || {}, hero: chosenHero, miniTest: miniTest || null }
     const playerId = profile?.id || `guest-${globalThis.crypto?.randomUUID?.() || Date.now().toString(36)}`
     const completedRecord = { playerId, heroClass: finalResult.hero, finalScore: finalResult.score, recommendedUniversities: [], selectedUniversity: null, studentLocation: null, result: finalResult, report: generatedReport, careers: recommendedCareers, metrics: finalMetrics, miniTest: miniTest || null, savedAt: new Date().toISOString() }
     setMetrics(finalMetrics); setReport(generatedReport); setCareers(recommendedCareers); setResult(finalResult); setRecord(completedRecord)
@@ -180,31 +186,31 @@ export default function App() {
   }, [])
 
   function chooseHero(selection) {
-    playClick(); playArcadeCallout('OK! MISSION 1: START!'); startMusic(); setHero(selection)
+    playClick(); playArcadeCallout('¡HÉROE EQUIPADO!'); setHero(selection)
     try { localStorage.setItem(HERO_STORAGE_KEY, selection.id) } catch { /* Hero persistence is best effort. */ }
   }
 
   function restartMission() {
-    stopMusic(); setResult(null); setReport(''); setCareers([]); setHero(null); setMetrics({ intereses: 0, materias: 0, estiloVida: 0, geolocalizacion: 0 }); setNoniBackend(null)
+    stopMusic(); stopArcadeMusic(); setResult(null); setReport(''); setCareers([]); setHero(null); setMetrics({ intereses: 0, materias: 0, estiloVida: 0, geolocalizacion: 0 }); setNoniBackend(null)
     try { localStorage.removeItem(RECORD_STORAGE_KEY) } catch { /* Cleanup is best effort. */ }
     try { localStorage.removeItem(HERO_STORAGE_KEY) } catch { /* Hero cleanup is best effort. */ }
     navigate('/', { replace: true })
   }
 
-  return <div className="app-shell">
+  const beginJourney = useCallback(() => { playClick(); navigate('/mini-test') }, [navigate])
+
+  return <div className={`app-shell ${location.pathname === '/juego' ? 'app-shell-immersive' : ''}`}>
     <a href="#contenido" className="skip-link">Saltar al contenido</a>
-    <Navbar profile={profile} onLogin={() => navigate('/login')} onLogout={handleLogout} settings={settings} onSettingsChange={(change) => setSettings((current) => ({ ...current, ...change }))} hasResults={Boolean(result)} />
+    {location.pathname !== '/juego' && <Navbar profile={profile} onLogin={() => navigate('/login')} onLogout={handleLogout} settings={settings} onSettingsChange={(change) => setSettings((current) => ({ ...current, ...change }))} hasResults={Boolean(result)} />}
     <main id="contenido">
       <Routes>
-        <Route path="/" element={<LandingSection onStart={() => { playClick(); navigate('/mini-test') }} />} />
+        <Route path="/" element={<LandingSection onStart={beginJourney} />} />
         <Route path="/login" element={<AuthPage profile={profile} onSave={handleProfileSave} onClose={() => navigate('/')} />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/mini-test" element={<MiniTest open={true} onComplete={handleMiniTestComplete} />} />
         <Route path="/juego" element={
           <ProtectedMiniTest profile={profile} miniTest={miniTest}>
-            <section className="mission-launch-section" id="evaluacion" aria-label="Inicia la misión arcade">
-              {hero ? <ArcadeCabinet hero={hero}><Arcade2DGame key={`quest-${hero.id}`} hero={hero} profile={profile} onGameComplete={handleGameComplete} /></ArcadeCabinet> : <CharacterSelect open={true} onClose={() => navigate('/')} onSelect={chooseHero} suggestedHeroId={suggestedHeroId} />}
-            </section>
+            <MissionLaunch hero={hero} profile={profile} onGameComplete={handleGameComplete} onExit={() => navigate('/')} onSelectHero={chooseHero} suggestedHeroId={suggestedHeroId} />
           </ProtectedMiniTest>
         } />
         <Route path="/resultados" element={
@@ -217,6 +223,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </main>
-    <NoniWidget message={noniMessage} subtitles={settings.subtitles} />
+    {location.pathname !== '/juego' && <NoniWidget message={noniMessage} subtitles={settings.subtitles} />}
   </div>
 }

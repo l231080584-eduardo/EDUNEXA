@@ -34,6 +34,9 @@ export default function AuthPage({ profile, onSave, onClose }) {
     if (mode === 'register' && nombre.trim().length === 0) {
       return 'El nombre es obligatorio.'
     }
+    if (mode === 'register' && !interesTecnm) {
+      return 'Confirma que te interesa estudiar en el TecNM Plantel Iztapalapa 1 para crear tu cuenta.'
+    }
     if (!email.includes('@')) {
       return 'El correo debe contener @.'
     }
@@ -94,6 +97,23 @@ export default function AuthPage({ profile, onSave, onClose }) {
     }
   }
 
+  function continueAsLocalGuest() {
+    playClick()
+    const guestId = `local-${globalThis.crypto?.randomUUID?.() || Date.now().toString(36)}`
+    onSave({
+      id: guestId,
+      nombre: 'Aspirante invitado',
+      nickname: 'Aspirante',
+      email: '',
+      telefono: '',
+      escuela: '',
+      interesTecnm: false,
+      consentimientoContacto: false,
+      folio: `EDU-LOCAL-${Date.now().toString(36).toUpperCase()}`,
+      localDemo: true,
+    })
+  }
+
   return (
     <div className="auth-page-wrapper">
       <section className="auth-card cyber-dialog" role="main" aria-labelledby="auth-title">
@@ -128,6 +148,9 @@ export default function AuthPage({ profile, onSave, onClose }) {
             Iniciar sesión
           </button>
         </div>
+        <button className="local-demo-button" type="button" onClick={continueAsLocalGuest} disabled={saving}>
+          Probar localmente como invitado · sin servidor
+        </button>
         <form onSubmit={handleSubmit}>
           {mode === 'register' && (
             <>
@@ -191,6 +214,7 @@ export default function AuthPage({ profile, onSave, onClose }) {
                 <input
                   type="checkbox"
                   checked={interesTecnm}
+                  required
                   onChange={(e) => { playClick(); setInteresTecnm(e.target.checked) }}
                 />
                 Me interesa el TecNM Plantel Iztapalapa 1

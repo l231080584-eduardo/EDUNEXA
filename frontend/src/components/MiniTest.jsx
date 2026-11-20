@@ -2,19 +2,11 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Check, Sparkles } from 'lucide-react'
 import { questions, scaleLabels } from '../data/questions'
+import { GEM_CATEGORIES } from '../data/careers'
+import { HERO_CLASSES } from './CharacterSelect'
 import { playClick, playCoin, playHover } from '../lib/audio'
 
-const CATEGORIES = ['tech', 'engineering', 'design', 'business', 'social', 'law', 'humanities']
-
-const HERO_SUGGESTION = {
-  tech: 'tech',
-  engineering: 'tech',
-  design: 'design',
-  business: 'business',
-  social: 'social',
-  law: 'law',
-  humanities: 'humanities',
-}
+const CATEGORIES = ['tech', 'industry', 'construction', 'energy', 'business', 'life']
 
 const NONI_MESSAGES = [
   '¡Vamos a conocernos un poco! Responde con confianza, no hay respuestas malas.',
@@ -30,35 +22,14 @@ function calculateScores(answers) {
   const materias = get('materias') / 4
   const estiloVida = get('estilo-vida') / 4
 
-  const scores = {}
-  CATEGORIES.forEach((cat) => {
-    switch (cat) {
-      case 'tech':
-        scores[cat] = intereses * 0.6 + materias * 0.4
-        break
-      case 'engineering':
-        scores[cat] = materias * 0.6 + intereses * 0.4
-        break
-      case 'design':
-        scores[cat] = estiloVida * 0.6 + intereses * 0.4
-        break
-      case 'business':
-        scores[cat] = estiloVida * 0.6 + materias * 0.4
-        break
-      case 'social':
-        scores[cat] = intereses * 0.5 + estiloVida * 0.5
-        break
-      case 'law':
-        scores[cat] = estiloVida * 0.5 + intereses * 0.5
-        break
-      case 'humanities':
-        scores[cat] = intereses * 0.4 + estiloVida * 0.6
-        break
-      default:
-        scores[cat] = 0
-    }
-  })
-  return scores
+  return {
+    tech: intereses * 0.55 + materias * 0.45,
+    industry: materias * 0.5 + intereses * 0.3 + estiloVida * 0.2,
+    construction: estiloVida * 0.45 + materias * 0.35 + intereses * 0.2,
+    energy: materias * 0.5 + intereses * 0.35 + estiloVida * 0.15,
+    business: estiloVida * 0.45 + intereses * 0.3 + materias * 0.25,
+    life: intereses * 0.45 + materias * 0.3 + estiloVida * 0.25,
+  }
 }
 
 function getTopTwo(scores) {
@@ -70,7 +41,7 @@ function getTopTwo(scores) {
 function getSuggestedHero(scores) {
   const topTwo = getTopTwo(scores)
   const top = topTwo[0]
-  return HERO_SUGGESTION[top] || 'tech'
+  return top || 'tech'
 }
 
 export default function MiniTest({ open, onComplete }) {
@@ -128,7 +99,7 @@ export default function MiniTest({ open, onComplete }) {
           <h3>Tus áreas destacadas</h3>
           {results.topTwo.map((cat, index) => (
             <div key={cat} className="category-bar">
-              <span className="category-label">{index + 1}. {cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
+              <span className="category-label">{index + 1}. {GEM_CATEGORIES[cat]?.label || cat}</span>
               <div className="bar-track">
                 <div className="bar-fill" style={{ width: `${Math.round(results.scores[cat] * 100)}%`, backgroundColor: index === 0 ? '#68f5a5' : '#ffd66e' }} />
               </div>
@@ -139,16 +110,16 @@ export default function MiniTest({ open, onComplete }) {
 
         <div className="minitest-hero-suggestion">
           <p className="eyebrow">SUGERENCIA DE NONI</p>
-          <h3>¿Listo para tu misión?</h3>
-          <p>Basado en tu perfil, Noni sugiere que explores el mundo de la <strong>Tecnología e Ingenierías</strong>. ¡Pero tú decides!</p>
+          <h3>¿Listo para elegir tu camino?</h3>
+          <p>NONI cree que podrías disfrutar <strong>{GEM_CATEGORIES[results.suggestedHero]?.label}</strong>. Elige el héroe que más te represente: tu elección también cuenta para el resultado.</p>
         </div>
 
         <div className="minitest-actions">
           <button type="button" className="minitest-play-button" onClick={() => handleStartGame(results.suggestedHero)}>
-            <Check size={18} /> Jugar con este héroe <ArrowRight size={16} />
+            <Check size={18} /> Ver sugerencia y elegir <ArrowRight size={16} />
           </button>
           <button type="button" className="minitest-change-button" onClick={() => handleStartGame(null)}>
-            Elegir otro héroe
+            Explorar los seis héroes
           </button>
         </div>
 

@@ -1,75 +1,93 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, ArrowRight, BrainCircuit, BriefcaseBusiness, Gavel, HeartPulse, Palette, ShieldCheck, Sparkles, Swords } from 'lucide-react'
-import { playArcadeCallout, playClick, playCoin, playHover, playLockIn, playRadioBeep, selectSpanishVoice, startMusic } from '../lib/audio'
+import { ArrowLeft, ArrowRight, BriefcaseBusiness, Building2, Cpu, Factory, Leaf, Sparkles, Swords, Volume2, VolumeX, Zap } from 'lucide-react'
+import { playArcadeCallout, playClick, playHover, playLockIn } from '../lib/audio'
+import { getArcadeMuted, playArcadeSfx, startArcadeMusic, stopArcadeMusic, toggleArcadeMuted, subscribeArcadeMute } from '../lib/arcadeAudio'
+import { HERO_ARCADE_DETAILS, HERO_SPRITES } from '../data/careers'
+import { prepareArcadeSprite } from '../lib/spriteProcessor'
+import { speakAsHero } from '../lib/voiceEngine'
 
 export const HERO_CLASSES = [
-  { id: 'law', icon: '⚖️', name: 'El Defensor Táctico', area: 'Derecho & Ciencias Sociales', weapon: 'Gavel Justice Cannon', tools: 'Leyes · Códigos · Constitución', color: '#ffd66e', cadence: 'Táctica · 2 impactos/s', projectile: 'Sentencia dorada de precisión', impact: 'Argumenta, protege derechos y diseña acuerdos que sí mueven el mundo.', line: 'Tu estrategia también puede abrir caminos más justos.' },
-  { id: 'social', icon: '🥼', name: 'El Bio-Doctor', area: 'Medicina & Salud', weapon: 'Bio-Inject Syringe Launcher', tools: 'CRISPR · Diagnóstico · Nanotecnología', color: '#59edff', cadence: 'Precisa · 3 impulsos/s', projectile: 'Plasma biológico cyan', impact: 'Usa ciencia y empatía para cuidar personas y mejorar su calidad de vida.', line: 'Curiosidad científica y cuidado: una mezcla con poder para cambiar vidas.' },
-  { id: 'tech', icon: '🥷', name: 'El Hacker Maestro', area: 'Tecnología e Ingenierías', weapon: 'Terminal Code Blaster', tools: 'Python · Linux · Ciberseguridad', color: '#68f5a5', cadence: 'Ráfaga · 5 pulsos/s', projectile: 'Código verde de alto impacto', impact: 'Convierte lógica y código en herramientas para resolver retos reales.', line: 'Tu lógica puede convertirse en tecnología que sí cambia las cosas.' },
-  { id: 'design', icon: '🎨', name: 'El Creador Neón', area: 'Artes, Diseño & Arquitectura', weapon: 'Stylus Vector Railgun', tools: 'Blender · Motores 3D · CAD', color: '#f476e9', cadence: 'Creativa · 3 trazos/s', projectile: 'Haces magenta vectoriales', impact: 'Imagina experiencias que todavía no existen y dales forma con intención.', line: 'Imagina experiencias que todavía no existen y dales forma.' },
-  { id: 'business', icon: '🚀', name: 'El Estratega de Imperios', area: 'Negocios & Finanzas', weapon: 'Quantum Analytics Launcher', tools: 'Big Data · Finanzas · Estrategia', color: '#94a5ff', cadence: 'Estratégica · 2 pulsos/s', projectile: 'Ondas azules de métricas', impact: 'Encuentra patrones, conecta equipos y convierte ideas en proyectos viables.', line: 'Encuentra patrones, conecta equipos y convierte ideas en proyectos.' },
-  { id: 'humanities', icon: '🔬', name: 'El Humanista y Educador', area: 'Psicología & Humanidades', weapon: 'Neural Mind Prism', tools: 'Empatía · Lógica · Análisis social', color: '#aa85ff', cadence: 'Resonancia · 4 ondas/s', projectile: 'Prisma neuronal violeta', impact: 'Comprende historias, acompaña personas e impulsa nuevas formas de aprender.', line: 'Comprende historias, acompaña personas e impulsa nuevas formas de aprender.' },
+  { id: 'tech', icon: '⌘', sprite: HERO_SPRITES.tech, name: 'La Guardiana del Código', area: 'Tecnología', weapon: 'Bastón de código obsidiana', tools: 'Sistemas · Mecatrónica · TIC · IA · Datos', color: '#55e8ff', cadence: 'Ráfaga · pulsos de datos', projectile: 'Dardos de luz turquesa', impact: 'Conecta código, máquinas y datos para resolver retos que todavía no tienen respuesta.', line: 'Tu curiosidad puede abrir caminos que aún no existen.', ...HERO_ARCADE_DETAILS.tech },
+  { id: 'industry', icon: '⚙', sprite: HERO_SPRITES.industry, name: 'El Forjador de Engranes', area: 'Industria', weapon: 'Martillo modular de cobre', tools: 'Industrial · Química · Mecánica · Automotriz', color: '#ff9f1c', cadence: 'Potente · impacto mecánico', projectile: 'Remaches de energía ámbar', impact: 'Transforma materiales, máquinas y procesos para que las ideas funcionen en el mundo real.', line: 'Cada gran invento empieza con alguien que se atreve a probar.', ...HERO_ARCADE_DETAILS.industry },
+  { id: 'construction', icon: '▦', sprite: HERO_SPRITES.construction, name: 'La Arquitecta de Piedra', area: 'Construcción', weapon: 'Escudo topográfico', tools: 'Civil · Arquitectura · Diseño Industrial', color: '#e7bd73', cadence: 'Defensa · estructuras rápidas', projectile: 'Plataformas de piedra luminosa', impact: 'Diseña espacios, objetos e infraestructura donde las personas puedan crecer.', line: 'Lo que imaginas puede convertirse en un lugar para todos.', ...HERO_ARCADE_DETAILS.construction },
+  { id: 'energy', icon: 'ϟ', sprite: HERO_SPRITES.energy, name: 'El Portador del Relámpago', area: 'Energía y electrónica', weapon: 'Lanza conductora de jade', tools: 'Electrónica · Eléctrica · Renovables · Ambiental', color: '#ffe16a', cadence: 'Cadena · descargas precisas', projectile: 'Arcos eléctricos dorados', impact: 'Conecta circuitos y energía para impulsar soluciones más limpias y resilientes.', line: 'Una idea brillante también puede iluminar el futuro.', ...HERO_ARCADE_DETAILS.energy },
+  { id: 'business', icon: '✦', sprite: HERO_SPRITES.business, name: 'La Estratega del Quetzal', area: 'Negocios', weapon: 'Abanico de señales', tools: 'Gestión · Administración · Logística · Turismo', color: '#6df2a3', cadence: 'Táctica · coordina recursos', projectile: 'Ondas verdes de estrategia', impact: 'Encuentra oportunidades, organiza equipos y convierte ideas en proyectos que sí avanzan.', line: 'Tu forma de conectar ideas puede mover a todo un equipo.', ...HERO_ARCADE_DETAILS.business },
+  { id: 'life', icon: '❋', sprite: HERO_SPRITES.life, name: 'El Guardián de la Semilla', area: 'Ciencias de la vida', weapon: 'Báculo de raíces y jade', tools: 'Bioquímica · Biomédica · Biología', color: '#ff708d', cadence: 'Apoyo · raíces protectoras', projectile: 'Semillas de luz y vida', impact: 'Investiga los sistemas vivos y crea nuevas formas de cuidar la salud y nuestro entorno.', line: 'La vida está llena de misterios esperando a alguien como tú.', ...HERO_ARCADE_DETAILS.life },
 ]
 
 const HeroIcon = ({ id, size = 19 }) => {
-  const icons = { law: Gavel, social: HeartPulse, tech: BrainCircuit, design: Palette, business: BriefcaseBusiness, humanities: ShieldCheck }
+  const icons = { tech: Cpu, industry: Factory, construction: Building2, energy: Zap, business: BriefcaseBusiness, life: Leaf }
   const Icon = icons[id] || Sparkles
   return <Icon size={size} />
 }
 
+function ArcadeSpriteCanvas({ src, className, label }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    let active = true
+    prepareArcadeSprite(src).then((sprite) => {
+      const canvas = ref.current
+      if (!active || !canvas) return
+      canvas.width = sprite.width; canvas.height = sprite.height
+      const context = canvas.getContext('2d')
+      context.imageSmoothingEnabled = false
+      context.clearRect(0, 0, canvas.width, canvas.height)
+      context.drawImage(sprite.canvas, 0, 0)
+    }).catch(() => {})
+    return () => { active = false }
+  }, [src])
+  return <canvas ref={ref} className={className} role="img" aria-label={label} />
+}
+
 export default function CharacterSelect({ open, onClose, onSelect, suggestedHeroId }) {
-  const [stage, setStage] = useState('insert')
-  const [selected, setSelected] = useState(HERO_CLASSES[2])
+  const [stage, setStage] = useState('select')
+  const [selected, setSelected] = useState(HERO_CLASSES[0])
+  const [muted, setMuted] = useState(getArcadeMuted)
   const activeHero = selected
 
   useEffect(() => {
+    const unsubscribe = subscribeArcadeMute(setMuted)
+    return unsubscribe
+  }, [])
+
+  useEffect(() => {
     if (open) {
-      setStage('insert')
+      setStage('select')
+      startArcadeMusic('select')
       if (suggestedHeroId) {
         const suggested = HERO_CLASSES.find((h) => h.id === suggestedHeroId)
-        setSelected(suggested || HERO_CLASSES[2])
+        setSelected(suggested || HERO_CLASSES[0])
       } else {
-        setSelected(HERO_CLASSES[2])
+        setSelected(HERO_CLASSES[0])
       }
     }
   }, [open, suggestedHeroId])
 
   useEffect(() => {
-    if (stage !== 'intro') return undefined
-    const line = 'Año 2026. Las rutinas monótonas y los trabajos zombie amenazan tu futuro. Noni está contigo. ¡Elige tu clase y lock and load!'
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
-      const utterance = new SpeechSynthesisUtterance(line)
-      const voice = selectSpanishVoice(window.speechSynthesis)
-      if (voice) utterance.voice = voice
-      utterance.lang = voice?.lang || 'es-MX'; utterance.pitch = 1.02; utterance.rate = 0.95; utterance.volume = 1
-      playRadioBeep()
-      utterance.onend = () => setStage('select')
-      window.speechSynthesis.speak(utterance)
-    }
-    const timer = window.setTimeout(() => setStage('select'), 9000)
-    return () => { window.clearTimeout(timer); window.speechSynthesis?.cancel() }
-  }, [stage])
+    if (stage !== 'transform') return undefined
+    const timer = window.setTimeout(() => onSelect(selected), 1500)
+    return () => window.clearTimeout(timer)
+  }, [stage, selected, onSelect])
 
   if (!open) return null
-  function begin() { playCoin(); startMusic(); setStage('intro') }
-  function equip() { playLockIn(); startMusic(); onSelect(selected) }
+  function equip() { playLockIn(); playArcadeSfx('confirm'); speakAsHero(selected.id, selected.line); startArcadeMusic('battle'); setStage('transform') }
+  function leaveSelect() { stopArcadeMusic(); onClose?.() }
 
   return <AnimatePresence><motion.div className="character-modal" role="dialog" aria-modal="true" aria-labelledby="character-title" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
     <div className="character-crt" />
-    {stage === 'insert' && <motion.div className="character-insert" initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }}><p className="eyebrow">EDUNEXA ARCADE · 2026</p><div className="character-insert-logo">INSERT <span>COIN</span></div><p>¿Lista tu próxima misión?</p><button type="button" className="insert-coin-button" onClick={begin}>🕹️ INSERT COIN <ArrowRight size={17} /></button><button type="button" className="character-back" onClick={onClose}><ArrowLeft size={14} /> Volver al inicio</button></motion.div>}
-    {stage === 'intro' && <motion.div className="character-cinematic" initial={{ opacity: 0, scale: 1.07 }} animate={{ opacity: 1, scale: 1 }}><div className="cinematic-sun" /><p className="eyebrow">TRANSMISIÓN ENTRANTE · NONI IA</p><h2>AÑO <span>2026</span></h2><p>Las rutinas monótonas y los trabajos zombie amenazan tu futuro.</p><strong>LOCK AND LOAD<span className="blink-cursor">_</span></strong><div className="cinematic-captions" aria-live="polite">NONI: Tus talentos son tu mejor equipamiento. Vamos a elegirlo.</div></motion.div>}
     {stage === 'select' && <motion.div className="character-select-panel" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-      <div className="character-select-heading"><div><p className="eyebrow">MISIÓN 01 · CLASIFICACIÓN</p><h2 id="character-title">Elige tu <span>héroe</span></h2><p>Elige tu equipo: cada clase abre una forma distinta de resolver la misión.</p></div><button className="character-back" type="button" onClick={onClose}><ArrowLeft size={15} /> Inicio</button></div>
+      <div className="character-select-heading"><div><p className="eyebrow">BALAM TE HA ENCONTRADO · CLASIFICACIÓN</p><h2 id="character-title">Elige tu <span>héroe</span></h2><p>Seis familias del TecNM. Elige la que te dé más curiosidad; siempre puedes explorar las demás.</p></div><div className="character-heading-actions"><button className="audio-toggle" type="button" aria-label={muted ? 'Activar música' : 'Silenciar música'} onClick={() => setMuted(toggleArcadeMuted())}>{muted ? <VolumeX size={16}/> : <Volume2 size={16}/>}<span>{muted ? 'SONIDO OFF' : 'MÚSICA ON'}</span></button><button className="character-back" type="button" onClick={leaveSelect}><ArrowLeft size={15} /> Inicio</button></div></div>
       <div className="character-select-layout">
-        <div className="hero-class-grid">{HERO_CLASSES.map((hero, index) => <motion.button type="button" key={hero.id} className={`hero-class-card ${selected.id === hero.id ? 'is-equipped' : ''}`} style={{ '--hero-color': hero.color }} onMouseEnter={() => playHover()} onFocus={() => {}} onClick={() => { setSelected(hero); playClick(); playArcadeCallout('SOLDIER SELECT!') }} initial={{ opacity: 0, y: 13 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * .055 }} aria-pressed={selected.id === hero.id}>{suggestedHeroId === hero.id && <span className="suggested-badge">Sugerencia de NONI</span>}<span className="hero-class-icon">{hero.icon}</span><span className="hero-class-area">{hero.area}</span><strong>{hero.name}</strong><span className="hero-class-weapon"><HeroIcon id={hero.id} size={14} /> {hero.weapon}</span><small>{hero.tools}</small></motion.button>)}</div>
+        <div className="hero-class-grid">{HERO_CLASSES.map((hero, index) => <motion.button type="button" key={hero.id} className={`hero-class-card ${selected.id === hero.id ? 'is-equipped' : ''}`} style={{ '--hero-color': hero.color }} onMouseEnter={() => playHover()} onFocus={() => {}} onClick={() => { setSelected(hero); playClick(); playArcadeSfx('change'); playArcadeCallout('HÉROE SELECCIONADO') }} initial={{ opacity: 0, y: 13 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * .055 }} aria-pressed={selected.id === hero.id}>{suggestedHeroId === hero.id && <span className="suggested-badge">Sugerencia de NONI</span>}<ArcadeSpriteCanvas src={hero.sprite} className="hero-pixel-portrait" label={`Héroe de ${hero.area}`}/><span className="hero-class-area">{hero.area}</span><strong>{hero.name}</strong><span className="hero-class-weapon"><HeroIcon id={hero.id} size={14} /> {hero.weapon}</span><small>{hero.subtitle}</small></motion.button>)}</div>
         <AnimatePresence mode="wait"><motion.aside key={activeHero.id} className="weapon-spec-panel" style={{ '--hero-color': activeHero.color }} initial={{ opacity: 0, x: 16, rotateY: -8 }} animate={{ opacity: 1, x: 0, rotateY: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: .22 }}>
-          <div className="weapon-hologram"><span>{activeHero.icon}</span><i /><i /><i /></div><p className="eyebrow">EQUIPO DE CLASE</p><h3>{activeHero.weapon}</h3><p>{activeHero.impact}</p>
-          <dl><div><dt>Cadencia</dt><dd>{activeHero.cadence}</dd></div><div><dt>Proyectil</dt><dd>{activeHero.projectile}</dd></div><div><dt>Herramientas</dt><dd>{activeHero.tools}</dd></div></dl><small>Vista previa: {activeHero.name}</small>
+          <div className="hero-preview-stage"><i/><i/><ArcadeSpriteCanvas src={activeHero.sprite} className="hero-preview-sprite" label={`Vista previa del héroe de ${activeHero.area}`}/></div><p className="eyebrow">FAMILIA · {activeHero.area}</p><h3>{activeHero.weapon}</h3><p>{activeHero.story}</p>
+          <div className="hero-attributes" aria-label="Atributos de combate">{[['Potencia de fuego', activeHero.attributes.power], ['Cadencia', activeHero.attributes.cadence], ['Movilidad', activeHero.attributes.mobility]].map(([label, value]) => <div className="hero-attribute" key={label}><span>{label}</span><div role="progressbar" aria-label={label} aria-valuemin="1" aria-valuemax="5" aria-valuenow={value}>{[1, 2, 3, 4, 5].map((point) => <i className={point <= value ? 'is-filled' : ''} key={point}/>)}</div><b>{value}/5</b></div>)}</div>
+          <dl><div><dt>Efecto especial</dt><dd>{activeHero.special}</dd></div><div><dt>Carreras afines TecNM</dt><dd className="hero-career-tags">{activeHero.careers.map((career) => <span key={career}>{career}</span>)}</dd></div></dl><small>Vista previa: {activeHero.name}</small>
         </motion.aside></AnimatePresence>
       </div>
-      <div className="equip-footer"><p><Sparkles size={15} /> NONI: “{selected.line}”</p><button type="button" className="equip-hero-button" onClick={equip}><Swords size={16} /> ELEGIR HÉROE <ArrowRight size={16} /></button></div>
+      <div className="equip-footer"><p><Sparkles size={15} /> NONI: “{selected.line}”</p><button type="button" className="equip-hero-button" onClick={equip}><Swords size={16} /> CONVERTIRME EN {selected.name.toLocaleUpperCase('es-MX')} <ArrowRight size={16} /></button></div>
     </motion.div>}
+    {stage === 'transform' && <motion.div className="character-transform" role="status" aria-live="polite" initial={{ opacity: 0 }} animate={{ opacity: 1 }}><span className="transform-rune">✦</span><ArcadeSpriteCanvas src={selected.sprite} className="transform-hero-sprite" label={`${selected.name}, héroe elegido`}/><p className="eyebrow">BALAM · GUARDIÁN DEL PORTAL</p><h2>Tu camino toma forma</h2><p>NONI: «{selected.line}»</p><strong>{selected.name}</strong></motion.div>}
   </motion.div></AnimatePresence>
 }

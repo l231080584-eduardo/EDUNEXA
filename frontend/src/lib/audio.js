@@ -27,7 +27,7 @@ if (typeof window !== 'undefined' && window.speechSynthesis) {
 }
 
 class ArcadeAudioManager {
-  constructor() { this.ctx = null; this.enabled = true; this.musicTimer = null; this.musicNodes = new Set(); this.musicStep = 0 }
+  constructor() { this.ctx = null; this.enabled = true; this.musicTimer = null; this.musicNodes = new Set(); this.musicStep = 0; this.musicMode = null }
 
   init() {
     if (typeof window === 'undefined' || !this.enabled) return null
@@ -105,11 +105,42 @@ class ArcadeAudioManager {
   playReload() { [420, 310, 520].forEach((note, index) => this.tone(note, index * .075, .055, 'square', .024)) }
   playNavigate() { this.tone(440, 0, 0.08, 'triangle', 0.04); this.tone(660, 0.055, 0.1, 'triangle', 0.04) }
   playPortalJump() { [330, 440, 660, 880].forEach((note, index) => this.tone(note, index * 0.045, 0.18 - index * 0.02, 'sawtooth', 0.035)) }
+  playImpact() {
+    const ctx = this.init()
+    if (!ctx) return
+    try {
+      const oscillator = ctx.createOscillator()
+      const gain = ctx.createGain()
+      const filter = ctx.createBiquadFilter()
+      const start = ctx.currentTime
+      oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(105, start); oscillator.frequency.exponentialRampToValueAtTime(38, start + .14)
+      filter.type = 'lowpass'; filter.frequency.setValueAtTime(180, start)
+      gain.gain.setValueAtTime(.0001, start); gain.gain.exponentialRampToValueAtTime(.22, start + .008); gain.gain.exponentialRampToValueAtTime(.0001, start + .17)
+      oscillator.connect(filter); filter.connect(gain); gain.connect(ctx.destination); oscillator.start(start); oscillator.stop(start + .18)
+    } catch { /* The cinematic can continue if Web Audio is unavailable. */ }
+  }
   playBadgeUnlock() { [523, 659, 784, 1047].forEach((note, index) => this.tone(note, index * 0.09, 0.28, 'triangle', 0.055)) }
 
-  startMusic() {
+  startMusic(mode = 'menu') {
     const ctx = this.init()
-    if (!ctx || this.musicTimer) return
+    if (!ctx) return
+    if (this.musicTimer && this.musicMode === mode) return
+    if (this.musicTimer) this.stopMusic()
+    this.musicMode = mode
+    this.musicStep = 0
+    if (mode === 'battle') {
+      const riff = [220, 0, 262, 330, 0, 392, 330, 262, 220, 0, 294, 349, 0, 440, 392, 349]
+      const scheduleStep = () => {
+        const step = this.musicStep % riff.length
+        this.musicStep += 1
+        if (riff[step]) this.tone(riff[step], 0, .13, 'square', .012)
+        if (step % 4 === 0) this.tone(step === 8 ? 55 : 65.4, 0, .2, 'sawtooth', .026)
+        if (step % 4 === 2) this.tone(130.8, 0, .07, 'triangle', .012)
+      }
+      scheduleStep()
+      this.musicTimer = window.setInterval(scheduleStep, 145)
+      return
+    }
     const chords = [[55, 82.41, 110], [49, 73.42, 98], [65.41, 98, 130.81], [43.65, 65.41, 87.31]]
     const scheduleChord = () => {
       const notes = chords[this.musicStep % chords.length]; this.musicStep += 1
@@ -131,6 +162,7 @@ class ArcadeAudioManager {
   stopMusic() {
     if (this.musicTimer) window.clearInterval(this.musicTimer)
     this.musicTimer = null
+    this.musicMode = null
     this.musicNodes.forEach(({ oscillator, gain }) => { try { gain.gain.setTargetAtTime(.0001, this.ctx.currentTime, .03); oscillator.stop(this.ctx.currentTime + .15) } catch { /* Already stopped. */ } })
     this.musicNodes.clear()
   }
@@ -195,6 +227,7 @@ export const playExplosion = () => playHowler('explosion', () => arcadeAudio.pla
 export const playDamage = () => arcadeAudio.playDamage()
 export const playNavigate = () => arcadeAudio.playNavigate()
 export const playPortalJump = () => arcadeAudio.playPortalJump()
+export const playImpact = () => arcadeAudio.playImpact()
 export function playArcadeCallout(text) {
   if (typeof window === 'undefined' || !window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return
   try {
@@ -209,7 +242,7 @@ export function playArcadeCallout(text) {
     window.speechSynthesis.speak(utterance)
   } catch { /* Announcer voice is optional; the arcade SFX still play. */ }
 }
-export const startMusic = () => arcadeAudio.startMusic()
+export const startMusic = (mode) => arcadeAudio.startMusic(mode)
 export const stopMusic = () => arcadeAudio.stopMusic()
 export const playSuccess = () => arcadeAudio.playBadgeUnlock()
 export const playBadgeUnlock = playSuccess

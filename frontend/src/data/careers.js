@@ -1,11 +1,29 @@
 export const GEM_CATEGORIES = {
-  law: { label: 'Derecho y ciencias sociales', color: '#ffe16a', field: 'Derecho y Ciencias Sociales' },
-  tech: { label: 'Tecnología e IA', color: '#55e8ff', field: 'Ingeniería en Sistemas Computacionales' },
-  design: { label: 'Diseño y creatividad', color: '#bd83ff', field: 'Diseño Digital' },
-  business: { label: 'Gestión e innovación', color: '#6df2a3', field: 'Gestión Empresarial' },
-  engineering: { label: 'Ingeniería y robótica', color: '#ff9f1c', field: 'Ingenierías' },
-  social: { label: 'Salud y ciencias de la vida', color: '#ff708d', field: 'Ciencias de la Salud' },
-  humanities: { label: 'Humanidades y educación', color: '#ff8f61', field: 'Humanidades y Educación' },
+  tech: { label: 'Tecnología', color: '#55e8ff', field: 'Sistemas · Mecatrónica · TIC · Informática · IA · Ciencia de Datos' },
+  industry: { label: 'Industria', color: '#ff9f1c', field: 'Industrial · Química · Mecánica · Electromecánica · Automotriz · Ferroviaria' },
+  construction: { label: 'Construcción', color: '#e7bd73', field: 'Civil · Arquitectura · Diseño Industrial' },
+  energy: { label: 'Energía y electrónica', color: '#ffe16a', field: 'Electrónica · Energías Renovables · Eléctrica · Ambiental' },
+  business: { label: 'Negocios', color: '#6df2a3', field: 'Gestión Empresarial · Administración · Contaduría · Logística · Turismo' },
+  life: { label: 'Ciencias de la vida', color: '#ff708d', field: 'Bioquímica · Biomédica · Biología' },
+}
+
+export const HERO_SPRITES = {
+  tech: '/assets/heroe-tecnologia.jpg',
+  industry: '/assets/heroe-industria.jpg',
+  construction: '/assets/heroe-construccion.jpg',
+  energy: '/assets/heroe-energia.jpg',
+  business: '/assets/heroe-negocios.jpg',
+  life: '/assets/heroe-vida.jpg',
+  morosBoss: '/assets/moros-boss.jpg',
+}
+
+export const HERO_ARCADE_DETAILS = {
+  tech: { subtitle: 'Ideas rápidas, soluciones brillantes', story: 'En los pasillos del Tec, convierte señales y código en rutas para escapar del caos. Representa la curiosidad que conecta sistemas, máquinas e inteligencia artificial.', attributes: { power: 3, cadence: 5, mobility: 5 }, special: 'Ráfagas rápidas de dardos de datos que atraviesan objetivos alineados.', careers: ['Sistemas', 'Mecatrónica', 'TIC', 'Informática', 'IA', 'Ciencia de Datos'] },
+  industry: { subtitle: 'Fuerza, precisión y trabajo en equipo', story: 'Forja una salida entre máquinas fuera de control y protege a su equipo con ingeniería práctica. Representa a quienes mejoran procesos y construyen soluciones resistentes.', attributes: { power: 5, cadence: 3, mobility: 3 }, special: 'Remaches de cobre de gran impacto que golpean con fuerza y abren paso.', careers: ['Industrial', 'Química', 'Mecánica', 'Electromecánica', 'Automotriz', 'Ferroviaria'] },
+  construction: { subtitle: 'Cada obstáculo puede volverse camino', story: 'Lee el terreno de Iztapalapa y transforma ruinas en rutas seguras. Representa a quienes imaginan infraestructura y espacios útiles para toda la comunidad.', attributes: { power: 4, cadence: 3, mobility: 3 }, special: 'Ondas expansivas de piedra que despejan varios objetivos cercanos.', careers: ['Civil', 'Arquitectura', 'Diseño Industrial'] },
+  energy: { subtitle: 'Energía limpia para cambiar el rumbo', story: 'Canaliza la electricidad del dominio para devolverle luz a la ciudad. Representa la creatividad que une electrónica, energía y cuidado ambiental.', attributes: { power: 4, cadence: 4, mobility: 4 }, special: 'Rayos en cadena que saltan entre enemigos y brillan como jade.', careers: ['Electrónica', 'Eléctrica', 'Energías Renovables', 'Ambiental'] },
+  business: { subtitle: 'Estrategia que mueve a todo el equipo', story: 'Encuentra oportunidades incluso cuando todo parece perdido y coordina recursos para avanzar. Representa a quienes convierten ideas en proyectos que sí llegan a la meta.', attributes: { power: 3, cadence: 4, mobility: 5 }, special: 'Ondas de estrategia que se expanden y alcanzan objetivos en grupo.', careers: ['Gestión Empresarial', 'Administración', 'Contaduría', 'Logística', 'Turismo'] },
+  life: { subtitle: 'Ciencia para proteger lo que vive', story: 'Usa su conocimiento de los sistemas vivos para sanar el terreno y cuidar a quienes lo habitan. Representa la investigación que mejora la salud y el entorno.', attributes: { power: 3, cadence: 4, mobility: 4 }, special: 'Semillas luminosas que se dispersan y dejan una onda protectora.', careers: ['Bioquímica', 'Biomédica', 'Biología'] },
 }
 
 export const CAREER_CATALOG = [
@@ -52,12 +70,17 @@ export function rankGemCategories(gemCounts = {}, gemEffectiveness = {}) {
 
 function inferGemCategory(career) {
   const normalized = `${career.area || ''} ${career.nombre || career.name || ''}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-  if (/derech|juridic|abogad|criminolog|politic|relaciones internacionales/.test(normalized)) return 'law'
-  if (/psicolog|pedagog|educacion|humanid|historia|filosof|periodismo|comunicacion/.test(normalized)) return 'humanities'
-  if (/salud|medic|enfermer|biotecn|odontolog|biolog/.test(normalized)) return 'social'
+  if (/bioquim|biomed|biolog|biotecn|salud|medic|enfermer/.test(normalized)) return 'life'
+  if (/renovable|electr|energia|ambiental/.test(normalized)) return 'energy'
+  if (/civil|arquitect|diseno industrial|construccion/.test(normalized)) return 'construction'
+  if (/quimic|mecanic|industrial|electromec|automotr|ferrovi|robot|mecatron|manufactur/.test(normalized)) return 'industry'
+  if (/gestion|negocio|finanz|contadur|administr|mercado|comercio|logistic|turismo/.test(normalized)) return 'business'
+  if (/sistemas|software|informat|tecnolog|datos|inteligencia artificial|ciberseguridad|comput/.test(normalized)) return 'tech'
+  const legacy = { tech: 'tech', engineering: 'industry', design: 'construction', business: 'business', social: 'life', law: 'business', humanities: 'business' }
+  if (legacy[career.category]) return legacy[career.category]
   if (GEM_CATEGORIES[career.category]) return career.category
-  if (/mecatron|robot|ingenier|automatiz|electron|civil/.test(normalized)) return 'engineering'
-  if (/diseno|arquitect|animacion|arte|visual/.test(normalized)) return 'design'
+  if (/ingenier|automatiz/.test(normalized)) return 'industry'
+  if (/diseno|arquitect|arte|visual/.test(normalized)) return 'construction'
   if (/gestion|negocio|finanz|contadur|administr|mercado|comercio/.test(normalized)) return 'business'
   return 'tech'
 }
@@ -82,17 +105,15 @@ function normalizeCareer(item) {
 
 export function recommendCareers(gemCounts = {}, gemEffectiveness = {}, careerCatalog = CAREER_CATALOG, finalMetrics = null) {
   const ranked = rankGemCategories(gemCounts, gemEffectiveness)
-  // When finalMetrics is provided, blend game scores (60%) with mini-test scores (40%)
-  const blendedRanked = finalMetrics
-    ? ranked.map((item) => {
-        // Map category to mini-test metric
-        const metricMap = { tech: 'intereses', engineering: 'materias', design: 'estiloVida', business: 'estiloVida', social: 'intereses', law: 'estiloVida', humanities: 'intereses' }
-        const miniScore = finalMetrics[metricMap[item.id]] || 0
-        const blendedScore = 0.6 * item.score + 0.4 * miniScore
-        return { ...item, score: blendedScore }
-      }).sort((a, b) => b.score - a.score || b.count - a.count)
+  const familyScores = finalMetrics?.familyScores
+  const blendedRanked = familyScores
+    ? Object.entries(GEM_CATEGORIES).map(([id]) => ({ id, score: Math.max(0, Math.min(1, Number(familyScores[id]) || 0)), count: Math.max(0, Number(gemCounts[id]) || 0) }))
+      .sort((a, b) => b.score - a.score || b.count - a.count)
     : ranked
-  const strongest = blendedRanked.slice(0, 2)
+  const chosenHeroFamily = finalMetrics?.hero
+  const strongest = chosenHeroFamily && blendedRanked.some((family) => family.id === chosenHeroFamily)
+    ? [blendedRanked.find((family) => family.id === chosenHeroFamily), ...blendedRanked.filter((family) => family.id !== chosenHeroFamily).slice(0, 1)]
+    : blendedRanked.slice(0, 2)
   const catalogNames = new Set()
   const completeCatalog = [...careerCatalog, ...CAREER_CATALOG].map(normalizeCareer).filter((career) => {
     const key = career.name?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -100,7 +121,10 @@ export function recommendCareers(gemCounts = {}, gemEffectiveness = {}, careerCa
     catalogNames.add(key)
     return true
   })
-  const categoriesFor = (category) => category.id === 'tech' ? ['tech', 'engineering'] : [category.id]
+  const categoriesFor = (category) => {
+    const legacyByFamily = { tech: ['tech'], industry: ['engineering'], construction: ['design'], energy: ['engineering'], business: ['business', 'law', 'humanities'], life: ['social'] }
+    return [category.id, ...(legacyByFamily[category.id] || [])]
+  }
   const recommended = []
   const selectedNames = new Set()
   const addFromCategory = (category, limit) => {
@@ -132,8 +156,8 @@ export function buildGameMetrics(gemCounts = {}, gemEffectiveness = {}, studentL
   const variety = total ? ranks.filter((item) => item.count > 0).length / Math.min(6, ranks.length) : 0
   return {
     intereses: ranks.length ? ranks[0].score : 0,
-    materias: shareFor(['tech', 'engineering']),
-    estiloVida: shareFor(['design', 'business', 'social', 'law', 'humanities']),
+    materias: shareFor(['industry', 'energy']),
+    estiloVida: shareFor(['construction', 'business']),
     geolocalizacion: studentLocation?.latitud != null && studentLocation?.longitud != null ? 1 : Math.min(1, variety),
   }
 }

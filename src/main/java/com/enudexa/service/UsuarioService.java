@@ -32,6 +32,12 @@ public class UsuarioService {
     @Transactional
     public UsuarioResponse registrar(UsuarioRegistroRequest request) {
         String email = normalizarEmail(request.email());
+        if (!Boolean.TRUE.equals(request.interesTecnm())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Para crear una cuenta, confirma tu interés en el TecNM Plantel Iztapalapa 1"
+            );
+        }
         if (usuarioRepository.existsByEmail(email)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El email ya está registrado");
         }

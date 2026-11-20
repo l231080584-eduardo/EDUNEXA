@@ -9,6 +9,9 @@ export default function NoniWidget({ message, subtitles = true }) {
   const [caption, setCaption] = useState('Soy NONI, tu copiloto. Vamos a explorar lo que te inspira.')
   const latestRef = useRef('')
   const speakTimerRef = useRef(null)
+  const voiceEnabledRef = useRef(voiceEnabled)
+
+  useEffect(() => { voiceEnabledRef.current = voiceEnabled }, [voiceEnabled])
 
   useEffect(() => {
     const handleNoniEvent = (event) => {
@@ -16,7 +19,7 @@ export default function NoniWidget({ message, subtitles = true }) {
       if (!text || text === latestRef.current) return
       latestRef.current = text
       setCaption(text)
-      if (!voiceEnabled || !('speechSynthesis' in window)) return
+      if (!voiceEnabledRef.current || !('speechSynthesis' in window)) return
       window.speechSynthesis.cancel()
       playRadioBeep()
       let active = true
@@ -27,8 +30,8 @@ export default function NoniWidget({ message, subtitles = true }) {
           const utterance = new SpeechSynthesisUtterance(text)
           if (voice) utterance.voice = voice
           utterance.lang = voice?.lang || 'es-MX'
-          utterance.pitch = 1.05
-          utterance.rate = 0.95
+          utterance.pitch = 1.1
+          utterance.rate = 1.05
           utterance.volume = 1.0
           utterance.onstart = () => { if (active) setSpeaking(true) }
           utterance.onboundary = (boundary) => {
@@ -63,8 +66,8 @@ export default function NoniWidget({ message, subtitles = true }) {
         const utterance = new SpeechSynthesisUtterance(text)
         if (voice) utterance.voice = voice
         utterance.lang = voice?.lang || 'es-MX'
-        utterance.pitch = 1.05
-        utterance.rate = 0.95
+        utterance.pitch = 1.1
+        utterance.rate = 1.05
         utterance.volume = 1.0
         utterance.onstart = () => { if (active) setSpeaking(true) }
         utterance.onboundary = (event) => {
@@ -96,7 +99,7 @@ export default function NoniWidget({ message, subtitles = true }) {
   return <aside className="noni-hologram" aria-label="Copiloto NONI">
     {subtitles && <motion.div className="noni-holo-caption" key={caption} initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }} aria-live="polite"><strong>NONI</strong><span>{caption}</span></motion.div>}
     <div className={`noni-holo-presence ${speaking ? 'is-speaking' : ''}`}>
-      <motion.div className="noni-holo-orb" animate={{ scale: speaking ? [1, 1.08, 1] : [1, 1.025, 1] }} transition={{ repeat: Infinity, duration: speaking ? .75 : 2.7, ease: 'easeInOut' }}><span className="noni-holo-face">N</span><i /><i /><i /></motion.div>
+      <motion.div className="noni-holo-orb" animate={{ scale: speaking ? [1, 1.08, 1] : [1, 1.025, 1] }} transition={{ repeat: Infinity, duration: speaking ? .75 : 2.7, ease: 'easeInOut' }}><img className="noni-jaguar-image" src="/assets/noni.jpg" alt="" aria-hidden="true"/><i /><i /><i /></motion.div>
       <div className={`noni-frequency ${speaking ? 'is-active' : ''}`} aria-hidden="true">{Array.from({ length: 13 }, (_, index) => <span key={index} style={{ '--bar-index': index }} />)}</div>
       <div className="noni-holo-label"><strong>NONI IA</strong><small>{speaking ? 'TE ACOMPAÑO' : 'COPILOTO VOCACIONAL'}</small></div>
       <button type="button" className="noni-holo-voice" onClick={toggleVoice} aria-label={voiceEnabled ? 'Desactivar voz de NONI' : 'Activar voz de NONI'} aria-pressed={voiceEnabled}>{voiceEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}</button>

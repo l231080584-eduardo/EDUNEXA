@@ -10,8 +10,13 @@ const NONI_LINES = {
   ],
   wave2: [
     '¡Buen ritmo, {nickname}! El mundo cambia de color: explora nuevos talentos y mantén la puntería.',
-    '¡Sigue así, {nickname}! Aparecen nuevas pasiones. ¡No dejes que las rutinas te toquen!',
+    '¡Sigue así, {nickname}! Aparecen nuevas pasiones. ¡Que la sombra no te quite el impulso!',
     '¡Fase dos, {nickname}! Más retos, más descubrimientos. ¡Tú puedes!',
+  ],
+  shadowHit: [
+    '¡Buen disparo, {nickname}! Ese núcleo ya no puede frenarte.',
+    '¡Eso! Mantén la calma y sigue abriéndote camino.',
+    '¡Impacto limpio! Confía en tus reflejos, vas con todo.',
   ],
   wave3: [
     '¡Última vuelta, {nickname}! Sigue tu curiosidad: cada acierto ayuda a dibujar tu mapa vocacional.',

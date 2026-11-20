@@ -41,17 +41,30 @@ export async function getAdminEstudiantes(adminPassword) {
 }
 
 export function getApiError(error) {
-  if (error.response?.status === 404 || error.response?.status === 500) {
-    return 'El servidor no pudo procesar la solicitud. Comprueba que la API y su base de datos estén disponibles.'
-  }
   if (error.code === 'ECONNABORTED') {
     return 'La conexión tardó demasiado. Inténtalo de nuevo.'
   }
   if (!error.response) {
-    return 'No fue posible conectar con EDUNEXA. Verifica que el backend esté activo en localhost:8080.'
+    return 'No fue posible conectar con la API de EDUNEXA. Comprueba que el backend esté activo y que la dirección de la API sea accesible.'
   }
-  return error.response.data?.error?.message
-    || error.response.data?.detail
-    || error.response.data?.message
-    || 'Ocurrió un error al comunicarse con EDUNEXA.'
+
+  const responseData = error.response.data || {}
+  const apiMessage = responseData.error?.mensaje
+    || responseData.error?.message
+    || responseData.detail
+    || responseData.message
+    || responseData.mensaje
+  const details = Array.isArray(responseData.error?.detalles) ? responseData.error.detalles.filter(Boolean) : []
+  const status = error.response.status
+
+  if ((status === 400 || status === 409) && /ya est[aá] registrado|cuenta ya existe|email ya existe/i.test(apiMessage || '')) {
+    return 'Ese correo ya tiene una cuenta. Cambia a “Iniciar sesión” para continuar.'
+  }
+  if (status === 400 && details.length) return `${apiMessage || 'Revisa estos campos'}: ${details.join(' · ')}`
+  if (status === 404 || status >= 500) {
+    return apiMessage && apiMessage !== 'Ocurrió un error interno'
+      ? `La API no pudo completar la solicitud: ${apiMessage}`
+      : 'El servidor no pudo completar la solicitud. Comprueba que la API y la base de datos estén disponibles.'
+  }
+  return apiMessage || 'Ocurrió un error al comunicarse con EDUNEXA.'
 }
