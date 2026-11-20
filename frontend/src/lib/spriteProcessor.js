@@ -13,7 +13,8 @@ function loadImage(src) {
 
 function isExteriorWhite(data, pixel) {
   const offset = pixel * 4
-  return data[offset + 3] > 0 && data[offset] > 230 && data[offset + 1] > 230 && data[offset + 2] > 230
+  const red = data[offset]; const green = data[offset + 1]; const blue = data[offset + 2]
+  return data[offset + 3] > 0 && Math.min(red, green, blue) > 212 && Math.max(red, green, blue) - Math.min(red, green, blue) < 34
 }
 
 function removeConnectedWhite(data, width, height) {
@@ -137,23 +138,81 @@ export function prepareArcadeSpriteStrip(src, frameCount = 8) {
           const start = (y * source.width + left) * 4
           framePixels.set(sourcePixels.subarray(start, start + frameWidth * 4), y * frameWidth * 4)
         }
+        removeConnectedWhite(framePixels, frameWidth, source.height)
         const bounds = findOpaqueBounds(framePixels, frameWidth, source.height)
-        boundsPerFrame.push({ left, bounds })
+        boundsPerFrame.push({ left, bounds, pixels: framePixels, frameWidth })
         maxWidth = Math.max(maxWidth, bounds.width)
         maxHeight = Math.max(maxHeight, bounds.height)
       }
-      const frames = boundsPerFrame.map(({ left, bounds }) => {
+      const frames = boundsPerFrame.map(({ bounds, pixels, frameWidth }) => {
         const frame = document.createElement('canvas')
         frame.width = maxWidth
         frame.height = maxHeight
-        frame.getContext('2d').drawImage(source, left + bounds.x, bounds.y, bounds.width, bounds.height,
-          Math.floor((maxWidth - bounds.width) / 2), maxHeight - bounds.height, bounds.width, bounds.height)
+        const frameContext = frame.getContext('2d')
+        const framePixels = new Uint8ClampedArray(bounds.width * bounds.height * 4)
+        for (let y = 0; y < bounds.height; y += 1) {
+          const start = ((bounds.y + y) * frameWidth + bounds.x) * 4
+          framePixels.set(pixels.subarray(start, start + bounds.width * 4), y * bounds.width * 4)
+        }
+        const croppedFrame = document.createElement('canvas')
+        croppedFrame.width = bounds.width
+        croppedFrame.height = bounds.height
+        croppedFrame.getContext('2d').putImageData(new ImageData(framePixels, bounds.width, bounds.height), 0, 0)
+        frameContext.drawImage(croppedFrame, Math.floor((maxWidth - bounds.width) / 2), maxHeight - bounds.height)
         return frame
       })
       return { frames, frameCount, frameWidth: maxWidth, frameHeight: maxHeight }
     })())
   }
   return spriteStripCache.get(key)
+}
+
+function hueToRgb(p, q, t) {
+  let value = t
+  if (value < 0) value += 1
+  if (value > 1) value -= 1
+  if (value < 1 / 6) return p + (q - p) * 6 * value
+  if (value < 1 / 2) return q
+  if (value < 2 / 3) return p + (q - p) * (2 / 3 - value) * 6
+  return p
+}
+
+/** Recolors teal cloth while keeping the pixel-art shading and outlines intact. */
+export function recolorStudentHoodie(strip, hueDegrees) {
+  if (!strip?.frames) return strip
+  const frames = strip.frames.map((source) => {
+    const canvas = document.createElement('canvas')
+    canvas.width = source.width; canvas.height = source.height
+    const context = canvas.getContext('2d', { willReadFrequently: true })
+    context.drawImage(source, 0, 0)
+    const image = context.getImageData(0, 0, canvas.width, canvas.height)
+    for (let i = 0; i < image.data.length; i += 4) {
+      const alpha = image.data[i + 3]
+      if (!alpha) continue
+      const red = image.data[i] / 255; const green = image.data[i + 1] / 255; const blue = image.data[i + 2] / 255
+      const max = Math.max(red, green, blue); const min = Math.min(red, green, blue); const delta = max - min
+      let hue = 0
+      if (delta) {
+        if (max === red) hue = ((green - blue) / delta) % 6
+        else if (max === green) hue = (blue - red) / delta + 2
+        else hue = (red - green) / delta + 4
+        hue = ((hue * 60) + 360) % 360
+      }
+      const saturation = max === 0 ? 0 : delta / max
+      if (hue < 148 || hue > 205 || saturation < .24) continue
+      const lightness = (max + min) / 2
+      const s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1))
+      const h = ((hueDegrees % 360) + 360) % 360 / 360
+      const q = lightness < .5 ? lightness * (1 + s) : lightness + s - lightness * s
+      const p = 2 * lightness - q
+      image.data[i] = Math.round(hueToRgb(p, q, h + 1 / 3) * 255)
+      image.data[i + 1] = Math.round(hueToRgb(p, q, h) * 255)
+      image.data[i + 2] = Math.round(hueToRgb(p, q, h - 1 / 3) * 255)
+    }
+    context.putImageData(image, 0, 0)
+    return canvas
+  })
+  return { ...strip, frames }
 }
 
 export function clearArcadeSpriteCache() {

@@ -4,7 +4,7 @@ import { playArcadeCallout, playDamage, playExplosion, playNavigate, playReload 
 import { getArcadeMuted, playArcadeSfx, playHeroWeaponSfx, startArcadeMusic, stopArcadeMusic, subscribeArcadeMute, toggleArcadeMuted } from '../lib/arcadeAudio'
 import { random, randomChoice } from '../lib/random'
 import { GEM_CATEGORIES, HERO_SPRITES } from '../data/careers'
-import { prepareArcadeSprite, prepareArcadeSpriteStrip } from '../lib/spriteProcessor'
+import { prepareArcadeSprite, prepareArcadeSpriteStrip, recolorStudentHoodie } from '../lib/spriteProcessor'
 import { speakAsHero, speakAsMoros, speakAsNoni } from '../lib/voiceEngine'
 import { CAMPUS_PLATFORMS, createMetalSlugRig, PLAYER_STATE, stepMetalSlugRig } from '../lib/metalSlugRig'
 
@@ -289,12 +289,17 @@ function makeArt(hero = HERO) {
   loadIntoCanvas('/assets/enemigo-soldado', shadowCore)
   loadIntoCanvas('/assets/enemigo-dron', drone)
   loadIntoCanvas('/assets/enemigo-coloso', colossus, colossusFlash)
-  const enemyRunStrip = { soldier: null, drone: null, colossus: null, moros: null, evacuee: null, evacueeAlt: null }
+  const enemyRunStrip = { soldier: null, drone: null, colossus: null, moros: null, evacuee: null, evacueeBlue: null, evacueeGold: null, evacueeCoral: null, evacueeAlt: null }
   prepareArcadeSpriteStrip('/assets/enemigo-soldado-run-strip.png', 8).then((strip) => { enemyRunStrip.soldier = strip }).catch(() => {})
   prepareArcadeSpriteStrip('/assets/enemigo-dron-hover-strip.png', 8).then((strip) => { enemyRunStrip.drone = strip }).catch(() => {})
   prepareArcadeSpriteStrip('/assets/enemigo-coloso-walk-strip.png', 8).then((strip) => { enemyRunStrip.colossus = strip }).catch(() => {})
   prepareArcadeSpriteStrip('/assets/moros-ataque-strip.png', 8).then((strip) => { enemyRunStrip.moros = strip }).catch(() => {})
-  prepareArcadeSpriteStrip('/assets/estudiante-evacuacion-run-strip.png', 8).then((strip) => { enemyRunStrip.evacuee = strip }).catch(() => {})
+  prepareArcadeSpriteStrip('/assets/estudiante-evacuacion-run-strip.png', 8).then((strip) => {
+    enemyRunStrip.evacuee = strip
+    enemyRunStrip.evacueeBlue = recolorStudentHoodie(strip, 214)
+    enemyRunStrip.evacueeGold = recolorStudentHoodie(strip, 42)
+    enemyRunStrip.evacueeCoral = recolorStudentHoodie(strip, 350)
+  }).catch(() => {})
   prepareArcadeSpriteStrip('/assets/estudiante-lab-evacuacion-run-strip.png', 8).then((strip) => { enemyRunStrip.evacueeAlt = strip }).catch(() => {})
   return { skies, campusBackground, domainBackground, far, mid, near, platforms, domain, heroFrames, shadowCore, drone, boss, bossHitFlash, colossus, colossusFlash, orbs, enemyRunStrip }
 }
@@ -372,6 +377,64 @@ function drawCampusPlatforms(ctx, cameraOffset) {
   }
 }
 
+function drawHeroProjectile(ctx, bullet, now) {
+  const x = bullet.x; const y = bullet.y; const pulse = Math.sin(now * .026 + x * .07)
+  const color = bullet.color
+  ctx.save()
+  ctx.globalCompositeOperation = 'lighter'
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+  const trail = ctx.createLinearGradient(x - 36, y, x + 3, y)
+  trail.addColorStop(0, 'rgba(255,255,255,0)'); trail.addColorStop(.52, color); trail.addColorStop(1, '#fff8d8')
+  ctx.strokeStyle = trail; ctx.lineWidth = bullet.family === 'industry' ? 5 : 3; ctx.shadowColor = color; ctx.shadowBlur = 12
+  ctx.beginPath(); ctx.moveTo(x - 31, y); ctx.lineTo(x + 1, y); ctx.stroke()
+  ctx.fillStyle = color; ctx.strokeStyle = '#fff5cf'; ctx.lineWidth = 1.5; ctx.shadowBlur = 16
+  if (bullet.family === 'tech') {
+    ctx.beginPath(); ctx.moveTo(x + 8, y); ctx.lineTo(x, y - 6); ctx.lineTo(x - 8, y); ctx.lineTo(x, y + 6); ctx.closePath(); ctx.fill(); ctx.stroke()
+    ctx.beginPath(); ctx.ellipse(x, y, 13, 8 + pulse, now * .004, 0, Math.PI * 2); ctx.stroke()
+  } else if (bullet.family === 'industry') {
+    ctx.translate(x, y); ctx.rotate(now * .009)
+    ctx.beginPath(); for (let tooth = 0; tooth < 12; tooth += 1) { const a = tooth * Math.PI / 6; const radius = tooth % 2 ? 5 : 9; ctx.lineTo(Math.cos(a) * radius, Math.sin(a) * radius) }
+    ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, 2.5, 0, Math.PI * 2); ctx.fillStyle = '#fff4c5'; ctx.fill()
+  } else if (bullet.family === 'construction') {
+    ctx.beginPath(); ctx.moveTo(x + 9, y); ctx.lineTo(x + 2, y - 8); ctx.lineTo(x - 9, y - 5); ctx.lineTo(x - 5, y + 1); ctx.lineTo(x - 9, y + 6); ctx.lineTo(x + 2, y + 8); ctx.closePath(); ctx.fill(); ctx.stroke()
+    ctx.beginPath(); ctx.arc(x, y, 12, -.7, .7); ctx.stroke()
+  } else if (bullet.family === 'energy') {
+    ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x - 13, y + 3); ctx.lineTo(x - 5, y - 5 + pulse * 2); ctx.lineTo(x, y + 1); ctx.lineTo(x + 5, y - 7); ctx.lineTo(x + 13, y - 2); ctx.stroke()
+    ctx.strokeStyle = '#fffce7'; ctx.lineWidth = 1.1; ctx.stroke()
+  } else if (bullet.family === 'business') {
+    for (let satellite = 0; satellite < 3; satellite += 1) {
+      const angle = now * .018 + satellite * Math.PI * 2 / 3
+      ctx.beginPath(); ctx.arc(x + Math.cos(angle) * 8, y + Math.sin(angle) * 6, 2.4, 0, Math.PI * 2); ctx.fill()
+    }
+    ctx.beginPath(); ctx.moveTo(x + 10, y); ctx.lineTo(x + 2, y - 6); ctx.lineTo(x - 5, y); ctx.lineTo(x + 2, y + 6); ctx.closePath(); ctx.fill(); ctx.stroke()
+  } else {
+    ctx.translate(x, y); ctx.rotate(-.35 + pulse * .08)
+    ctx.beginPath(); ctx.moveTo(-10, 0); ctx.quadraticCurveTo(-3, -11, 8, -2); ctx.quadraticCurveTo(5, 7, -10, 0); ctx.fill(); ctx.stroke()
+    ctx.strokeStyle = '#eaffd9'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(6, -2); ctx.stroke()
+  }
+  ctx.restore()
+}
+
+function drawEnemyProjectile(ctx, bullet, now) {
+  const { x, y, radius, color, ownerType } = bullet
+  const pulse = 1 + Math.sin(now * .025 + x) * .14
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+  ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = ownerType === 'boss' ? 20 : 13
+  ctx.lineWidth = ownerType === 'boss' ? radius * .95 : radius * .65
+  ctx.beginPath(); ctx.moveTo(x + radius * .3, y); ctx.lineTo(x + radius * 3.6, y + Math.sin(now * .02 + x) * 2); ctx.stroke()
+  if (ownerType === 'boss') {
+    ctx.translate(x, y); ctx.rotate(now * .012)
+    ctx.strokeStyle = '#ffb0b8'; ctx.lineWidth = 2
+    ctx.beginPath(); ctx.arc(0, 0, radius * pulse, now * .014, now * .014 + Math.PI * 1.55); ctx.stroke()
+    ctx.strokeStyle = color; ctx.lineWidth = radius * .45
+    ctx.beginPath(); ctx.arc(0, 0, radius * .55, -now * .019, -now * .019 + Math.PI * 1.6); ctx.stroke()
+    ctx.fillStyle = '#fff0dc'; ctx.beginPath(); ctx.arc(0, 0, Math.max(2, radius * .2), 0, Math.PI * 2); ctx.fill()
+  } else {
+    ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(x + radius, y); ctx.lineTo(x - radius * .7, y - radius * .7); ctx.lineTo(x - radius * .55, y); ctx.lineTo(x - radius * .7, y + radius * .7); ctx.closePath(); ctx.fill()
+  }
+  ctx.restore()
+}
+
 function createEvacuees(now, count = 5) {
   return Array.from({ length: count }, (_, index) => ({
     id: `${Math.round(now)}-${index}`,
@@ -380,8 +443,7 @@ function createEvacuees(now, count = 5) {
     height: 82 + (index % 3) * 7,
     speed: 165 + (index % 3) * 22,
     phase: index * 1.35,
-    variant: index % 2 ? 'evacueeAlt' : 'evacuee',
-    hue: 0,
+    variant: index % 2 ? 'evacueeAlt' : ['evacuee', 'evacueeBlue', 'evacueeGold', 'evacueeCoral'][Math.floor(index / 2) % 4],
   }))
 }
 
@@ -901,15 +963,27 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
         if (target.type === 'boss') {
           if (target.hp > 0 && target.x < WIDTH + 360) {
             const strip = now < target.shootUntil ? art.enemyRunStrip.moros : null
-            const frame = strip ? strip.frames[Math.min(7, Math.floor((now - target.attackStartedAt) / 110))] : null
+            const attackProgress = strip ? Math.max(0, now - target.attackStartedAt) : 0
+            const frame = strip ? strip.frames[Math.min(strip.frameCount - 1, Math.floor(attackProgress / 82))] : null
             const bossArt = frame || (now < target.flashUntil ? art.bossHitFlash : art.boss)
             const drawHeight = target.h
             const drawWidth = strip ? drawHeight * (strip.frameWidth / Math.max(1, strip.frameHeight)) : drawHeight * (bossArt.width / Math.max(1, bossArt.height))
+            const idlePulse = Math.sin(now * .004 + target.id) * .012
+            const idleBob = Math.sin(now * .003 + target.id) * 2.5
             const drawX = target.x + target.w - drawWidth
             ctx.save(); ctx.imageSmoothingEnabled = false
             ctx.shadowColor = '#ff334f'; ctx.shadowBlur = target.dashUntil > now ? 30 : 18
-            if (frame) ctx.drawImage(frame, drawX, target.y, drawWidth, drawHeight)
-            else ctx.drawImage(bossArt, drawX, target.y, drawWidth, drawHeight)
+            if (frame) ctx.drawImage(frame, drawX, target.y + idleBob, drawWidth, drawHeight)
+            else {
+              ctx.translate(drawX + drawWidth / 2, target.y + drawHeight + idleBob)
+              ctx.scale(1 + idlePulse, 1 - idlePulse * .65)
+              ctx.drawImage(bossArt, -drawWidth / 2, -drawHeight, drawWidth, drawHeight)
+            }
+            if (strip) {
+              const attackGlow = .35 + (Math.sin(attackProgress * .028) + 1) * .17
+              ctx.globalAlpha = attackGlow; ctx.strokeStyle = '#ff3655'; ctx.lineWidth = 3; ctx.shadowBlur = 24
+              ctx.beginPath(); ctx.ellipse(drawX + drawWidth * .32, target.y + drawHeight * .51, 24 + Math.sin(attackProgress * .035) * 6, 14, 0, 0, Math.PI * 2); ctx.stroke()
+            }
             ctx.restore()
           }
           continue
@@ -948,14 +1022,8 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
         }
         else ctx.drawImage(art.orbs[target.category], target.x, target.y)
       }
-      for (const bullet of game.bullets) {
-        ctx.fillStyle = bullet.color; ctx.shadowColor = bullet.color; ctx.shadowBlur = 12
-        if (bullet.family === 'construction') { ctx.beginPath(); ctx.moveTo(bullet.x + 9, bullet.y - 3); ctx.lineTo(bullet.x + 18, bullet.y + 2); ctx.lineTo(bullet.x + 9, bullet.y + 7); ctx.lineTo(bullet.x, bullet.y + 2); ctx.closePath(); ctx.fill() }
-        else if (bullet.family === 'energy') { ctx.beginPath(); ctx.moveTo(bullet.x, bullet.y + 2); ctx.lineTo(bullet.x + 7, bullet.y - 4); ctx.lineTo(bullet.x + 10, bullet.y + 1); ctx.lineTo(bullet.x + 18, bullet.y - 3); ctx.lineTo(bullet.x + 11, bullet.y + 7); ctx.lineTo(bullet.x + 8, bullet.y + 3); ctx.closePath(); ctx.fill() }
-        else { ctx.fillRect(bullet.x, bullet.y, bullet.family === 'industry' ? 12 : 17, bullet.family === 'life' ? 7 : 4); if (bullet.family === 'industry') { ctx.fillRect(bullet.x + 7, bullet.y - 3, 4, 3); ctx.fillRect(bullet.x + 8, bullet.y + 4, 4, 3) } }
-        ctx.shadowBlur = 0
-      }
-      for (const bullet of game.enemyBullets) { ctx.fillStyle = bullet.color; ctx.shadowColor = bullet.color; ctx.shadowBlur = 15; ctx.beginPath(); ctx.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0 }
+      for (const bullet of game.bullets) drawHeroProjectile(ctx, bullet, now)
+      for (const bullet of game.enemyBullets) drawEnemyProjectile(ctx, bullet, now)
       for (const wave of game.shockwaves) { ctx.strokeStyle = wave.color; ctx.shadowColor = wave.color; ctx.shadowBlur = 12; ctx.lineWidth = 5; ctx.beginPath(); ctx.ellipse(wave.x, wave.y, wave.radius + 8, 5, 0, Math.PI, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0 }
       for (const explosion of game.explosions) {
         const phase = Math.min(1, (now - explosion.start) / explosion.duration)

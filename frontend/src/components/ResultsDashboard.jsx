@@ -55,6 +55,11 @@ function matchingPrograms(university, careers) {
   return { labels: compatible.slice(0, 3), broad: compatible.length > 0 }
 }
 
+function careerMatchPriority(university, careers) {
+  const match = matchingPrograms(university, careers)
+  return match.broad ? 0 : match.labels.length
+}
+
 function mergeUniversityCatalog(primary, fallback = offlineUniversities) {
   const merged = new Map()
   for (const item of [...(Array.isArray(primary) ? primary : []), ...fallback.map((university) => ({ ...university, localFallback: true }))]) {
@@ -223,7 +228,9 @@ export default function ResultsDashboard({ result, report, careers, bonus, profi
   const referenceLocation = studentLocation
   const nearestUniversities = useMemo(() => catalog.map((university) => ({ ...university, distanciaKm: studentLocation ? distanceKm(studentLocation, university) : distanceKm(IZTAPALAPA_ORIGIN, university), distanciaReferenciaKm: distanceKm(IZTAPALAPA_ORIGIN, university) }))
     .filter((university) => hasCoordinates(university))
-    .sort((a, b) => a.distanciaKm - b.distanciaKm || (b.matchScorePercentage || 0) - (a.matchScorePercentage || 0)), [catalog, studentLocation])
+    .sort((a, b) => careerMatchPriority(b, safeCareers) - careerMatchPriority(a, safeCareers)
+      || (b.matchScorePercentage || 0) - (a.matchScorePercentage || 0)
+      || a.distanciaKm - b.distanciaKm), [catalog, studentLocation, safeCareers])
   const query = universityQuery.trim().toLocaleLowerCase('es-MX')
   const filteredUniversities = useMemo(() => nearestUniversities.filter((university) => !query || [university.nombre, university.name, university.tipo, university.direccion, ...(university.carreras || [])].some((field) => normalizeText(field).includes(normalizeText(query)))), [nearestUniversities, query])
   const savedPlaceId = savedRecord?.selectedUniversity?.id || normalizeText(savedRecord?.selectedUniversity?.nombre || savedRecord?.selectedUniversity?.name)
