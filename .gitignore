@@ -48,3 +48,5 @@ frontend/dist/
 
 ### Build output ###
 target/
+
+.gradle-cache/
