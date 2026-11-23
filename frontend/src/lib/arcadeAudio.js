@@ -50,15 +50,18 @@ function drum(kind, at) {
   const ctx = getContext()
   if (!ctx || !master) return
   const noise = ctx.createBufferSource()
-  const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * .12), ctx.sampleRate)
-  const data = buffer.getChannelData(0)
-  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1
-  noise.buffer = buffer
+  if (!noiseBuffer || noiseBuffer.sampleRate !== ctx.sampleRate) {
+    noiseBuffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate)
+    const data = noiseBuffer.getChannelData(0)
+    for (let i = 0; i < data.length; i += 1) data[i] = Math.random() * 2 - 1
+  }
+  noise.buffer = noiseBuffer
   const filter = ctx.createBiquadFilter()
   filter.type = kind === 'hat' ? 'highpass' : 'lowpass'
   filter.frequency.value = kind === 'hat' ? 6500 : 170
   const gain = ctx.createGain()
-  gain.gain.setValueAtTime(kind === 'hat' ? .045 : .2, at)
+  gain.gain.setValueAtTime(.0001, at)
+  gain.gain.linearRampToValueAtTime(kind === 'hat' ? .045 : .2, at + .002)
   gain.gain.exponentialRampToValueAtTime(.0001, at + (kind === 'hat' ? .035 : .11))
   noise.connect(filter).connect(gain).connect(master)
   noise.start(at)

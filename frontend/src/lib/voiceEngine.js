@@ -1,6 +1,6 @@
 const VOICES = {
-  moros: { pitch: 0.45, rate: 0.85, preferred: ['pablo', 'jorge', 'raúl', 'raul', 'diego', 'álvaro', 'alvaro', 'male', 'masculino'] },
-  noni: { pitch: 1.2, rate: 1.05, preferred: ['paulina', 'sabina', 'helena', 'laura', 'female', 'femenina', 'monica', 'mónica'] },
+  moros: { pitch: 0.78, rate: 0.91, preferred: ['pablo', 'jorge', 'raúl', 'raul', 'diego', 'álvaro', 'alvaro', 'male', 'masculino'] },
+  noni: { pitch: 1.08, rate: 0.98, preferred: ['paulina', 'sabina', 'helena', 'laura', 'female', 'femenina', 'monica', 'mónica'] },
   heroMale: { pitch: 0.85, rate: 1, preferred: ['pablo', 'jorge', 'raúl', 'raul', 'diego', 'male', 'masculino'] },
   heroFemale: { pitch: 1.18, rate: 1, preferred: ['paulina', 'sabina', 'helena', 'laura', 'female', 'femenina'] },
 }
@@ -44,7 +44,6 @@ function chooseVoice(voices, settings) {
 function speak(text, settings) {
   const synth = synthesis()
   if (globallyMuted || !synth || !text || typeof SpeechSynthesisUtterance === 'undefined') return false
-  cancelSpeech()
   const currentRequest = requestId
   const speakWhenReady = () => {
     if (currentRequest !== requestId || globallyMuted) return

@@ -269,7 +269,7 @@ function makeArt(hero = HERO) {
     ctx.fillStyle = '#172331'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'left'; ctx.fillText(CATEGORY_SHORT[category], 53, 30, 64)
   })]))
 
-  prepareArcadeSprite(HERO_SPRITES.morosBoss).then((sprite) => {
+  prepareArcadeSprite('/assets/moros-idle.png').then((sprite) => {
     boss.width = sprite.width; boss.height = sprite.height
     const context = boss.getContext('2d')
     context.shadowColor = '#fb344c'; context.shadowBlur = 18
@@ -293,7 +293,6 @@ function makeArt(hero = HERO) {
   prepareArcadeSpriteStrip('/assets/enemigo-soldado-run-strip.png', 8).then((strip) => { enemyRunStrip.soldier = strip }).catch(() => {})
   prepareArcadeSpriteStrip('/assets/enemigo-dron-hover-strip.png', 8).then((strip) => { enemyRunStrip.drone = strip }).catch(() => {})
   prepareArcadeSpriteStrip('/assets/enemigo-coloso-walk-strip.png', 8).then((strip) => { enemyRunStrip.colossus = strip }).catch(() => {})
-  prepareArcadeSpriteStrip('/assets/moros-ataque-strip.png', 8).then((strip) => { enemyRunStrip.moros = strip }).catch(() => {})
   prepareArcadeSpriteStrip('/assets/estudiante-evacuacion-run-strip.png', 8).then((strip) => {
     enemyRunStrip.evacuee = strip
     enemyRunStrip.evacueeBlue = recolorStudentHoodie(strip, 214)
@@ -402,11 +401,9 @@ function drawHeroProjectile(ctx, bullet, now) {
     ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x - 13, y + 3); ctx.lineTo(x - 5, y - 5 + pulse * 2); ctx.lineTo(x, y + 1); ctx.lineTo(x + 5, y - 7); ctx.lineTo(x + 13, y - 2); ctx.stroke()
     ctx.strokeStyle = '#fffce7'; ctx.lineWidth = 1.1; ctx.stroke()
   } else if (bullet.family === 'business') {
-    for (let satellite = 0; satellite < 3; satellite += 1) {
-      const angle = now * .018 + satellite * Math.PI * 2 / 3
-      ctx.beginPath(); ctx.arc(x + Math.cos(angle) * 8, y + Math.sin(angle) * 6, 2.4, 0, Math.PI * 2); ctx.fill()
-    }
-    ctx.beginPath(); ctx.moveTo(x + 10, y); ctx.lineTo(x + 2, y - 6); ctx.lineTo(x - 5, y); ctx.lineTo(x + 2, y + 6); ctx.closePath(); ctx.fill(); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(x + 12, y); ctx.lineTo(x + 2, y - 5); ctx.lineTo(x - 10, y - 2); ctx.lineTo(x - 4, y + 1); ctx.lineTo(x - 10, y + 5); ctx.lineTo(x + 2, y + 4); ctx.closePath(); ctx.fill(); ctx.stroke()
+    ctx.strokeStyle = '#d6ff92'; ctx.lineWidth = 1.2
+    ctx.beginPath(); ctx.moveTo(x - 19, y - 5 + pulse); ctx.lineTo(x - 7, y - 2); ctx.moveTo(x - 20, y + 5 - pulse); ctx.lineTo(x - 7, y + 2); ctx.stroke()
   } else {
     ctx.translate(x, y); ctx.rotate(-.35 + pulse * .08)
     ctx.beginPath(); ctx.moveTo(-10, 0); ctx.quadraticCurveTo(-3, -11, 8, -2); ctx.quadraticCurveTo(5, 7, -10, 0); ctx.fill(); ctx.stroke()
@@ -419,18 +416,26 @@ function drawEnemyProjectile(ctx, bullet, now) {
   const { x, y, radius, color, ownerType } = bullet
   const pulse = 1 + Math.sin(now * .025 + x) * .14
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineJoin = 'round'
-  ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = ownerType === 'boss' ? 20 : 13
-  ctx.lineWidth = ownerType === 'boss' ? radius * .95 : radius * .65
+  ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = ownerType === 'boss' ? 18 : 12
+  ctx.lineWidth = ownerType === 'boss' ? 4 : 3
   ctx.beginPath(); ctx.moveTo(x + radius * .3, y); ctx.lineTo(x + radius * 3.6, y + Math.sin(now * .02 + x) * 2); ctx.stroke()
   if (ownerType === 'boss') {
-    ctx.translate(x, y); ctx.rotate(now * .012)
-    ctx.strokeStyle = '#ffb0b8'; ctx.lineWidth = 2
-    ctx.beginPath(); ctx.arc(0, 0, radius * pulse, now * .014, now * .014 + Math.PI * 1.55); ctx.stroke()
-    ctx.strokeStyle = color; ctx.lineWidth = radius * .45
-    ctx.beginPath(); ctx.arc(0, 0, radius * .55, -now * .019, -now * .019 + Math.PI * 1.6); ctx.stroke()
-    ctx.fillStyle = '#fff0dc'; ctx.beginPath(); ctx.arc(0, 0, Math.max(2, radius * .2), 0, Math.PI * 2); ctx.fill()
+    ctx.translate(x, y); ctx.rotate(Math.PI + (bullet.angle || 0))
+    ctx.fillStyle = color; ctx.strokeStyle = '#ffd89b'; ctx.lineWidth = 2
+    ctx.beginPath(); ctx.moveTo(radius * 1.15, 0); ctx.lineTo(radius * .35, -radius * .38); ctx.lineTo(-radius * .72, -radius * .78); ctx.lineTo(-radius * .3, -radius * .08); ctx.lineTo(-radius * .88, radius * .58); ctx.lineTo(radius * .18, radius * .36); ctx.closePath(); ctx.fill(); ctx.stroke()
+    ctx.globalAlpha = .55; ctx.strokeStyle = '#ff5367'; ctx.lineWidth = 2 + pulse
+    ctx.beginPath(); ctx.moveTo(radius * .55, -radius * .1); ctx.lineTo(-radius * 1.2, -radius * .7); ctx.stroke()
+  } else if (ownerType === 'colossus') {
+    ctx.translate(x, y); ctx.rotate(Math.PI + .18)
+    ctx.fillStyle = '#ffce6e'; ctx.strokeStyle = '#ff543f'; ctx.lineWidth = 3
+    ctx.beginPath(); ctx.moveTo(radius * 1.8, 0); ctx.lineTo(radius * .6, -radius * .65); ctx.lineTo(-radius * .9, -radius * .48); ctx.lineTo(-radius * 1.5, 0); ctx.lineTo(-radius * .9, radius * .48); ctx.lineTo(radius * .6, radius * .65); ctx.closePath(); ctx.fill(); ctx.stroke()
+  } else if (ownerType === 'drone') {
+    ctx.translate(x, y); ctx.rotate(Math.PI / 2)
+    ctx.fillStyle = '#ff3e61'; ctx.strokeStyle = '#ffd8e1'; ctx.lineWidth = 1.5
+    ctx.beginPath(); ctx.moveTo(radius * 1.45, 0); ctx.lineTo(-radius * .85, -radius * .75); ctx.lineTo(-radius * .48, 0); ctx.lineTo(-radius * .85, radius * .75); ctx.closePath(); ctx.fill(); ctx.stroke()
   } else {
-    ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(x + radius, y); ctx.lineTo(x - radius * .7, y - radius * .7); ctx.lineTo(x - radius * .55, y); ctx.lineTo(x - radius * .7, y + radius * .7); ctx.closePath(); ctx.fill()
+    ctx.translate(x, y); ctx.rotate(Math.PI); ctx.fillStyle = '#ff4762'; ctx.strokeStyle = '#fff0cc'; ctx.lineWidth = 1.5
+    ctx.beginPath(); ctx.moveTo(radius * 1.3, 0); ctx.lineTo(-radius * .75, -radius * .72); ctx.lineTo(-radius * .4, 0); ctx.lineTo(-radius * .75, radius * .72); ctx.closePath(); ctx.fill(); ctx.stroke()
   }
   ctx.restore()
 }
@@ -816,14 +821,14 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
           if (game.boss && game.boss.hp > 0 && !(game.boss.retreatUntil && now < game.boss.retreatUntil) && now >= game.bossNextAttackAt && game.boss.shootUntil <= now) {
             game.boss.attackStartedAt = now
             game.boss.volleyFired = false
-            game.boss.shootUntil = now + 880
+            game.boss.shootUntil = now + 1120
             game.bossNextAttackAt = now + (game.boss.hp <= 2 ? 1850 : 2800)
             giveMorosLine(game, 'attack', now)
           }
-          if (game.boss && game.boss.hp > 0 && game.boss.shootUntil > now && !game.boss.volleyFired && now - game.boss.attackStartedAt >= 430) {
+          if (game.boss && game.boss.hp > 0 && game.boss.shootUntil > now && !game.boss.volleyFired && now - game.boss.attackStartedAt >= 610) {
             game.boss.volleyFired = true
-            const spread = [-38, 0, 38]
-            spread.forEach((offset, index) => game.enemyBullets.push({ x: game.boss.x + 18, y: game.boss.y + 222 + offset, vx: -245 - index * 12, radius: index === 1 ? 10 : 8, color: index === 1 ? '#fa3154' : '#76152f', ownerType: 'boss' }))
+            const spread = [-52, -14, 24]
+            spread.forEach((offset, index) => game.enemyBullets.push({ x: game.boss.x + 24, y: game.boss.y + 212 + offset, vx: -290 - index * 22, vy: index === 1 ? (game.y > game.boss.y + 180 ? 12 : -26) : (index - 1) * 36, radius: index === 1 ? 15 : 13, angle: (index - 1) * .18, color: index === 1 ? '#ff344f' : '#d28a44', ownerType: 'boss' }))
           }
           for (const bullet of game.enemyBullets) { bullet.x += bullet.vx * dt; bullet.y += (bullet.vy || 0) * dt }
           game.enemyBullets = game.enemyBullets.filter((bullet) => bullet.x > -20 && bullet.y < HEIGHT + 60)
@@ -856,9 +861,9 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
             if ((target.type === 'shadow' || target.type === 'drone' || target.type === 'colossus') && now >= (target.nextShotAt || 0)) {
               target.nextShotAt = now + (target.type === 'colossus' ? 2600 : target.type === 'drone' ? 3200 : 3800)
               target.shootUntil = now + 145
-              if (target.type === 'drone') game.enemyBullets.push({ x: target.x + target.w / 2, y: target.y + target.h, vx: -12, vy: 190, radius: 7, color: '#ff405c', ownerType: 'drone' })
-              else if (target.type === 'colossus') game.enemyBullets.push({ x: target.x + 10, y: FLOOR - 15, vx: -205, vy: 0, radius: 10, color: '#ff304f', ownerType: 'colossus' })
-              else game.enemyBullets.push({ x: target.x + 10, y: target.y + 62, vx: -170, vy: 0, radius: 6, color: '#f43f5e', ownerType: 'shadow' })
+              if (target.type === 'drone') game.enemyBullets.push({ x: target.x + target.w / 2, y: target.y + target.h, vx: -12, vy: 190, radius: 10, color: '#ff405c', ownerType: 'drone' })
+              else if (target.type === 'colossus') game.enemyBullets.push({ x: target.x + 10, y: FLOOR - 15, vx: -235, vy: 0, radius: 14, color: '#ffb23e', ownerType: 'colossus' })
+              else game.enemyBullets.push({ x: target.x + 10, y: target.y + 62, vx: -190, vy: 0, radius: 9, color: '#ff244e', ownerType: 'shadow' })
             }
             if (target.type === 'boss' && target.retreatUntil && now < target.retreatUntil) target.x = WIDTH + 100
             else {
@@ -962,27 +967,25 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       for (const target of game.targets.values()) {
         if (target.type === 'boss') {
           if (target.hp > 0 && target.x < WIDTH + 360) {
-            const strip = now < target.shootUntil ? art.enemyRunStrip.moros : null
-            const attackProgress = strip ? Math.max(0, now - target.attackStartedAt) : 0
-            const frame = strip ? strip.frames[Math.min(strip.frameCount - 1, Math.floor(attackProgress / 82))] : null
-            const bossArt = frame || (now < target.flashUntil ? art.bossHitFlash : art.boss)
+            const charging = now < target.shootUntil
+            const attackProgress = charging ? Math.max(0, now - target.attackStartedAt) : 0
+            const bossArt = now < target.flashUntil ? art.bossHitFlash : art.boss
             const drawHeight = target.h
-            const drawWidth = strip ? drawHeight * (strip.frameWidth / Math.max(1, strip.frameHeight)) : drawHeight * (bossArt.width / Math.max(1, bossArt.height))
+            const drawWidth = drawHeight * (bossArt.width / Math.max(1, bossArt.height))
             const idlePulse = Math.sin(now * .004 + target.id) * .012
             const idleBob = Math.sin(now * .003 + target.id) * 2.5
             const drawX = target.x + target.w - drawWidth
             ctx.save(); ctx.imageSmoothingEnabled = false
-            ctx.shadowColor = '#ff334f'; ctx.shadowBlur = target.dashUntil > now ? 30 : 18
-            if (frame) ctx.drawImage(frame, drawX, target.y + idleBob, drawWidth, drawHeight)
-            else {
-              ctx.translate(drawX + drawWidth / 2, target.y + drawHeight + idleBob)
-              ctx.scale(1 + idlePulse, 1 - idlePulse * .65)
-              ctx.drawImage(bossArt, -drawWidth / 2, -drawHeight, drawWidth, drawHeight)
-            }
-            if (strip) {
-              const attackGlow = .35 + (Math.sin(attackProgress * .028) + 1) * .17
-              ctx.globalAlpha = attackGlow; ctx.strokeStyle = '#ff3655'; ctx.lineWidth = 3; ctx.shadowBlur = 24
-              ctx.beginPath(); ctx.ellipse(drawX + drawWidth * .32, target.y + drawHeight * .51, 24 + Math.sin(attackProgress * .035) * 6, 14, 0, 0, Math.PI * 2); ctx.stroke()
+            ctx.shadowColor = charging ? '#ffae45' : '#ff334f'; ctx.shadowBlur = target.dashUntil > now ? 32 : charging ? 26 : 18
+            ctx.translate(drawX + drawWidth / 2, target.y + drawHeight + idleBob)
+            ctx.scale(1 + idlePulse + (charging ? Math.sin(attackProgress * .022) * .025 : 0), 1 - idlePulse * .65)
+            ctx.drawImage(bossArt, -drawWidth / 2, -drawHeight, drawWidth, drawHeight)
+            if (charging) {
+              const charge = Math.min(1, attackProgress / 600)
+              ctx.translate(-drawWidth / 2 + drawWidth * .23, -drawHeight * .58)
+              ctx.globalAlpha = .35 + charge * .5; ctx.strokeStyle = '#ffd064'; ctx.fillStyle = 'rgba(220,32,57,.32)'; ctx.lineWidth = 3; ctx.shadowBlur = 18
+              ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(12, 0); ctx.lineTo(0, 12); ctx.lineTo(-12, 0); ctx.closePath(); ctx.fill(); ctx.stroke()
+              ctx.rotate(now * .006); ctx.beginPath(); ctx.rect(-9 - charge * 9, -9 - charge * 9, 18 + charge * 18, 18 + charge * 18); ctx.stroke()
             }
             ctx.restore()
           }
@@ -999,6 +1002,11 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
           ctx.shadowColor = '#ff405c'; ctx.shadowBlur = colossusPose === 'shoot' ? 20 : 9
           if (frame && !(now < target.nextHitAt && target.nextHitAt - now > 100)) ctx.drawImage(frame, target.x, target.y, cw, target.h)
           else ctx.drawImage(colossusArt, target.x, target.y, cw, target.h)
+          if (target.shootUntil > now) {
+            const pulse = .7 + Math.sin(now * .08) * .3
+            ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#fff0ad'; ctx.shadowColor = '#ff7b35'; ctx.shadowBlur = 24
+            ctx.beginPath(); ctx.moveTo(target.x + 6, FLOOR - 17); ctx.lineTo(target.x - 15 * pulse, FLOOR - 22); ctx.lineTo(target.x - 8, FLOOR - 15); ctx.lineTo(target.x - 15 * pulse, FLOOR - 8); ctx.closePath(); ctx.fill(); ctx.globalCompositeOperation = 'source-over'; ctx.shadowBlur = 0
+          }
           ctx.restore()
           ctx.fillStyle = '#170911'; ctx.fillRect(target.x, target.y - 13, target.w, 6); ctx.fillStyle = '#ff405c'; ctx.fillRect(target.x, target.y - 13, target.w * target.hp / target.maxHp, 6)
         }
@@ -1010,6 +1018,10 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
           target.w = soldierWidth
           ctx.save(); ctx.imageSmoothingEnabled = false; ctx.shadowColor = '#ff405c'; ctx.shadowBlur = 10 + Math.sin(now / 130) * 3
           ctx.drawImage(source, target.x, target.y, soldierWidth, target.h); ctx.restore()
+          if (target.shootUntil > now) {
+            ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#fff4d2'; ctx.shadowColor = '#ff224f'; ctx.shadowBlur = 15
+            ctx.beginPath(); ctx.moveTo(target.x + 4, target.y + target.h * .48); ctx.lineTo(target.x - 13, target.y + target.h * .43); ctx.lineTo(target.x - 7, target.y + target.h * .48); ctx.lineTo(target.x - 13, target.y + target.h * .53); ctx.closePath(); ctx.fill(); ctx.restore()
+          }
         }
         else if (target.type === 'drone') {
           const strip = art.enemyRunStrip.drone
@@ -1019,6 +1031,11 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
           target.w = dw
           ctx.save(); ctx.imageSmoothingEnabled = false; ctx.shadowColor = '#ff4b52'; ctx.shadowBlur = 11
           ctx.drawImage(source, target.x, target.y - 3 + Math.sin(now / 80 + target.phase) * 3, dw, target.h); ctx.restore()
+          if (target.shootUntil > now) {
+            const droneY = target.y + target.h + 4
+            ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#fff4d2'; ctx.shadowColor = '#ff244e'; ctx.shadowBlur = 18
+            ctx.beginPath(); ctx.moveTo(target.x + dw / 2, droneY + 8); ctx.lineTo(target.x + dw / 2 - 7, droneY - 5); ctx.lineTo(target.x + dw / 2, droneY - 1); ctx.lineTo(target.x + dw / 2 + 7, droneY - 5); ctx.closePath(); ctx.fill(); ctx.restore()
+          }
         }
         else ctx.drawImage(art.orbs[target.category], target.x, target.y)
       }
@@ -1122,7 +1139,7 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       <div className="combat-hud-actions"><button type="button" title={musicMuted ? 'Activar música y sonidos' : 'Silenciar música y sonidos'} aria-label={musicMuted ? 'Activar música y sonidos' : 'Silenciar música y sonidos'} onClick={() => setMusicMuted(toggleArcadeMuted())}>{musicMuted ? '🔇' : '🔊'}</button><button type="button" aria-label="Salir del combate" onClick={onExit}>SALIR</button></div>
     </header>
     {hud.wave === 3 && <div className="arcade2d-boss-health" aria-label={`${hud.bossName}, ${hud.bossHP} de ${hud.bossMaxHP} puntos de vida`}><strong>{hud.bossName}</strong><div>{Array.from({ length: hud.bossMaxHP }, (_, segment) => <i className={segment < hud.bossHP ? 'is-active' : ''} key={segment} />)}</div><small>{hud.bossHP} / {hud.bossMaxHP} HP</small></div>}
-    {hud.wave === 3 && hud.time <= 10 && hud.time > 0 && <div key={hud.time} className="arcade-final-countdown" aria-live="assertive"><span>{hud.bossDefeated ? '¡EXTRACCIÓN INMINENTE!' : '¡COLAPSO INMINENTE!'}</span><strong>{String(hud.time).padStart(2, '0')}</strong><small>{hud.bossDefeated ? 'EL CAMPUS SE ESTABILIZA' : 'EVACÚA · ESQUIVA · SOBREVIVE'}</small></div>}
+    {hud.wave === 3 && hud.time <= 10 && hud.time > 0 && <div className="arcade-final-countdown" aria-live="assertive"><span>{hud.bossDefeated ? '¡EXTRACCIÓN INMINENTE!' : '¡COLAPSO INMINENTE!'}</span><strong key={hud.time}>{String(hud.time).padStart(2, '0')}</strong><small>{hud.bossDefeated ? 'EL CAMPUS SE ESTABILIZA' : 'EVACÚA · ESQUIVA · SOBREVIVE'}</small></div>}
     {hud.morosLine && <div className="moros-taunt" aria-live="assertive"><strong><i aria-hidden="true">◈</i> MOROS TE PROVOCA</strong><span>“{hud.morosLine}”</span></div>}
     {!started && <div className="arcade2d-start-overlay"><p className="eyebrow">MISIÓN DE ENTRENAMIENTO</p><h3>El dominio te espera.</h3><p>Corre, salta y dispara a los núcleos de sombra para revelar tus pasiones.</p><button type="button" onClick={startGame}>▶ JUGAR</button></div>}
     {hud.done && showGameOver && <div className="arcade2d-end-card arcade-game-over"><img src="/assets/noni.jpg" alt="NONI, guardián jaguar"/><p className="eyebrow">NONI · SIGO CONTIGO</p><strong>Sigue estudiando.</strong><span>Una caída no borra lo que descubriste. Puedes volver a intentarlo sin perder tu mini-test.</span><div><button type="button" onClick={() => { window.clearTimeout(startNoniTimerRef.current); const freshGame = initialGame(); if (heroSpriteRef.current) freshGame.playerWidth = Math.max(54, Math.min(150, Math.round((heroSpriteRef.current.width / heroSpriteRef.current.height) * HERO_HEIGHT))); gameRef.current = freshGame; pendingGameStatsRef.current = null; setShowGameOver(false); setHud({ time: MISSION_SECONDS, score: 0, xp: 0, freedom: 0, lives: 5, ammo: MAGAZINE_SIZE, wave: 1, progress: 0, bossHP: 15, bossMaxHP: 15, bossDefeated: false, bossName: BOSSES[hero?.id] || BOSSES.tech, noniLine: 'NONI: Lista para acompañarte.', done: false }); setStarted(false); window.setTimeout(() => startGame(), 40) }}>REINTENTAR</button><button type="button" onClick={() => { const stats = pendingGameStatsRef.current; pendingGameStatsRef.current = null; setShowGameOver(false); if (stats) callbackRef.current.onGameComplete?.(stats) }}>VER MIS RESULTADOS</button></div></div>}

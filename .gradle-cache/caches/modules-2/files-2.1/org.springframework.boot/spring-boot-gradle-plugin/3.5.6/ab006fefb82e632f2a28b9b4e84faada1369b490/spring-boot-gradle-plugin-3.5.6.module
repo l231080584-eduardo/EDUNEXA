@@ -1,0 +1,137 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "org.springframework.boot",
+    "module": "spring-boot-gradle-plugin",
+    "version": "3.5.6",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.14.3"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "files": [
+        {
+          "name": "spring-boot-gradle-plugin-3.5.6.jar",
+          "url": "spring-boot-gradle-plugin-3.5.6.jar",
+          "size": 148068,
+          "sha512": "94592f16eb287ea7c749e3a9be49e8d20a8d5fb3db02590cd3314023dc86b39c2b53cf6f840688deb68c3853d9aee03bd21933ef2b3a14ed7f5c8c6abf75fc2a",
+          "sha256": "74d3ad952571b5a891dff9d7aff6b2324a2c03648fca67a398209ca4adb8f72e",
+          "sha1": "b03a33efd33f3d414f388f3f691d99a708a6fb17",
+          "md5": "4a8c8b71462d9279117b3fb29b18965a"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-buildpack-platform",
+          "version": {
+            "requires": "3.5.6"
+          }
+        },
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-loader-tools",
+          "version": {
+            "requires": "3.5.6"
+          }
+        },
+        {
+          "group": "io.spring.gradle",
+          "module": "dependency-management-plugin",
+          "version": {
+            "requires": "1.1.7"
+          }
+        },
+        {
+          "group": "org.apache.commons",
+          "module": "commons-compress",
+          "version": {
+            "requires": "1.27.1"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-core",
+          "version": {
+            "requires": "6.2.11"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-boot-gradle-plugin-3.5.6.jar",
+          "url": "spring-boot-gradle-plugin-3.5.6.jar",
+          "size": 148068,
+          "sha512": "94592f16eb287ea7c749e3a9be49e8d20a8d5fb3db02590cd3314023dc86b39c2b53cf6f840688deb68c3853d9aee03bd21933ef2b3a14ed7f5c8c6abf75fc2a",
+          "sha256": "74d3ad952571b5a891dff9d7aff6b2324a2c03648fca67a398209ca4adb8f72e",
+          "sha1": "b03a33efd33f3d414f388f3f691d99a708a6fb17",
+          "md5": "4a8c8b71462d9279117b3fb29b18965a"
+        }
+      ]
+    },
+    {
+      "name": "javadocElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "javadoc",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-boot-gradle-plugin-3.5.6-javadoc.jar",
+          "url": "spring-boot-gradle-plugin-3.5.6-javadoc.jar",
+          "size": 319621,
+          "sha512": "571427247f3d9a154512d212e2f63f3334461cfcefae8e529804bb6779238d8c16f966b640240aac482af51ba015419807fd1fce79537faaaac23c9a951ab766",
+          "sha256": "8b7a6e5b89b488fa46683a02c414a23b48bbb40949d77693ba8007d48ee63b3b",
+          "sha1": "5dcc1c04d934c26df04fe5b1f5911db95391e31f",
+          "md5": "e1d698e29b03f2bfddc71011bd4ee452"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-boot-gradle-plugin-3.5.6-sources.jar",
+          "url": "spring-boot-gradle-plugin-3.5.6-sources.jar",
+          "size": 83820,
+          "sha512": "6e118ceb10780b638b53ea35e9dbb7768ecc39725bddad398dfe4271b3ac5d673f5eedc2927672e92cc2fad490b8a3e62d2d5ffdc37817205fd2432596d4c5b3",
+          "sha256": "e5f56b6ce26321fb2cf06df8558549a32425eb5abf9835212a699be5f53a566b",
+          "sha1": "aeb45001aa4d97fc838fb73d49eeccd099d217a4",
+          "md5": "ec632f41861edb9782b63c8e02ec0d0e"
+        }
+      ]
+    }
+  ]
+}

@@ -87,6 +87,10 @@ El perfil, el resultado, la clase elegida y las tres instituciones recomendadas 
 
 Sin estas variables, EDUNEXA permanece en modo local y no intenta autenticar ni enviar récords a un servicio remoto.
 
+### Preparación de despliegue (sin publicar)
+
+La guía para preparar Vercel + Supabase, con el estado real del backend y los pasos pendientes antes de publicar, está en [`docs/PREPARACION_VERCEL_SUPABASE.md`](docs/PREPARACION_VERCEL_SUPABASE.md). La configuración documentada no crea ni activa servicios remotos.
+
 ## Rutas principales
 
 Las rutas de negocio usan el prefijo `/api/v1`:
