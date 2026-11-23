@@ -109,7 +109,7 @@ export default function MiniTest({ open, onComplete }) {
         </div>
 
         <div className="minitest-hero-suggestion">
-          <p className="eyebrow">SUGERENCIA DE NONI</p>
+          <p className="eyebrow">SUGERENCIA DE NINO HERNÁNDEZ</p>
           <h3>¿Listo para elegir tu camino?</h3>
           <p>NONI cree que podrías disfrutar <strong>{GEM_CATEGORIES[results.suggestedHero]?.label}</strong>. Elige el héroe que más te represente: tu elección también cuenta para el resultado.</p>
         </div>

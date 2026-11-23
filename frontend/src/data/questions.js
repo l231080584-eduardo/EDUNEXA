@@ -25,7 +25,7 @@ export const questions = [
     category: 'geolocalizacion',
     eyebrow: 'Tu entorno',
     title: '¿Qué tan importante es para ti conocer opciones para estudiar cerca de Iztapalapa?',
-    description: 'Esta respuesta ayuda a NONI a contextualizar tu búsqueda; no cambia qué carreras podrían gustarte.',
+    description: 'Esta respuesta prioriza cuánto pesan las instituciones cercanas en tus recomendaciones; no cambia las carreras sugeridas.',
   },
   {
     id: 'intereses-2',

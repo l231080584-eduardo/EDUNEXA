@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Award, CheckCircle, ExternalLink, GraduationCap, MapPin, Navigation, RotateCcw, Sparkles, LocateFixed } from 'lucide-react'
 import { getCompatibleUniversities } from '../lib/api'
-import { GEM_CATEGORIES } from '../data/careers'
+import { GEM_CATEGORIES, rankUniversitiesByProximity } from '../data/careers'
 import offlineUniversities from '../data/universitiesFallback.json'
 import { playClick } from '../lib/audio'
 import { HERO_CLASSES } from './CharacterSelect'
@@ -226,11 +226,13 @@ export default function ResultsDashboard({ result, report, careers, bonus, profi
     return others
   }, [universities, safeCareers, interestedTecnm, studentLocation])
   const referenceLocation = studentLocation
-  const nearestUniversities = useMemo(() => catalog.map((university) => ({ ...university, distanciaKm: studentLocation ? distanceKm(studentLocation, university) : distanceKm(IZTAPALAPA_ORIGIN, university), distanciaReferenciaKm: distanceKm(IZTAPALAPA_ORIGIN, university) }))
-    .filter((university) => hasCoordinates(university))
-    .sort((a, b) => careerMatchPriority(b, safeCareers) - careerMatchPriority(a, safeCareers)
-      || (b.matchScorePercentage || 0) - (a.matchScorePercentage || 0)
-      || a.distanciaKm - b.distanciaKm), [catalog, studentLocation, safeCareers])
+  const nearestUniversities = useMemo(() => {
+    const candidates = catalog.map((university) => ({ ...university, distanciaKm: studentLocation ? distanceKm(studentLocation, university) : distanceKm(IZTAPALAPA_ORIGIN, university), distanciaReferenciaKm: distanceKm(IZTAPALAPA_ORIGIN, university) }))
+      .filter((university) => hasCoordinates(university))
+      .sort((a, b) => careerMatchPriority(b, safeCareers) - careerMatchPriority(a, safeCareers)
+        || (b.matchScorePercentage || 0) - (a.matchScorePercentage || 0))
+    return rankUniversitiesByProximity(candidates, safeMetrics)
+  }, [catalog, studentLocation, safeCareers, safeMetrics.geolocalizacion])
   const query = universityQuery.trim().toLocaleLowerCase('es-MX')
   const filteredUniversities = useMemo(() => nearestUniversities.filter((university) => !query || [university.nombre, university.name, university.tipo, university.direccion, ...(university.carreras || [])].some((field) => normalizeText(field).includes(normalizeText(query)))), [nearestUniversities, query])
   const savedPlaceId = savedRecord?.selectedUniversity?.id || normalizeText(savedRecord?.selectedUniversity?.nombre || savedRecord?.selectedUniversity?.name)
@@ -295,8 +297,8 @@ export default function ResultsDashboard({ result, report, careers, bonus, profi
       <div className="arcade-badges"><p className="eyebrow">Insignias Arcade desbloqueadas</p><div className="badge-list">{badges.map((badge) => <span className="arcade-badge" key={badge}>{badge}</span>)}</div></div>
 
       <div className="results-grid"><article className="panel score-card"><div className="score-ring" style={{ '--score': `${percent}%` }}><div><strong>{percent}<span>%</span></strong><small>afinidad</small></div></div><div className="score-copy"><span className="pill"><Award size={13} /> TU PUNTO DE PARTIDA</span><h3>Tu récord de partida</h3><p>Clase: {heroLabel} · <strong>{Number(result?.score || savedRecord?.finalScore || 0).toLocaleString('es-MX')} puntos</strong></p><p>Tu afinidad usa la mezcla de 30% mini-test, 20% héroe y 50% decisiones de juego. No define ni limita tu futuro.</p>{bonus && <span className="bonus-badge"><Sparkles size={12} /> Interés TecNM registrado</span>}<p className="latest-answer">{result?.xp || 0} XP · {Object.values(result?.gemCounts || {}).reduce((sum, count) => sum + count, 0)} decisiones vocacionales · Folio {profile?.folio || result?.resultadoId || 'local'}</p></div></article>
-        <article className="panel report-card"><div className="report-top"><span className="panel-icon"><Sparkles size={18} /></span><div><p className="eyebrow">Tu copiloto vocacional</p><h3>NONI IA</h3></div></div><p className="report-text">{report || 'Tus decisiones forman un mapa inicial de intereses. Puedes explorarlo y cambiar de rumbo cuando quieras.'}</p><div className="career-chips">{safeCareers.map((career, index) => <span key={career.name || index}>{career.name || 'Carrera por explorar'}</span>)}</div></article></div>
-      {noniBackend?.narrative && <article className="panel report-card"><div className="report-top"><span className="panel-icon"><Sparkles size={18} /></span><div><p className="eyebrow">Análisis del servidor</p><h3>Lo que NONI analizó en el servidor</h3></div></div><p className="report-text">{noniBackend.narrative}</p>{noniBackend.carrera && <p className="report-text"><strong>Carrera sugerida:</strong> {noniBackend.carrera}</p>}{noniBackend.universidad && <p className="report-text"><strong>Universidad sugerida:</strong> {noniBackend.universidad}</p>}{Array.isArray(noniBackend.badges) && noniBackend.badges.length > 0 && <div className="career-chips">{noniBackend.badges.map((badge, index) => <span key={index}>{badge}</span>)}</div>}</article>}
+        <article className="panel report-card"><div className="report-top"><span className="panel-icon"><Sparkles size={18} /></span><div><p className="eyebrow">Tu copiloto vocacional</p><h3>NINO HERNÁNDEZ</h3></div></div><p className="report-text">{report || 'Tus decisiones forman un mapa inicial de intereses. Puedes explorarlo y cambiar de rumbo cuando quieras.'}</p><div className="career-chips">{safeCareers.map((career, index) => <span key={career.name || index}>{career.name || 'Carrera por explorar'}</span>)}</div></article></div>
+      {noniBackend?.narrative && <article className="panel report-card"><div className="report-top"><span className="panel-icon"><Sparkles size={18} /></span><div><p className="eyebrow">Análisis del servidor</p><h3>Análisis de Nino Hernández</h3></div></div><p className="report-text">{noniBackend.narrative}</p>{noniBackend.carrera && <p className="report-text"><strong>Carrera sugerida:</strong> {noniBackend.carrera}</p>}{noniBackend.universidad && <p className="report-text"><strong>Universidad sugerida:</strong> {noniBackend.universidad}</p>}{Array.isArray(noniBackend.badges) && noniBackend.badges.length > 0 && <div className="career-chips">{noniBackend.badges.map((badge, index) => <span key={index}>{badge}</span>)}</div>}</article>}
 
       <article className="panel metrics-panel"><div><p className="eyebrow">Radar de desempeño</p><h3>Tus portales trazan el perfil</h3></div><div className="metrics-list">{metricRows.map(([label, value]) => <div className="metric-item" key={label}><span>{label}</span><div className="metric-track"><span style={{ width: `${Math.round(Math.max(0, Math.min(1, value || 0)) * 100)}%` }} /></div><strong>{Math.round(Math.max(0, Math.min(1, value || 0)) * 100)}%</strong></div>)}</div><div className="family-score-list"><p className="eyebrow">Tu mezcla vocacional · 30% + 20% + 50%</p>{familyRows.map(([label, value, color]) => <div className="metric-item" key={label}><span>{label}</span><div className="metric-track"><span style={{ width: `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`, background: color }} /></div><strong>{Math.round(Math.max(0, Math.min(1, value)) * 100)}%</strong></div>)}</div></article>
 

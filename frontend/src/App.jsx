@@ -120,7 +120,7 @@ export default function App() {
       const gameShare = gameDecisionTotal ? (Number(categoryCounts[family]) || 0) / gameDecisionTotal : 0
       const miniScore = Math.max(0, Math.min(1, Number(miniScores[family]) || 0))
       const selectedScore = chosenHero === family ? 1 : 0
-      return [family, 0.3 * miniScore + 0.35 * selectedScore + 0.35 * gameShare]
+      return [family, 0.3 * miniScore + 0.2 * selectedScore + 0.5 * gameShare]
     }))
     const finalMetrics = {
       intereses: (familyScores.tech + familyScores.life) / 2,
@@ -129,7 +129,7 @@ export default function App() {
       geolocalizacion: answerValue('geolocalizacion'),
       familyScores,
       hero: chosenHero,
-      weights: { miniTest: 0.3, hero: 0.35, gameplay: 0.35 },
+      weights: { miniTest: 0.3, hero: 0.2, gameplay: 0.5 },
     }
 
     const interestedTecnm = Boolean(profile?.interesTecnm)

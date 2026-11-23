@@ -123,16 +123,33 @@ export default function PixiCinematicStage({ mode = 'intro', scene = 0, elapsed 
       host.appendChild(app.canvas)
       app.stage.sortableChildren = true
       const backgroundLayer = new Container(); backgroundLayer.zIndex = 0; app.stage.addChild(backgroundLayer)
+      backgroundLayer.sortableChildren = true
       const floorLayer = new Container(); floorLayer.zIndex = 1; app.stage.addChild(floorLayer)
       const characterLayer = new Container(); characterLayer.zIndex = 2; characterLayer.sortableChildren = true; app.stage.addChild(characterLayer)
       const particleLayer = new Container(); particleLayer.zIndex = 3; app.stage.addChild(particleLayer)
-      const background = makeGraphics(); const floor = makeGraphics()
+      const panorama = new Sprite(); panorama.zIndex = 0; panorama.visible = false; panorama.anchor.set(.5); backgroundLayer.addChild(panorama)
+      const background = makeGraphics(); background.zIndex = 1
+      const floor = makeGraphics()
       const visor = makeGraphics(); visor.zIndex = 12; characterLayer.addChild(visor)
       backgroundLayer.addChild(background); floorLayer.addChild(floor)
+      let panoramaReady = false
+      let previousPanoramaReady = false
+      const panoramaSrc = mode === 'landing' ? '/assets/edunexa-campus-panorama.png' : '/assets/edunexa-campus-moros-panorama.png'
+      const panoramaImage = new Image()
+      panoramaImage.decoding = 'async'
+      panoramaImage.onload = () => {
+        if (disposed) return
+        panorama.texture = Texture.from(panoramaImage)
+        panorama.texture.source.scaleMode = 'linear'
+        panorama.visible = true
+        panoramaReady = true
+      }
+      panoramaImage.onerror = () => { /* Mantén el fondo generado si la panorámica no está disponible. */ }
+      panoramaImage.src = panoramaSrc
       const ambient = createParticles(particleLayer, mode === 'landing' ? 42 : 54, mode === 'landing' ? 4 : 9)
       const sources = mode === 'landing'
         ? [{ id: 'moros', src: HERO_SPRITES.morosBoss, color: 0xff304d }]
-        : [{ id: 'noni', src: '/assets/noni.jpg', color: 0x48eaff }, ...HEROES, ...ENEMIES]
+        : [{ id: 'noni', src: '/assets/nino-hernandez.webp', color: 0x48eaff }, ...HEROES, ...ENEMIES]
       const sprites = new Map()
       await Promise.all(sources.map(async (item) => {
         try {
@@ -157,9 +174,16 @@ export default function PixiCinematicStage({ mode = 'intro', scene = 0, elapsed 
         const w = host.clientWidth || 1; const h = host.clientHeight || 1
         const { scene: act, elapsed: seconds } = liveRef.current
         const pointer = pointerRef.current
-        if (w !== width || h !== height || act !== previousScene) {
+        if (w !== width || h !== height || act !== previousScene || panoramaReady !== previousPanoramaReady) {
           width = w; height = h; previousScene = act
-          drawBackdrop(background, w, h, seconds, pointer, mode === 'landing')
+          previousPanoramaReady = panoramaReady
+          if (panoramaReady) background.clear()
+          else drawBackdrop(background, w, h, seconds, pointer, mode === 'landing')
+        }
+        if (panoramaReady) {
+          const coverScale = Math.max(w / panorama.texture.width, h / panorama.texture.height) * 1.08
+          panorama.scale.set(coverScale)
+          panorama.position.set(w * (.5 - pointer.x * .022), h * (.5 - pointer.y * .022))
         }
         drawFloor(floor, w, h, seconds, w * (.5 + pointer.x * .02), h * .91)
         visor.clear()
@@ -178,7 +202,7 @@ export default function PixiCinematicStage({ mode = 'intro', scene = 0, elapsed 
           visor.roundRect(left + 15, top + 18, 138, 24, 4).fill({ color: 0x062431, alpha: .78 }).stroke({ color: 0x4feeff, width: 1, alpha: .56 })
           visor.rect(left + 25, top + 29, 5, 5).fill({ color: 0x65fff3, alpha: .9 })
         }
-        background.position.set(pointer.x * 2, pointer.y * 2)
+        if (!panoramaReady) background.position.set(pointer.x * 2, pointer.y * 2)
         const time = seconds
         sprites.forEach(({ sprite }) => { sprite.visible = false })
         const put = (id, x, base, maxHeight, aura, z = 1) => {

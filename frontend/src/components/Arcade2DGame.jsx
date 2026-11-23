@@ -454,12 +454,13 @@ function createEvacuees(now, count = 5) {
 
 function initialGame() {
   return {
-    started: false, done: false, startTime: 0, missionEndAt: 0, lastCountdownSecond: null, finalCountdownStarted: false, lastTime: 0, worldDistance: 0, evacuees: [], score: 0, xp: 0, freedom: 0, lives: 5,
+    started: false, done: false, paused: false, pauseStartedAt: 0, pauseWallAt: 0, timeOffset: 0, startTime: 0, missionEndAt: 0, lastCountdownSecond: null, finalCountdownStarted: false, lastTime: 0, worldDistance: 0, evacuees: [], score: 0, xp: 0, freedom: 0, lives: 5,
     rig: createMetalSlugRig(),
     shots: 0, hits: 0, ammo: MAGAZINE_SIZE, x: 220, playerWidth: HERO_WIDTH, playerHeight: HERO_HEIGHT, worldWidth: WIDTH, y: FLOOR - HERO_HEIGHT, vy: 0, onGround: true,
     invulnerableUntil: 0, flashUntil: 0, nextShotAt: 0, muzzleFlashUntil: 0, recoilOffset: 0, nextId: 1, spawnTimer: 0,
     targets: new Map(), liveIds: new Set(), bullets: [], enemyBullets: [], shells: [], dust: [], particles: [], explosions: [], shockwaves: [], lastDustAt: 0, gemCounts: Object.fromEntries(CATEGORIES.map((key) => [key, 0])),
-    passionHits: 0, streak: 0, lowLivesNotified: false, lastReloadLine: -Infinity, input: { left: false, right: false, fire: false, jump: false },
+    passionHits: 0, streak: 0, lowLivesNotified: false, lastReloadLine: -Infinity,
+    input: { left: false, right: false, fire: false, jump: false }, keyInput: { left: false, right: false, fire: false, jump: false }, touchInput: { left: false, right: false, fire: false, jump: false }, gamepadInput: { left: false, right: false, fire: false, jump: false },
     wave: 1, banner: null, boss: null, bossSpawned: false, colossusSpawned: false, bossDefeatPending: false, lastBossLineAt: -Infinity, bossNextAttackAt: 0,
     morosLine: '', morosLineUntil: 0, lastMorosTauntAt: -Infinity, deathAt: 0,
     shakeUntil: 0, shakeDuration: 0, shakeMagnitude: 0,
@@ -482,12 +483,24 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
   const startNoniTimerRef = useRef(0)
   const [started, setStarted] = useState(false)
   const [musicMuted, setMusicMuted] = useState(getArcadeMuted)
+  const [gamepadConnected, setGamepadConnected] = useState(() => typeof navigator !== 'undefined' && Boolean(Array.from(navigator.getGamepads?.() || []).some(Boolean)))
   const [showGameOver, setShowGameOver] = useState(false)
   const pendingGameStatsRef = useRef(null)
   const [hud, setHud] = useState({ time: MISSION_SECONDS, score: 0, xp: 0, freedom: 0, lives: 5, ammo: MAGAZINE_SIZE, wave: 1, progress: 0, bossHP: 15, bossMaxHP: 15, bossDefeated: false, bossName: BOSSES.tech, noniLine: gameRef.current.noniLine, done: false })
   callbackRef.current = { onGameComplete }
 
   useEffect(() => subscribeArcadeMute(setMusicMuted), [])
+
+  useEffect(() => {
+    const syncGamepads = () => setGamepadConnected(typeof navigator !== 'undefined' && Boolean(Array.from(navigator.getGamepads?.() || []).some(Boolean)))
+    window.addEventListener('gamepadconnected', syncGamepads)
+    window.addEventListener('gamepaddisconnected', syncGamepads)
+    syncGamepads()
+    return () => {
+      window.removeEventListener('gamepadconnected', syncGamepads)
+      window.removeEventListener('gamepaddisconnected', syncGamepads)
+    }
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -539,6 +552,8 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
     speakAsHero(hero?.id, hero?.line || `Soy ${hero?.name || 'tu guardián'}. Vamos a abrirnos paso.`)
     game.started = true
     game.startTime = performance.now()
+    game.timeOffset = 0
+    game.paused = false
     game.missionEndAt = game.startTime + MISSION_SECONDS * 1000
     game.evacuees = createEvacuees(game.startTime)
     game.lastTime = game.startTime
@@ -574,23 +589,25 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
 
     const spawn = () => {
       if (stopped || game.done || game.bossDefeatPending) return
-      const elapsed = (performance.now() - game.startTime) / 1000
+      if (game.paused) return
+      const now = performance.now() - game.timeOffset
+      const elapsed = (now - game.startTime) / 1000
       if (elapsed >= BOSS_START && !game.bossSpawned) {
         for (const target of [...game.targets.values()]) if (target.type !== 'boss') removeTarget(target)
         game.enemyBullets.length = 0
         const bossName = BOSSES[hero?.id] || BOSSES.tech
         const bossHeight = 380
-        game.boss = { id: game.nextId++, type: 'boss', x: 860, y: FLOOR - bossHeight, baseY: FLOOR - bossHeight, w: 300, h: bossHeight, speed: 76, hp: 15, maxHp: 15, nextHitAt: 0, name: bossName, retreatUntil: 0, nextDashAt: performance.now() + 3000, dashUntil: 0, nextJumpAt: performance.now() + 2600, jumpStartedAt: 0, jumpUntil: 0, nextTeleportAt: performance.now() + 7200, flashUntil: 0, shootUntil: 0, attackStartedAt: 0, volleyFired: true }
+        game.boss = { id: game.nextId++, type: 'boss', x: 860, y: FLOOR - bossHeight, baseY: FLOOR - bossHeight, w: 300, h: bossHeight, speed: 76, hp: 15, maxHp: 15, nextHitAt: 0, name: bossName, retreatUntil: 0, nextDashAt: now + 3000, dashUntil: 0, nextJumpAt: now + 2600, jumpStartedAt: 0, jumpUntil: 0, nextTeleportAt: now + 7200, flashUntil: 0, shootUntil: 0, attackStartedAt: 0, volleyFired: true }
         game.targets.set(game.boss.id, game.boss)
         game.liveIds.add(game.boss.id)
         game.bossSpawned = true
-        game.lastBossLineAt = performance.now()
+        game.lastBossLineAt = now
         say('bossAppear')
-        giveMorosLine(game, 'appear', performance.now(), true)
+        giveMorosLine(game, 'appear', now, true)
       }
       if (elapsed >= COLOSSUS_START && elapsed < BOSS_START && !game.colossusSpawned && game.liveIds.size < 4) {
         const colossusHeight = 284
-        const colossus = { id: game.nextId++, type: 'colossus', x: 900, y: FLOOR - colossusHeight, h: colossusHeight, w: colossusHeight * art.colossus.width / Math.max(1, art.colossus.height), speed: 26, hp: 12, maxHp: 12, nextHitAt: 0, nextShotAt: performance.now() + 1800, phase: 0 }
+        const colossus = { id: game.nextId++, type: 'colossus', x: 900, y: FLOOR - colossusHeight, h: colossusHeight, w: colossusHeight * art.colossus.width / Math.max(1, art.colossus.height), speed: 26, hp: 12, maxHp: 12, nextHitAt: 0, nextShotAt: now + 1800, phase: 0 }
         game.targets.set(colossus.id, colossus); game.liveIds.add(colossus.id); game.colossusSpawned = true
       }
       if (game.liveIds.size >= 4) return
@@ -724,39 +741,94 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       if (game.deathAt && now - game.deathAt > 760) finishGame()
     }
 
+    const syncInput = () => {
+      for (const action of ['left', 'right', 'fire', 'jump']) game.input[action] = Boolean(game.keyInput[action] || game.touchInput[action] || game.gamepadInput[action])
+    }
+    const simulationNow = () => performance.now() - game.timeOffset
+    const togglePause = (wallNow = performance.now()) => {
+      if (game.done) return
+      if (!game.paused) {
+        game.paused = true
+        game.pauseWallAt = wallNow
+        game.pauseStartedAt = wallNow - game.timeOffset
+        stopArcadeMusic()
+      } else {
+        game.timeOffset += wallNow - game.pauseWallAt
+        game.paused = false
+        game.lastTime = wallNow - game.timeOffset
+        startArcadeMusic(game.wave >= 3 ? 'boss' : 'battle')
+      }
+    }
+    let startWasPressed = false
+    let gamepadWasConnected = false
+    const updateGamepad = (wallNow) => {
+      const gamepad = typeof navigator !== 'undefined' ? Array.from(navigator.getGamepads?.() || []).find(Boolean) : null
+      const connected = Boolean(gamepad)
+      if (connected !== gamepadWasConnected) {
+        gamepadWasConnected = connected
+        game.gamepadConnected = connected
+        if (!connected) { game.gamepadInput.left = false; game.gamepadInput.right = false; game.gamepadInput.fire = false; game.gamepadInput.jump = false }
+      }
+      if (!gamepad) { syncInput(); return }
+      const buttons = gamepad.buttons || []
+      const pressed = (index) => Boolean(buttons[index]?.pressed || (buttons[index]?.value || 0) > .5)
+      const axis = Number(gamepad.axes?.[0]) || 0
+      const wasJumping = game.gamepadInput.jump
+      game.gamepadInput.left = axis < -.28 || pressed(14)
+      game.gamepadInput.right = axis > .28 || pressed(15)
+      game.gamepadInput.jump = pressed(0)
+      game.gamepadInput.fire = pressed(2) || pressed(7)
+      if (game.gamepadInput.jump && !wasJumping && !game.done && !game.paused) {
+        game.rig.jumpQueued = true; game.rig.jumpQueuedAt = wallNow - game.timeOffset; playArcadeSfx('jump')
+      }
+      const startPressed = pressed(9)
+      if (startPressed && !startWasPressed) togglePause(wallNow)
+      startWasPressed = startPressed
+      if (game.paused) {
+        game.gamepadInput.left = false; game.gamepadInput.right = false; game.gamepadInput.fire = false; game.gamepadInput.jump = false
+      }
+      syncInput()
+    }
     const keyDown = (event) => {
       const key = event.key.toLowerCase()
-      if (['arrowleft', 'arrowright', 'arrowup', ' ', 'a', 'd', 'w', 'r'].includes(key)) event.preventDefault()
-      if (key === 'arrowleft' || key === 'a') game.input.left = true
-      if (key === 'arrowright' || key === 'd') game.input.right = true
-      if (key === ' ' ) game.input.fire = true
-      if ((key === 'arrowup' || key === 'w') && !game.done && !game.input.jump) { game.input.jump = true; game.rig.jumpQueued = true; game.rig.jumpQueuedAt = performance.now(); playArcadeSfx('jump') }
-      if (key === 'r') reload(performance.now())
+      if (['arrowleft', 'arrowright', 'arrowup', ' ', 'a', 'd', 'w', 'r', 'escape'].includes(key)) event.preventDefault()
+      if (key === 'arrowleft' || key === 'a') game.keyInput.left = true
+      if (key === 'arrowright' || key === 'd') game.keyInput.right = true
+      if (key === ' ') game.keyInput.fire = true
+      if ((key === 'arrowup' || key === 'w') && !game.done && !game.input.jump) { game.keyInput.jump = true; game.rig.jumpQueued = true; game.rig.jumpQueuedAt = simulationNow(); playArcadeSfx('jump') }
+      if (key === 'escape') togglePause()
+      syncInput()
+      if (key === 'r') reload(simulationNow())
     }
     const keyUp = (event) => {
       const key = event.key.toLowerCase()
-      if (key === 'arrowleft' || key === 'a') game.input.left = false
-      if (key === 'arrowright' || key === 'd') game.input.right = false
-      if (key === ' ') game.input.fire = false
-      if (key === 'arrowup' || key === 'w') game.input.jump = false
+      if (key === 'arrowleft' || key === 'a') game.keyInput.left = false
+      if (key === 'arrowright' || key === 'd') game.keyInput.right = false
+      if (key === ' ') game.keyInput.fire = false
+      if (key === 'arrowup' || key === 'w') game.keyInput.jump = false
+      syncInput()
     }
     const control = (event) => {
       const { action, phase } = typeof event.detail === 'string' ? { action: event.detail, phase: 'tap' } : event.detail
-      if (action === 'reload' && phase !== 'up') { reload(performance.now()); return }
+      if (action === 'reload' && phase !== 'up') { reload(simulationNow()); return }
       if (action === 'up') {
-        if (phase === 'up') game.input.jump = false
-        else if (!game.input.jump && !game.done) { game.input.jump = true; game.rig.jumpQueued = true; game.rig.jumpQueuedAt = performance.now(); playArcadeSfx('jump') }
-        if (phase === 'tap') window.setTimeout(() => { game.input.jump = false }, 140)
+        const wasJumping = game.input.jump
+        game.touchInput.jump = phase !== 'up'
+        syncInput()
+        if (!wasJumping && game.input.jump && !game.done) { game.rig.jumpQueued = true; game.rig.jumpQueuedAt = simulationNow(); playArcadeSfx('jump') }
+        if (phase === 'tap') window.setTimeout(() => { game.touchInput.jump = false; syncInput() }, 140)
         return
       }
       const pressed = phase !== 'up'
-      if (action === 'left') game.input.left = pressed
-      if (action === 'right') game.input.right = pressed
-      if (action === 'fire') game.input.fire = pressed
+      if (action === 'left') game.touchInput.left = pressed
+      if (action === 'right') game.touchInput.right = pressed
+      if (action === 'fire') game.touchInput.fire = pressed
+      syncInput()
       if (phase === 'tap') window.setTimeout(() => {
-        if (action === 'left') game.input.left = false
-        if (action === 'right') game.input.right = false
-        if (action === 'fire') game.input.fire = false
+        if (action === 'left') game.touchInput.left = false
+        if (action === 'right') game.touchInput.right = false
+        if (action === 'fire') game.touchInput.fire = false
+        syncInput()
       }, 180)
     }
     window.addEventListener('keydown', keyDown)
@@ -766,12 +838,14 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
     const stopHandle = () => stopArcadeMusic()
     window.addEventListener('pagehide', stopHandle)
 
-    const draw = (now) => {
+    const draw = (wallNow) => {
       if (stopped) return
+      updateGamepad(wallNow)
+      const now = game.paused ? game.pauseStartedAt : wallNow - game.timeOffset
       const dt = Math.min(.04, Math.max(0, (now - game.lastTime) / 1000))
       game.lastTime = now
       ctx.imageSmoothingEnabled = false
-      if (!game.done) {
+      if (!game.done && !game.paused) {
         const elapsed = (now - game.startTime) / 1000
           const wave = elapsed < WAVE_TWO_START ? 1 : elapsed < BOSS_START ? 2 : 3
         if (wave !== game.wave) {
@@ -1109,10 +1183,9 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
     }
     raf = window.requestAnimationFrame(draw)
     hudTimer = window.setInterval(() => {
-      const elapsed = (performance.now() - game.startTime) / 1000
-      const now = performance.now()
+      const now = game.paused ? game.pauseStartedAt : performance.now() - game.timeOffset
       const secondsLeft = Math.max(0, Math.ceil((game.missionEndAt - now) / 1000))
-      setHud({ time: secondsLeft, score: game.score, xp: game.xp, freedom: game.freedom, lives: game.lives, ammo: game.ammo, wave: game.wave, progress: Math.min(1, (now - game.startTime) / (MISSION_SECONDS * 1000)), bossHP: game.boss?.hp ?? 15, bossMaxHP: game.boss?.maxHp ?? 15, bossDefeated: game.bossDefeatPending, bossName: game.boss?.name || BOSSES[hero?.id] || BOSSES.tech, noniLine: game.noniLine, morosLine: now < game.morosLineUntil ? game.morosLine : '', done: game.done })
+      setHud({ time: secondsLeft, score: game.score, xp: game.xp, freedom: game.freedom, lives: game.lives, ammo: game.ammo, wave: game.wave, progress: Math.min(1, (now - game.startTime) / (MISSION_SECONDS * 1000)), bossHP: game.boss?.hp ?? 15, bossMaxHP: game.boss?.maxHp ?? 15, bossDefeated: game.bossDefeatPending, bossName: game.boss?.name || BOSSES[hero?.id] || BOSSES.tech, noniLine: game.noniLine, morosLine: now < game.morosLineUntil ? game.morosLine : '', paused: game.paused, done: game.done })
     }, 250)
 
     return () => {
@@ -1125,6 +1198,10 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       window.removeEventListener('keyup', keyUp)
       window.removeEventListener('edunexa:arcade-control', control)
       window.removeEventListener('pagehide', stopHandle)
+      game.gamepadInput.left = false; game.gamepadInput.right = false; game.gamepadInput.fire = false; game.gamepadInput.jump = false
+      game.touchInput.left = false; game.touchInput.right = false; game.touchInput.fire = false; game.touchInput.jump = false
+      game.keyInput.left = false; game.keyInput.right = false; game.keyInput.fire = false; game.keyInput.jump = false
+      game.gamepadConnected = false
       stopArcadeMusic()
     }
   }, [started, hero, finishGame, say])
@@ -1134,15 +1211,17 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
   return <section className="arcade2d-game" aria-label="Juego arcade 2D">
     <div className="arcade2d-canvas-frame"><canvas ref={canvasRef} className="arcade2d-canvas" width={WIDTH} height={HEIGHT} aria-label="Ciudad Futuro, campo de juego" /></div>
     <header className="arcade-combat-hud" aria-live="polite">
-      <div className="combat-noni"><img src="/assets/noni.jpg" alt="NONI"/><div><small>NONI · APOYO TÁCTICO</small><strong>{hud.noniLine.replace(/^NONI:\s*/,'')}</strong></div></div>
+      <div className="combat-noni"><img src="/assets/nino-hernandez.webp" alt="Nino Hernández"/><div><small>NINO HERNÁNDEZ · APOYO TÁCTICO</small><strong>{hud.noniLine.replace(/^NONI:\s*/,'')}</strong></div></div>
               <div className="combat-stat-badges"><span><small>OLA</small><b>{hud.wave}/3</b></span><span><small>VIDAS</small><b className="combat-lives">{'♥'.repeat(hud.lives)}{'♡'.repeat(Math.max(0, 5 - hud.lives))}</b></span><span><small>MUNICIÓN</small><b>{String(hud.ammo).padStart(2, '0')}</b></span><span><small>PUNTOS</small><b>{hud.score.toLocaleString('es-MX')}</b></span><span><small>TIEMPO</small><b>00:{String(hud.time).padStart(2, '0')}</b></span></div>
-      <div className="combat-hud-actions"><button type="button" title={musicMuted ? 'Activar música y sonidos' : 'Silenciar música y sonidos'} aria-label={musicMuted ? 'Activar música y sonidos' : 'Silenciar música y sonidos'} onClick={() => setMusicMuted(toggleArcadeMuted())}>{musicMuted ? '🔇' : '🔊'}</button><button type="button" aria-label="Salir del combate" onClick={onExit}>SALIR</button></div>
+              <div className="combat-stat-badges"><span><small>OLA</small><b>{hud.wave}/3</b></span><span><small>VIDAS</small><b className="combat-lives">{'♥'.repeat(hud.lives)}{'♡'.repeat(Math.max(0, 5 - hud.lives))}</b></span><span><small>MUNICIÓN</small><b>{String(hud.ammo).padStart(2, '0')}</b></span><span><small>PUNTOS</small><b>{hud.score.toLocaleString('es-MX')}</b></span><span><small>TIEMPO</small><b>00:{String(hud.time).padStart(2, '0')}</b></span></div>
+      <div className="combat-hud-actions">{gamepadConnected && <span className="arcade-gamepad-status">CONTROL CONECTADO</span>}<button type="button" title={musicMuted ? 'Activar música y sonidos' : 'Silenciar música y sonidos'} aria-label={musicMuted ? 'Activar música y sonidos' : 'Silenciar música y sonidos'} onClick={() => setMusicMuted(toggleArcadeMuted())}>{musicMuted ? '🔇' : '🔊'}</button><button type="button" aria-label="Salir del combate" onClick={onExit}>SALIR</button></div>
     </header>
     {hud.wave === 3 && <div className="arcade2d-boss-health" aria-label={`${hud.bossName}, ${hud.bossHP} de ${hud.bossMaxHP} puntos de vida`}><strong>{hud.bossName}</strong><div>{Array.from({ length: hud.bossMaxHP }, (_, segment) => <i className={segment < hud.bossHP ? 'is-active' : ''} key={segment} />)}</div><small>{hud.bossHP} / {hud.bossMaxHP} HP</small></div>}
     {hud.wave === 3 && hud.time <= 10 && hud.time > 0 && <div className="arcade-final-countdown" aria-live="assertive"><span>{hud.bossDefeated ? '¡EXTRACCIÓN INMINENTE!' : '¡COLAPSO INMINENTE!'}</span><strong key={hud.time}>{String(hud.time).padStart(2, '0')}</strong><small>{hud.bossDefeated ? 'EL CAMPUS SE ESTABILIZA' : 'EVACÚA · ESQUIVA · SOBREVIVE'}</small></div>}
     {hud.morosLine && <div className="moros-taunt" aria-live="assertive"><strong><i aria-hidden="true">◈</i> MOROS TE PROVOCA</strong><span>“{hud.morosLine}”</span></div>}
+    {hud.paused && <div className="arcade2d-pause-overlay" role="status"><strong>PAUSA</strong><span>Presiona START para continuar</span></div>}
     {!started && <div className="arcade2d-start-overlay"><p className="eyebrow">MISIÓN DE ENTRENAMIENTO</p><h3>El dominio te espera.</h3><p>Corre, salta y dispara a los núcleos de sombra para revelar tus pasiones.</p><button type="button" onClick={startGame}>▶ JUGAR</button></div>}
-    {hud.done && showGameOver && <div className="arcade2d-end-card arcade-game-over"><img src="/assets/noni.jpg" alt="NONI, guardián jaguar"/><p className="eyebrow">NONI · SIGO CONTIGO</p><strong>Sigue estudiando.</strong><span>Una caída no borra lo que descubriste. Puedes volver a intentarlo sin perder tu mini-test.</span><div><button type="button" onClick={() => { window.clearTimeout(startNoniTimerRef.current); const freshGame = initialGame(); if (heroSpriteRef.current) freshGame.playerWidth = Math.max(54, Math.min(150, Math.round((heroSpriteRef.current.width / heroSpriteRef.current.height) * HERO_HEIGHT))); gameRef.current = freshGame; pendingGameStatsRef.current = null; setShowGameOver(false); setHud({ time: MISSION_SECONDS, score: 0, xp: 0, freedom: 0, lives: 5, ammo: MAGAZINE_SIZE, wave: 1, progress: 0, bossHP: 15, bossMaxHP: 15, bossDefeated: false, bossName: BOSSES[hero?.id] || BOSSES.tech, noniLine: 'NONI: Lista para acompañarte.', done: false }); setStarted(false); window.setTimeout(() => startGame(), 40) }}>REINTENTAR</button><button type="button" onClick={() => { const stats = pendingGameStatsRef.current; pendingGameStatsRef.current = null; setShowGameOver(false); if (stats) callbackRef.current.onGameComplete?.(stats) }}>VER MIS RESULTADOS</button></div></div>}
+    {hud.done && showGameOver && <div className="arcade2d-end-card arcade-game-over"><img src="/assets/nino-hernandez.webp" alt="Nino Hernández, guía de EDUNEXA"/><p className="eyebrow">NINO HERNÁNDEZ · SIGO CONTIGO</p><strong>Sigue estudiando.</strong><span>Una caída no borra lo que descubriste. Puedes volver a intentarlo sin perder tu mini-test.</span><div><button type="button" onClick={() => { window.clearTimeout(startNoniTimerRef.current); const freshGame = initialGame(); if (heroSpriteRef.current) freshGame.playerWidth = Math.max(54, Math.min(150, Math.round((heroSpriteRef.current.width / heroSpriteRef.current.height) * HERO_HEIGHT))); gameRef.current = freshGame; pendingGameStatsRef.current = null; setShowGameOver(false); setHud({ time: MISSION_SECONDS, score: 0, xp: 0, freedom: 0, lives: 5, ammo: MAGAZINE_SIZE, wave: 1, progress: 0, bossHP: 15, bossMaxHP: 15, bossDefeated: false, bossName: BOSSES[hero?.id] || BOSSES.tech, noniLine: 'NONI: Lista para acompañarte.', done: false }); setStarted(false); window.setTimeout(() => startGame(), 40) }}>REINTENTAR</button><button type="button" onClick={() => { const stats = pendingGameStatsRef.current; pendingGameStatsRef.current = null; setShowGameOver(false); if (stats) callbackRef.current.onGameComplete?.(stats) }}>VER MIS RESULTADOS</button></div></div>}
     {hud.done && !showGameOver && <div className="arcade2d-end-card arcade-victory-card"><img src={hero?.sprite || HERO_SPRITES.tech} alt={`${hero?.name || 'Tu héroe'} celebra la misión`}/><strong>Tu puntuación: {hud.score}</strong><span>{hud.noniLine}</span><button type="button" onClick={() => callbackRef.current.onGameComplete?.(pendingGameStatsRef.current)}>VER RESULTADOS</button></div>}
   </section>
 }

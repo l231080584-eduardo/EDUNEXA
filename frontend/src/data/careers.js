@@ -103,6 +103,22 @@ function normalizeCareer(item) {
   return { ...item, name, category: inferGemCategory({ ...item, name }), profile, skills, tools, roles, sectors, salaryMonthly }
 }
 
+/** Mix the existing recommendation order with distance according to the student's proximity preference. */
+export function rankUniversitiesByProximity(universities = [], finalMetrics = null) {
+  const preference = Math.max(0, Math.min(1, Number(finalMetrics?.geolocalizacion) || 0))
+  const entries = universities.map((university, index) => ({ university, index }))
+  const distance = (entry) => Number.isFinite(Number(entry.university.distanciaKm)) ? Number(entry.university.distanciaKm) : Infinity
+  const proximityRank = new Map([...entries]
+    .sort((a, b) => distance(a) - distance(b) || a.index - b.index)
+    .map((entry, rank) => [entry.index, rank]))
+  return entries
+    .sort((a, b) => {
+      const score = (entry) => entry.index * (1 - preference) + (proximityRank.get(entry.index) ?? entry.index) * preference
+      return score(a) - score(b) || a.index - b.index
+    })
+    .map(({ university }) => university)
+}
+
 export function recommendCareers(gemCounts = {}, gemEffectiveness = {}, careerCatalog = CAREER_CATALOG, finalMetrics = null) {
   const ranked = rankGemCategories(gemCounts, gemEffectiveness)
   const familyScores = finalMetrics?.familyScores

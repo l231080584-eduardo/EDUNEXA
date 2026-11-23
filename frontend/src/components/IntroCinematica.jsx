@@ -4,9 +4,9 @@ import { cancelSpeech, setVoiceMuted, speakAsMoros, speakAsNoni } from '../lib/v
 import PixiCinematicStage from './PixiCinematicStage'
 
 const DIALOGUE = [
-  { speaker: 'NONI · ALERTA TÁCTICA', line: 'Detecto una anomalía sobre el campus. Aspirante, mantén la calma: voy contigo.', voice: speakAsNoni },
+  { speaker: 'NINO HERNÁNDEZ · ALERTA TÁCTICA', line: 'Detecto una anomalía sobre el campus. Aspirante, mantén la calma: voy contigo.', voice: speakAsNoni },
   { speaker: 'MOROS · SEÑOR DEL DOMINIO', line: 'Este campus caerá. Tu futuro ya tiene dueño: yo.', voice: speakAsMoros },
-  { speaker: 'NONI · CONTRAATAQUE', line: 'Guardianes, ¡contraataque! Juntos podemos romper su dominio.', voice: speakAsNoni },
+  { speaker: 'NINO HERNÁNDEZ · CONTRAATAQUE', line: 'Guardianes, ¡contraataque! Juntos podemos romper su dominio.', voice: speakAsNoni },
 ]
 
 const ACTS = [
