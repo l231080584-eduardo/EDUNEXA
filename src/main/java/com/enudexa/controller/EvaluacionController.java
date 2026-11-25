@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Comparator;
 import java.util.List;
+import java.text.Normalizer;
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/evaluaciones")
@@ -50,6 +52,7 @@ public class EvaluacionController {
     @GetMapping("/compatibilidad")
     public ResponseEntity<ApiResponse<List<UniversidadCompatibilidadResponse>>> obtenerCompatibilidad() {
         List<UniversidadCompatibilidadResponse> respuesta = universidadRepository.findAll().stream()
+                .filter(this::esTecnmCampus)
                 .map(this::crearResultado)
                 .sorted(Comparator.comparingDouble(UniversidadCompatibilidadResponse::matchScorePercentage)
                         .reversed()
@@ -58,6 +61,21 @@ public class EvaluacionController {
                 .toList();
 
         return ResponseEntity.ok(ApiResponse.success(respuesta, "Compatibilidad obtenida correctamente"));
+    }
+
+    private boolean esTecnmCampus(Universidad universidad) {
+        String nombre = normalizar(universidad.getNombre());
+        return universidad.isEsTecnmIztapalapa1()
+                || nombre.contains("TECNM")
+                || nombre.contains("TECNOLOGICO NACIONAL DE MEXICO")
+                || nombre.contains("INSTITUTO TECNOLOGICO");
+    }
+
+    private String normalizar(String valor) {
+        if (valor == null) return "";
+        return Normalizer.normalize(valor, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toUpperCase(Locale.ROOT);
     }
 
     private UniversidadCompatibilidadResponse crearResultado(Universidad universidad) {

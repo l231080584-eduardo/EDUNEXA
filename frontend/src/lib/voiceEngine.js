@@ -1,6 +1,6 @@
 const VOICES = {
-  moros: { pitch: 0.78, rate: 0.91, preferred: ['pablo', 'jorge', 'raúl', 'raul', 'diego', 'álvaro', 'alvaro', 'male', 'masculino'] },
-  noni: { pitch: 1.08, rate: 0.98, preferred: ['paulina', 'sabina', 'helena', 'laura', 'female', 'femenina', 'monica', 'mónica'] },
+  moros: { pitch: 0.9, rate: 0.94, preferred: ['pablo', 'jorge', 'raúl', 'raul', 'diego', 'álvaro', 'alvaro', 'male', 'masculino'] },
+  noni: { pitch: 1.03, rate: 0.98, preferred: ['paulina', 'sabina', 'helena', 'laura', 'female', 'femenina', 'monica', 'mónica'] },
   heroMale: { pitch: 0.85, rate: 1, preferred: ['pablo', 'jorge', 'raúl', 'raul', 'diego', 'male', 'masculino'] },
   heroFemale: { pitch: 1.18, rate: 1, preferred: ['paulina', 'sabina', 'helena', 'laura', 'female', 'femenina'] },
 }
@@ -44,6 +44,12 @@ function chooseVoice(voices, settings) {
 function speak(text, settings) {
   const synth = synthesis()
   if (globallyMuted || !synth || !text || typeof SpeechSynthesisUtterance === 'undefined') return false
+  // SpeechSynthesis queues by default; rapid game callouts otherwise pile up and sound stuttered.
+  if (voicePoll) window.clearInterval(voicePoll)
+  voicePoll = 0
+  synth.cancel()
+  activeUtterance = null
+  requestId += 1
   const currentRequest = requestId
   const speakWhenReady = () => {
     if (currentRequest !== requestId || globallyMuted) return

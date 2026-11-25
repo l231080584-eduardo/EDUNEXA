@@ -99,7 +99,7 @@ export default function NoniWidget({ message, subtitles = true }) {
   return <aside className="noni-hologram" aria-label="Guía Nino Hernández">
     {subtitles && <motion.div className="noni-holo-caption" key={caption} initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }} aria-live="polite"><strong>NINO HERNÁNDEZ</strong><span>{caption}</span></motion.div>}
     <div className={`noni-holo-presence ${speaking ? 'is-speaking' : ''}`}>
-      <motion.div className="noni-holo-orb" animate={{ scale: speaking ? [1, 1.08, 1] : [1, 1.025, 1] }} transition={{ repeat: Infinity, duration: speaking ? .75 : 2.7, ease: 'easeInOut' }}><img className="noni-jaguar-image" src="/assets/nino-hernandez.webp" alt="" aria-hidden="true"/><i /><i /><i /></motion.div>
+      <motion.div className="noni-holo-orb" animate={{ scale: speaking ? [1, 1.08, 1] : [1, 1.025, 1] }} transition={{ repeat: Infinity, duration: speaking ? .75 : 2.7, ease: 'easeInOut' }}><span className="noni-jaguar-image noni-guide-animation" aria-hidden="true"/><i /><i /><i /></motion.div>
       <div className={`noni-frequency ${speaking ? 'is-active' : ''}`} aria-hidden="true">{Array.from({ length: 13 }, (_, index) => <span key={index} style={{ '--bar-index': index }} />)}</div>
       <div className="noni-holo-label"><strong>NINO HERNÁNDEZ</strong><small>{speaking ? 'TE ACOMPAÑO' : 'DIRECTOR · GUÍA VOCACIONAL'}</small></div>
       <button type="button" className="noni-holo-voice" onClick={toggleVoice} aria-label={voiceEnabled ? 'Desactivar voz de Nino Hernández' : 'Activar voz de Nino Hernández'} aria-pressed={voiceEnabled}>{voiceEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}</button>

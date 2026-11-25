@@ -198,8 +198,8 @@ function getHowlerSfx() {
   if (howlerSfx || typeof window === 'undefined') return howlerSfx
   Howler.autoSuspend = true
   howlerSfx = {
-    shot: new Howl({ src: [synthWavDataUri({ frequency: 360, endFrequency: 92, duration: .12, wave: 'sawtooth', noise: .12 })], format: ['wav'], volume: .33, pool: 8, preload: true }),
-    explosion: new Howl({ src: [synthWavDataUri({ frequency: 130, endFrequency: 42, duration: .31, wave: 'sawtooth', noise: .58 })], format: ['wav'], volume: .45, pool: 8, preload: true }),
+    shot: new Howl({ src: ['/assets/audio/disparo-cc0.wav'], format: ['wav'], volume: .42, pool: 8, preload: true }),
+    explosion: new Howl({ src: ['/assets/audio/explosion-cc0.wav'], format: ['wav'], volume: .56, pool: 8, preload: true }),
     reload: new Howl({ src: [synthWavDataUri({ frequency: 620, endFrequency: 340, duration: .24, wave: 'square', noise: .08 })], format: ['wav'], volume: .25, pool: 4, preload: true }),
     coin: new Howl({ src: [synthWavDataUri({ frequency: 790, endFrequency: 1580, duration: .22, wave: 'square' })], format: ['wav'], volume: .32, pool: 5, preload: true }),
   }

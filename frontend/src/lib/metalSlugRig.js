@@ -2,13 +2,13 @@ export const PLAYER_STATE = Object.freeze({ IDLE: 'idle', RUN: 'run', JUMP: 'jum
 
 // One-way ledges placed against the long TecNM panorama: garden walls and raised campus walkways.
 export const CAMPUS_PLATFORMS = Object.freeze([
-  { id: 'jardin', x: 325, y: 370, width: 176, height: 28, style: 'stone' },
-  { id: 'pasillo', x: 900, y: 370, width: 190, height: 28, style: 'campus' },
-  { id: 'laboratorio', x: 1490, y: 370, width: 188, height: 28, style: 'campus' },
+  { id: 'jardin', x: 92, y: 370, width: 176, height: 28, style: 'stone' },
+  { id: 'pasillo', x: 382, y: 370, width: 190, height: 28, style: 'campus' },
+  { id: 'laboratorio', x: 690, y: 370, width: 188, height: 28, style: 'campus' },
 ])
 
 export function createMetalSlugRig() {
-  return { vx: 0, vy: 0, state: PLAYER_STATE.IDLE, coyoteUntil: 0, jumpQueued: false, jumpQueuedAt: 0, hurtUntil: 0, shotRecoil: 0, legPhase: 0, landSquash: 0 }
+  return { vx: 0, vy: 0, state: PLAYER_STATE.IDLE, coyoteUntil: 0, jumpQueued: false, jumpQueuedAt: 0, hurtUntil: 0, shotRecoil: 0, legPhase: 0, landSquash: 0, dashUntil: 0, dashDirection: 1, dashCooldownUntil: 0 }
 }
 
 /** Delta-time physics with acceleration, coyote jumps, fast-fall and a camera deadzone. */
@@ -21,21 +21,26 @@ export function stepMetalSlugRig(game, dt, now, platformLayout = [], cameraScale
   const axis = Number(Boolean(game.input.right)) - Number(Boolean(game.input.left))
   const acceleration = 1750
   const maxSpeed = 260
-  if (axis) rig.vx += axis * acceleration * dt
-  else rig.vx += (0 - rig.vx) * Math.min(1, 12 * dt)
-  rig.vx = Math.max(-maxSpeed, Math.min(maxSpeed, rig.vx))
-  if (Math.abs(rig.vx) < 7 && !axis) rig.vx = 0
+  if (axis) game.facing = axis
+  if (now < rig.dashUntil) rig.vx = rig.dashDirection * 620
+  else {
+    if (axis) rig.vx += axis * acceleration * dt
+    else rig.vx += (0 - rig.vx) * Math.min(1, 12 * dt)
+    rig.vx = Math.max(-maxSpeed, Math.min(maxSpeed, rig.vx))
+    if (Math.abs(rig.vx) < 7 && !axis) rig.vx = 0
+  }
 
   let scrollDelta = 0
   game.x += rig.vx * dt
-  const deadzoneRight = Math.min(worldWidth - playerWidth - 24, Math.round(worldWidth * .58))
-  const deadzoneLeft = 330
-  if (game.x > deadzoneRight) { scrollDelta = game.x - deadzoneRight; game.x = deadzoneRight }
-  else if (game.x < deadzoneLeft && game.worldDistance > 0) { scrollDelta = Math.max(-game.worldDistance, game.x - deadzoneLeft); game.x -= scrollDelta }
+  const cameraEnabled = cameraScale > 0 && cameraRange > 0
+  const deadzoneRight = cameraEnabled ? Math.min(worldWidth - playerWidth - 24, Math.round(worldWidth * .58)) : worldWidth - playerWidth - 24
+  const deadzoneLeft = cameraEnabled ? 330 : 24
+  if (cameraEnabled && game.x > deadzoneRight) { scrollDelta = game.x - deadzoneRight; game.x = deadzoneRight }
+  else if (cameraEnabled && game.x < deadzoneLeft && game.worldDistance > 0) { scrollDelta = Math.max(-game.worldDistance, game.x - deadzoneLeft); game.x -= scrollDelta }
   game.x = Math.max(24, Math.min(worldWidth - playerWidth - 12, game.x))
 
   const nextDistance = Math.max(0, game.worldDistance + scrollDelta)
-  const cameraOffset = Math.min(cameraRange, nextDistance * cameraScale)
+  const cameraOffset = cameraEnabled ? Math.min(cameraRange, nextDistance * cameraScale) : 0
   if (game.onGround && game.groundPlatformId) {
     const standing = platformLayout.find((platform) => platform.id === game.groundPlatformId)
     const left = standing ? standing.x - cameraOffset : -Infinity

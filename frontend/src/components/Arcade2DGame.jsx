@@ -4,16 +4,16 @@ import { playArcadeCallout, playDamage, playExplosion, playNavigate, playReload 
 import { getArcadeMuted, playArcadeSfx, playHeroWeaponSfx, startArcadeMusic, stopArcadeMusic, subscribeArcadeMute, toggleArcadeMuted } from '../lib/arcadeAudio'
 import { random, randomChoice } from '../lib/random'
 import { GEM_CATEGORIES, HERO_SPRITES } from '../data/careers'
-import { prepareArcadeSprite, prepareArcadeSpriteStrip, recolorStudentHoodie } from '../lib/spriteProcessor'
+import { prepareArcadeSprite, prepareArcadeSpriteStrip } from '../lib/spriteProcessor'
 import { speakAsHero, speakAsMoros, speakAsNoni } from '../lib/voiceEngine'
-import { CAMPUS_PLATFORMS, createMetalSlugRig, PLAYER_STATE, stepMetalSlugRig } from '../lib/metalSlugRig'
+import { createMetalSlugRig, PLAYER_STATE, stepMetalSlugRig } from '../lib/metalSlugRig'
 
 const WIDTH = 960
 const HEIGHT = 540
-const BACKDROP_WIDTH = WIDTH * 2
 const FLOOR = 470
 const HERO_WIDTH = 72
-const HERO_HEIGHT = 124
+const HERO_HEIGHT = 142
+const BOSS_HEIGHT = Math.round(HERO_HEIGHT * 1.34)
 const MISSION_SECONDS = 40
 const WAVE_TWO_START = 10
 const BOSS_START = 20
@@ -60,6 +60,20 @@ function canvasOf(width, height, draw) {
   return canvas
 }
 
+function drawCover(context, image, width, height) {
+  const sourceWidth = image.naturalWidth || image.width
+  const sourceHeight = image.naturalHeight || image.height
+  const sourceAspect = sourceWidth / sourceHeight
+  const targetAspect = width / height
+  if (sourceAspect > targetAspect) {
+    const cropWidth = sourceHeight * targetAspect
+    context.drawImage(image, (sourceWidth - cropWidth) / 2, 0, cropWidth, sourceHeight, 0, 0, width, height)
+  } else {
+    const cropHeight = sourceWidth / targetAspect
+    context.drawImage(image, 0, (sourceHeight - cropHeight) / 2, sourceWidth, cropHeight, 0, 0, width, height)
+  }
+}
+
 function makeArt(hero = HERO) {
   const skies = [
     ['#63c7ff', '#b8edff', '#fbe4af', '#fff1a6'],
@@ -81,34 +95,45 @@ function makeArt(hero = HERO) {
     ctx.fillStyle = domain ? '#47202c' : '#d0c3a0'; for (let x = 20; x < WIDTH; x += 120) ctx.fillRect(x, FLOOR + 42, 57, 5)
   }))
 
-  const campusBackground = canvasOf(BACKDROP_WIDTH, HEIGHT, (ctx) => {
+  const campusBackground = canvasOf(WIDTH, HEIGHT, (ctx) => {
     const sky = ctx.createLinearGradient(0, 0, 0, HEIGHT)
     sky.addColorStop(0, '#342a52'); sky.addColorStop(.58, '#e77762'); sky.addColorStop(1, '#34202b')
-    ctx.fillStyle = sky; ctx.fillRect(0, 0, BACKDROP_WIDTH, HEIGHT)
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, WIDTH, HEIGHT)
   })
   const campusImage = new Image()
   campusImage.decoding = 'async'
   campusImage.onload = () => {
     const context = campusBackground.getContext('2d')
-    context.imageSmoothingEnabled = false
-    context.clearRect(0, 0, BACKDROP_WIDTH, HEIGHT)
-    context.drawImage(campusImage, 0, 0, BACKDROP_WIDTH, HEIGHT)
+    context.imageSmoothingEnabled = true
+    context.clearRect(0, 0, WIDTH, HEIGHT)
+    drawCover(context, campusImage, WIDTH, HEIGHT)
   }
   campusImage.src = '/assets/edunexa-campus-panorama.png'
-  const domainBackground = canvasOf(BACKDROP_WIDTH, HEIGHT, (ctx) => {
+  const domainBackground = canvasOf(WIDTH, HEIGHT, (ctx) => {
     const sky = ctx.createLinearGradient(0, 0, 0, HEIGHT)
     sky.addColorStop(0, '#100914'); sky.addColorStop(.7, '#30101e'); sky.addColorStop(1, '#1a1018')
-    ctx.fillStyle = sky; ctx.fillRect(0, 0, BACKDROP_WIDTH, HEIGHT)
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, WIDTH, HEIGHT)
   })
   const domainImage = new Image()
   domainImage.decoding = 'async'
   domainImage.onload = () => {
     const context = domainBackground.getContext('2d')
-    context.imageSmoothingEnabled = false
-    context.clearRect(0, 0, BACKDROP_WIDTH, HEIGHT)
-    context.drawImage(domainImage, 0, 0, BACKDROP_WIDTH, HEIGHT)
+    context.imageSmoothingEnabled = true
+    context.clearRect(0, 0, WIDTH, HEIGHT)
+    drawCover(context, domainImage, WIDTH, HEIGHT)
   }
   domainImage.src = '/assets/edunexa-campus-moros-panorama.png'
+  const campusNpcs = [
+    { role: 'studentJog', x: -105, start: 0, direction: 1, speed: 124, y: 405, height: 68, stepRate: 10.5, phase: 0, stripKey: 'npcBoy', src: '/assets/npc-estudiante-hombre.webp', strip: '/assets/npc-estudiante-hombre-run-strip.png' },
+    { role: 'studentBrisk', x: WIDTH + 105, start: .35, direction: -1, speed: 132, y: 405, height: 68, stepRate: 10, phase: 1.7, stripKey: 'npcGirl', src: '/assets/npc-estudiante-mujer.webp', strip: '/assets/npc-estudiante-mujer-run-strip.png' },
+    { role: 'teacherPatrol', x: -115, start: 1.2, direction: 1, speed: 148, y: 410, height: 73, stepRate: 6.2, phase: 2.8, stripKey: 'npcTeacher', src: '/assets/npc-maestro.webp', strip: '/assets/npc-maestro-run-strip.png' },
+  ].map((npc) => {
+    const image = new Image()
+    image.decoding = 'async'
+    image.src = npc.src
+    const character = { ...npc, image }
+    return character
+  })
 
   const far = canvasOf(1920, HEIGHT, (ctx) => {
     ctx.fillStyle = '#739d9b'; ctx.beginPath(); ctx.moveTo(0, 370); ctx.lineTo(170, 305); ctx.lineTo(315, 354); ctx.lineTo(460, 277); ctx.lineTo(640, 365); ctx.lineTo(770, 318); ctx.lineTo(980, 372); ctx.lineTo(1145, 300); ctx.lineTo(1300, 365); ctx.lineTo(1455, 288); ctx.lineTo(1620, 359); ctx.lineTo(1780, 320); ctx.lineTo(1920, 368); ctx.lineTo(1920, 470); ctx.lineTo(0, 470); ctx.closePath(); ctx.fill()
@@ -173,13 +198,6 @@ function makeArt(hero = HERO) {
     ctx.strokeStyle = 'rgba(189,45,64,.55)'; ctx.lineWidth = 2
     for (const x of [80, 228, 412, 585, 744, 908]) { ctx.beginPath(); ctx.moveTo(x, 475); ctx.lineTo(x - 16, 497); ctx.lineTo(x + 9, 514); ctx.lineTo(x - 2, 540); ctx.stroke() }
     ctx.fillStyle = '#45404a'; for (let x = 18; x < WIDTH; x += 74) { ctx.beginPath(); ctx.moveTo(x, 514); ctx.lineTo(x + 15, 508); ctx.lineTo(x + 26, 517); ctx.lineTo(x + 51, 521); ctx.lineTo(x + 56, 540); ctx.lineTo(x - 4, 540); ctx.fill() }
-  })
-
-  const platforms = canvasOf(1920, HEIGHT, (ctx) => {
-    for (const x of [245, 785, 1285, 1740]) {
-      ctx.fillStyle = '#776655'; ctx.fillRect(x, 400, 148, 12); ctx.fillStyle = '#c9a66a'; ctx.fillRect(x, 398, 148, 4)
-      ctx.fillStyle = '#9bd5cb'; ctx.fillRect(x + 16, 403, 25, 3); ctx.fillRect(x + 78, 403, 25, 3)
-    }
   })
 
   const makeHeroSheet = (pose) => {
@@ -261,12 +279,27 @@ function makeArt(hero = HERO) {
   })
   const colossusFlash = canvasOf(190, 220, () => {})
 
-  const orbs = Object.fromEntries(CATEGORIES.map((category) => [category, canvasOf(120, 60, (ctx) => {
+  const orbs = Object.fromEntries(CATEGORIES.map((category) => [category, canvasOf(144, 62, (ctx) => {
     const color = GEM_CATEGORIES[category].color
-    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(27, 27, 20, 0, Math.PI * 2); ctx.fill()
-    ctx.fillStyle = 'rgba(255,255,255,.62)'; ctx.beginPath(); ctx.arc(20, 19, 6, 0, Math.PI * 2); ctx.fill()
-    ctx.strokeStyle = 'rgba(26,42,56,.45)'; ctx.lineWidth = 2; ctx.stroke()
-    ctx.fillStyle = '#172331'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'left'; ctx.fillText(CATEGORY_SHORT[category], 53, 30, 64)
+    ctx.save(); ctx.translate(27, 29); ctx.shadowColor = color; ctx.shadowBlur = 13
+    ctx.fillStyle = '#101925'; ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.lineJoin = 'round'
+    ctx.beginPath()
+    if (category === 'tech') { ctx.moveTo(-17,-10); ctx.lineTo(-8,-18); ctx.lineTo(10,-18); ctx.lineTo(18,-8); ctx.lineTo(15,10); ctx.lineTo(4,18); ctx.lineTo(-12,14); ctx.lineTo(-19,2); ctx.closePath() }
+    else if (category === 'industry') { ctx.moveTo(-16,-12); ctx.lineTo(-7,-17); ctx.lineTo(0,-11); ctx.lineTo(8,-17); ctx.lineTo(17,-10); ctx.lineTo(13,-1); ctx.lineTo(18,8); ctx.lineTo(9,16); ctx.lineTo(0,11); ctx.lineTo(-9,17); ctx.lineTo(-17,9); ctx.lineTo(-12,0); ctx.closePath() }
+    else if (category === 'construction') { ctx.moveTo(0,-19); ctx.lineTo(19,14); ctx.lineTo(-18,14); ctx.closePath() }
+    else if (category === 'energy') { ctx.moveTo(4,-20); ctx.lineTo(-13,3); ctx.lineTo(-2,3); ctx.lineTo(-7,20); ctx.lineTo(14,-6); ctx.lineTo(3,-6); ctx.closePath() }
+    else if (category === 'business') { ctx.moveTo(-18,-12); ctx.lineTo(4,-12); ctx.lineTo(12,-4); ctx.lineTo(-10,-4); ctx.closePath(); ctx.moveTo(-7,4); ctx.lineTo(13,4); ctx.lineTo(19,12); ctx.lineTo(-1,12); ctx.closePath() }
+    else { ctx.moveTo(-17,4); ctx.quadraticCurveTo(-6,-20,17,-16); ctx.quadraticCurveTo(15,9,-8,17); ctx.closePath(); ctx.moveTo(-12,12); ctx.quadraticCurveTo(-2,-2,12,-12) }
+    ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0
+    ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.5
+    if (category === 'tech') { ctx.beginPath(); ctx.moveTo(-7,-5); ctx.lineTo(7,-5); ctx.moveTo(-7,2); ctx.lineTo(3,2); ctx.stroke(); ctx.fillStyle = '#fff'; ctx.fillRect(4,6,3,3) }
+    else if (category === 'industry') { ctx.fillStyle = color; ctx.fillRect(-3,-3,6,6); ctx.strokeRect(-10,-10,20,20) }
+    else if (category === 'construction') { ctx.beginPath(); ctx.moveTo(-10,8); ctx.lineTo(10,8); ctx.moveTo(-6,1); ctx.lineTo(6,1); ctx.stroke() }
+    else if (category === 'energy') { ctx.beginPath(); ctx.moveTo(4,-13); ctx.lineTo(-4,0); ctx.lineTo(2,0); ctx.lineTo(-3,12); ctx.stroke() }
+    else if (category === 'business') { ctx.beginPath(); ctx.moveTo(-12,0); ctx.lineTo(10,0); ctx.moveTo(4,-6); ctx.lineTo(11,0); ctx.lineTo(4,6); ctx.stroke() }
+    else { ctx.beginPath(); ctx.moveTo(-11,12); ctx.quadraticCurveTo(-2,0,10,-11); ctx.stroke() }
+    ctx.restore()
+    ctx.fillStyle = '#eef7fb'; ctx.font = '900 8px system-ui'; ctx.textAlign = 'left'; ctx.fillText(CATEGORY_SHORT[category], 53, 32, 88)
   })]))
 
   prepareArcadeSprite('/assets/moros-idle.png').then((sprite) => {
@@ -289,18 +322,13 @@ function makeArt(hero = HERO) {
   loadIntoCanvas('/assets/enemigo-soldado', shadowCore)
   loadIntoCanvas('/assets/enemigo-dron', drone)
   loadIntoCanvas('/assets/enemigo-coloso', colossus, colossusFlash)
-  const enemyRunStrip = { soldier: null, drone: null, colossus: null, moros: null, evacuee: null, evacueeBlue: null, evacueeGold: null, evacueeCoral: null, evacueeAlt: null }
+  const enemyRunStrip = { soldier: null, drone: null, colossus: null, moros: null, npcBoy: null, npcGirl: null, npcTeacher: null }
   prepareArcadeSpriteStrip('/assets/enemigo-soldado-run-strip.png', 8).then((strip) => { enemyRunStrip.soldier = strip }).catch(() => {})
   prepareArcadeSpriteStrip('/assets/enemigo-dron-hover-strip.png', 8).then((strip) => { enemyRunStrip.drone = strip }).catch(() => {})
   prepareArcadeSpriteStrip('/assets/enemigo-coloso-walk-strip.png', 8).then((strip) => { enemyRunStrip.colossus = strip }).catch(() => {})
-  prepareArcadeSpriteStrip('/assets/estudiante-evacuacion-run-strip.png', 8).then((strip) => {
-    enemyRunStrip.evacuee = strip
-    enemyRunStrip.evacueeBlue = recolorStudentHoodie(strip, 214)
-    enemyRunStrip.evacueeGold = recolorStudentHoodie(strip, 42)
-    enemyRunStrip.evacueeCoral = recolorStudentHoodie(strip, 350)
-  }).catch(() => {})
-  prepareArcadeSpriteStrip('/assets/estudiante-lab-evacuacion-run-strip.png', 8).then((strip) => { enemyRunStrip.evacueeAlt = strip }).catch(() => {})
-  return { skies, campusBackground, domainBackground, far, mid, near, platforms, domain, heroFrames, shadowCore, drone, boss, bossHitFlash, colossus, colossusFlash, orbs, enemyRunStrip }
+  prepareArcadeSpriteStrip('/assets/moros-ataque-strip.png', 8).then((strip) => { enemyRunStrip.moros = strip }).catch(() => {})
+  campusNpcs.forEach((npc) => prepareArcadeSpriteStrip(npc.strip, 8).then((strip) => { enemyRunStrip[npc.stripKey] = strip }).catch(() => {}))
+  return { skies, campusBackground, domainBackground, far, mid, near, domain, heroFrames, shadowCore, drone, boss, bossHitFlash, colossus, colossusFlash, orbs, enemyRunStrip, campusNpcs }
 }
 
 function drawWorldMotion(ctx, now, worldDistance, wave) {
@@ -338,48 +366,11 @@ function drawWorldMotion(ctx, now, worldDistance, wave) {
   ctx.globalAlpha = 1
 }
 
-function drawCampusPlatforms(ctx, cameraOffset) {
-  for (const platform of CAMPUS_PLATFORMS) {
-    const x = Math.round(platform.x - cameraOffset)
-    const { y, width, height } = platform
-    if (x > WIDTH + 10 || x + width < -10) continue
-    ctx.save()
-    ctx.shadowColor = 'rgba(5,12,22,.7)'; ctx.shadowBlur = 10
-    ctx.fillStyle = '#26343a'
-    ctx.beginPath(); ctx.moveTo(x + 7, y + 7); ctx.lineTo(x + width - 8, y + 7); ctx.lineTo(x + width, y + height - 3); ctx.lineTo(x + width - 5, y + height); ctx.lineTo(x + 6, y + height); ctx.lineTo(x, y + height - 5); ctx.closePath(); ctx.fill()
-    ctx.shadowBlur = 0
-    ctx.fillStyle = '#786a50'
-    for (let stone = 0; stone < 5; stone += 1) {
-      const stoneX = x + 6 + stone * (width - 18) / 5
-      const stoneY = y + 10 + (stone % 2) * 7
-      ctx.beginPath(); ctx.moveTo(stoneX, stoneY); ctx.lineTo(stoneX + 23, stoneY - 1); ctx.lineTo(stoneX + 20, stoneY + 8); ctx.lineTo(stoneX - 2, stoneY + 9); ctx.closePath(); ctx.fill()
-      ctx.fillStyle = stone % 2 ? '#a08a62' : '#647260'
-      ctx.fillRect(Math.round(stoneX + 4), Math.round(stoneY + 2), 7, 2)
-      ctx.fillStyle = '#786a50'
-    }
-    ctx.fillStyle = '#d5c28f'
-    ctx.beginPath(); ctx.moveTo(x - 2, y + 5); ctx.lineTo(x + 7, y); ctx.lineTo(x + width - 7, y); ctx.lineTo(x + width + 2, y + 5); ctx.lineTo(x + width - 4, y + 9); ctx.lineTo(x + 3, y + 9); ctx.closePath(); ctx.fill()
-    ctx.fillStyle = '#6e9472'; ctx.fillRect(x + 13, y - 2, 13, 2); ctx.fillRect(x + width - 33, y - 2, 18, 2)
-    if (platform.style === 'campus') {
-      ctx.fillStyle = '#1a252d'; ctx.fillRect(x + 40, y + 13, 48, 9); ctx.fillRect(x + width - 61, y + 13, 29, 9)
-      ctx.fillStyle = '#59d6c0'; ctx.fillRect(x + 44, y + 16, 14, 2); ctx.fillRect(x + width - 56, y + 16, 12, 2)
-      ctx.fillStyle = '#d4ad67'; ctx.fillRect(x + 5, y + 3, 3, 5); ctx.fillRect(x + width - 8, y + 3, 3, 5)
-    } else {
-      for (let leaf = 0; leaf < 6; leaf += 1) {
-        const leafX = x + 29 + leaf * 20
-        ctx.fillStyle = leaf % 2 ? '#598f5d' : '#82a96b'
-        ctx.fillRect(leafX, y - 9 - (leaf % 3) * 2, 4, 9 + (leaf % 3) * 2)
-        ctx.fillRect(leafX - 3, y - 7 - (leaf % 3) * 2, 4, 3)
-      }
-    }
-    ctx.restore()
-  }
-}
-
 function drawHeroProjectile(ctx, bullet, now) {
   const x = bullet.x; const y = bullet.y; const pulse = Math.sin(now * .026 + x * .07)
   const color = bullet.color
   ctx.save()
+  if (bullet.direction < 0) { ctx.translate(x * 2, 0); ctx.scale(-1, 1) }
   ctx.globalCompositeOperation = 'lighter'
   ctx.lineCap = 'round'; ctx.lineJoin = 'round'
   const trail = ctx.createLinearGradient(x - 36, y, x + 3, y)
@@ -418,8 +409,14 @@ function drawEnemyProjectile(ctx, bullet, now) {
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineJoin = 'round'
   ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = ownerType === 'boss' ? 18 : 12
   ctx.lineWidth = ownerType === 'boss' ? 4 : 3
-  ctx.beginPath(); ctx.moveTo(x + radius * .3, y); ctx.lineTo(x + radius * 3.6, y + Math.sin(now * .02 + x) * 2); ctx.stroke()
-  if (ownerType === 'boss') {
+  if (ownerType !== 'bossRain') {
+    ctx.beginPath(); ctx.moveTo(x + radius * .3, y); ctx.lineTo(x + radius * 3.6, y + Math.sin(now * .02 + x) * 2); ctx.stroke()
+  }
+    if (ownerType === 'bossRain') {
+    ctx.translate(x, y); ctx.fillStyle = '#ff344f'; ctx.strokeStyle = '#fff1b0'; ctx.lineWidth = 2
+    ctx.shadowBlur = 24; ctx.beginPath(); ctx.ellipse(0, 0, radius * .72, radius * 1.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke()
+    ctx.strokeStyle = '#ff6071'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(0, -radius * 2.5); ctx.lineTo(0, -radius * .6); ctx.stroke()
+    } else if (ownerType === 'boss') {
     ctx.translate(x, y); ctx.rotate(Math.PI + (bullet.angle || 0))
     ctx.fillStyle = color; ctx.strokeStyle = '#ffd89b'; ctx.lineWidth = 2
     ctx.beginPath(); ctx.moveTo(radius * 1.15, 0); ctx.lineTo(radius * .35, -radius * .38); ctx.lineTo(-radius * .72, -radius * .78); ctx.lineTo(-radius * .3, -radius * .08); ctx.lineTo(-radius * .88, radius * .58); ctx.lineTo(radius * .18, radius * .36); ctx.closePath(); ctx.fill(); ctx.stroke()
@@ -440,37 +437,25 @@ function drawEnemyProjectile(ctx, bullet, now) {
   ctx.restore()
 }
 
-function createEvacuees(now, count = 5) {
-  return Array.from({ length: count }, (_, index) => ({
-    id: `${Math.round(now)}-${index}`,
-    x: WIDTH + 25 + index * 210,
-    y: FLOOR - 2,
-    height: 82 + (index % 3) * 7,
-    speed: 165 + (index % 3) * 22,
-    phase: index * 1.35,
-    variant: index % 2 ? 'evacueeAlt' : ['evacuee', 'evacueeBlue', 'evacueeGold', 'evacueeCoral'][Math.floor(index / 2) % 4],
-  }))
-}
-
 function initialGame() {
   return {
-    started: false, done: false, paused: false, pauseStartedAt: 0, pauseWallAt: 0, timeOffset: 0, startTime: 0, missionEndAt: 0, lastCountdownSecond: null, finalCountdownStarted: false, lastTime: 0, worldDistance: 0, evacuees: [], score: 0, xp: 0, freedom: 0, lives: 5,
+    started: false, done: false, missionFinishPending: false, countdownZeroUntil: 0, paused: false, pauseStartedAt: 0, pauseWallAt: 0, timeOffset: 0, startTime: 0, missionEndAt: 0, lastCountdownSecond: null, finalCountdownStarted: false, lastTime: 0, worldDistance: 0, score: 0, xp: 0, freedom: 0, lives: 5,
     rig: createMetalSlugRig(),
     shots: 0, hits: 0, ammo: MAGAZINE_SIZE, x: 220, playerWidth: HERO_WIDTH, playerHeight: HERO_HEIGHT, worldWidth: WIDTH, y: FLOOR - HERO_HEIGHT, vy: 0, onGround: true,
     invulnerableUntil: 0, flashUntil: 0, nextShotAt: 0, muzzleFlashUntil: 0, recoilOffset: 0, nextId: 1, spawnTimer: 0,
     targets: new Map(), liveIds: new Set(), bullets: [], enemyBullets: [], shells: [], dust: [], particles: [], explosions: [], shockwaves: [], lastDustAt: 0, gemCounts: Object.fromEntries(CATEGORIES.map((key) => [key, 0])),
     passionHits: 0, streak: 0, lowLivesNotified: false, lastReloadLine: -Infinity,
-    input: { left: false, right: false, fire: false, jump: false }, keyInput: { left: false, right: false, fire: false, jump: false }, touchInput: { left: false, right: false, fire: false, jump: false }, gamepadInput: { left: false, right: false, fire: false, jump: false },
-    wave: 1, banner: null, boss: null, bossSpawned: false, colossusSpawned: false, bossDefeatPending: false, lastBossLineAt: -Infinity, bossNextAttackAt: 0,
+    input: { left: false, right: false, fire: false, jump: false }, keyInput: { left: false, right: false, fire: false, jump: false }, touchInput: { left: false, right: false, fire: false, jump: false }, gamepadInput: { left: false, right: false, fire: false, jump: false }, facing: 1,
+    wave: 1, waveTransitionAt: 0, banner: null, boss: null, bossSpawned: false, colossusSpawned: false, bossDefeatPending: false, lastBossLineAt: -Infinity, bossNextAttackAt: 0,
     morosLine: '', morosLineUntil: 0, lastMorosTauntAt: -Infinity, deathAt: 0,
     shakeUntil: 0, shakeDuration: 0, shakeMagnitude: 0,
     noniLine: 'NONI: Lista para acompañarte. Presiona JUGAR cuando quieras iniciar.',
   }
 }
 
-function randomPassion(hero) {
-  const alternatives = CATEGORIES.filter((category) => category !== hero)
-  return random() < .56 ? hero : randomChoice(alternatives)
+function randomPassion() {
+  // Keep career signals neutral: the selected hero must not rig what appears.
+  return randomChoice(CATEGORIES)
 }
 
 export default function Arcade2DGame({ hero = HERO, profile = null, onGameComplete = null, onExit = null }) {
@@ -531,15 +516,18 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
   const finishGame = useCallback(() => {
     const game = gameRef.current
     if (game.done) return
+    // Defeating MOROS completes the mission even if the last hit also used the
+    // player's final life. The outcome must follow the objective, not lives alone.
+    const missionWon = Boolean(game.bossDefeatPending)
     game.done = true
     window.clearTimeout(startNoniTimerRef.current)
     game.input.left = false; game.input.right = false; game.input.fire = false
-    if (game.lives === 0) { const line = 'Sigue estudiando. La partida termina aquí, pero tu historia y tus resultados siguen contigo.'; say('gameComplete', line); speakAsNoni(line) }
-    else { say('gameComplete'); speakAsNoni('¡Lo lograste! Ya puedes revisar todo lo que descubriste de ti.') }
+    if (missionWon) { say('gameComplete'); speakAsNoni('¡Lo lograste! Ya puedes revisar todo lo que descubriste de ti.') }
+    else { const line = game.lives === 0 ? 'Sigue estudiando. Una caída no borra lo que descubriste; puedes intentarlo de nuevo.' : 'El tiempo terminó. Tu brújula vocacional sigue lista para ayudarte a elegir tu camino.'; say('gameComplete', line); speakAsNoni(line) }
     stopArcadeMusic()
     const categoryHits = Object.fromEntries(CATEGORIES.map((category) => [category, Math.max(0, Number(game.gemCounts[category]) || 0)]))
-    const stats = { gemCounts: categoryHits, totalXp: Math.max(0, game.xp), score: Math.max(0, game.score), freedom: Math.max(0, game.freedom), livesRemaining: Math.max(0, game.lives), categoryHits, hero: hero?.id || 'tech', accuracy: game.shots > 0 ? Math.max(0, Math.min(1, game.hits / game.shots)) : 0 }
-    if (game.lives === 0) { pendingGameStatsRef.current = stats; setShowGameOver(true) }
+    const stats = { won: missionWon, gemCounts: categoryHits, totalXp: Math.max(0, game.xp), score: Math.max(0, game.score), freedom: Math.max(0, game.freedom), livesRemaining: Math.max(0, game.lives), categoryHits, hero: hero?.id || 'tech', accuracy: game.shots > 0 ? Math.max(0, Math.min(1, game.hits / game.shots)) : 0 }
+    if (!missionWon) { pendingGameStatsRef.current = stats; setShowGameOver(true) }
     else callbackRef.current.onGameComplete?.(stats)
   }, [hero, say])
 
@@ -555,7 +543,6 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
     game.timeOffset = 0
     game.paused = false
     game.missionEndAt = game.startTime + MISSION_SECONDS * 1000
-    game.evacuees = createEvacuees(game.startTime)
     game.lastTime = game.startTime
     game.wave = 1
     game.banner = { title: 'MISIÓN 1 · ¡EMPEZAMOS!', subtitle: 'AÑO 2026 · IZTAPALAPA', color: '#ffdf62', until: game.startTime + 2600 }
@@ -596,17 +583,24 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
         for (const target of [...game.targets.values()]) if (target.type !== 'boss') removeTarget(target)
         game.enemyBullets.length = 0
         const bossName = BOSSES[hero?.id] || BOSSES.tech
-        const bossHeight = 380
-        game.boss = { id: game.nextId++, type: 'boss', x: 860, y: FLOOR - bossHeight, baseY: FLOOR - bossHeight, w: 300, h: bossHeight, speed: 76, hp: 15, maxHp: 15, nextHitAt: 0, name: bossName, retreatUntil: 0, nextDashAt: now + 3000, dashUntil: 0, nextJumpAt: now + 2600, jumpStartedAt: 0, jumpUntil: 0, nextTeleportAt: now + 7200, flashUntil: 0, shootUntil: 0, attackStartedAt: 0, volleyFired: true }
+        const bossHeight = BOSS_HEIGHT
+        const bossWidth = bossHeight * (art.boss.width / Math.max(1, art.boss.height))
+        // MOROS enters already readable inside the camera; the portal and banner
+        // sell the arrival without making the player wait for a sprite off-screen.
+        game.boss = { id: game.nextId++, type: 'boss', x: WIDTH - bossWidth - 28, y: FLOOR - bossHeight, baseY: FLOOR - bossHeight, w: bossWidth, h: bossHeight, speed: 18, hp: 15, maxHp: 15, nextHitAt: 0, name: bossName, retreatUntil: 0, entryUntil: now + 1250, nextDashAt: now + 5200, dashUntil: 0, nextJumpAt: now + 4100, jumpStartedAt: 0, jumpUntil: 0, nextTeleportAt: now + 9800, flashUntil: 0, shootUntil: 0, attackStartedAt: 0, attackPattern: 0, attackPatternIndex: 0, volleyFired: true }
+        game.bossNextAttackAt = now + 3600
         game.targets.set(game.boss.id, game.boss)
         game.liveIds.add(game.boss.id)
         game.bossSpawned = true
         game.lastBossLineAt = now
+        game.banner = { title: 'MOROS ROMPE EL DOMINIO', subtitle: 'JEFE FINAL · PREPÁRATE PARA ESQUIVAR', color: '#ff5267', until: now + 2300 }
+        game.flashUntil = now + 180
+        game.shakeUntil = now + 420; game.shakeDuration = 420; game.shakeMagnitude = 8
         say('bossAppear')
         giveMorosLine(game, 'appear', now, true)
       }
       if (elapsed >= COLOSSUS_START && elapsed < BOSS_START && !game.colossusSpawned && game.liveIds.size < 4) {
-        const colossusHeight = 284
+        const colossusHeight = HERO_HEIGHT
         const colossus = { id: game.nextId++, type: 'colossus', x: 900, y: FLOOR - colossusHeight, h: colossusHeight, w: colossusHeight * art.colossus.width / Math.max(1, art.colossus.height), speed: 26, hp: 12, maxHp: 12, nextHitAt: 0, nextShotAt: now + 1800, phase: 0 }
         game.targets.set(colossus.id, colossus); game.liveIds.add(colossus.id); game.colossusSpawned = true
       }
@@ -619,11 +613,11 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       const isDrone = !isShadow && random() < .24
       const droneY = FLOOR - 175 - random() * 65
       const target = isShadow
-        ? { id, type: 'shadow', x: 970, y: FLOOR - 126, h: 126, w: 126 * art.shadowCore.width / Math.max(1, art.shadowCore.height), speed: 42 + random() * 18, phase: random() * Math.PI * 2, nextShotAt: 0 }
+        ? { id, type: 'shadow', x: 970, y: FLOOR - HERO_HEIGHT, h: HERO_HEIGHT, w: HERO_HEIGHT * art.shadowCore.width / Math.max(1, art.shadowCore.height), speed: 42 + random() * 18, phase: random() * Math.PI * 2, nextShotAt: 0 }
         : isDrone
-        ? { id, type: 'drone', x: 970, y: droneY, baseY: droneY, h: 78, w: 78 * art.drone.width / Math.max(1, art.drone.height), speed: 76 + random() * 22, phase: random() * Math.PI * 2 }
+        ? { id, type: 'drone', x: 970, y: droneY, baseY: droneY, h: HERO_HEIGHT, w: HERO_HEIGHT * art.drone.width / Math.max(1, art.drone.height), speed: 76 + random() * 22, phase: random() * Math.PI * 2 }
         : (() => {
-            const category = randomPassion(hero?.id || 'tech')
+            const category = randomPassion()
             const heights = [430, 330, 380]
             const y = heights[Math.floor(random() * heights.length)]
             return { id, type: 'passion', category, label: randomChoice(PASSIONS[category]), x: 970, y, baseY: y, phase: random() * Math.PI * 2, w: 120, h: 60, speed: 22 }
@@ -658,8 +652,8 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       if (target.type === 'colossus') {
         if (now < target.nextHitAt) return
         target.hp -= 1; target.nextHitAt = now + 160; game.score += 80
-        target.x += 4; game.explosions.push({ x: target.x + target.w / 2, y: target.y + 102, start: now, duration: 280, color: '#ff5269' })
-        spawnPixelBurst(target.x + target.w / 2, target.y + 100, '#ff5269', now, 6)
+        target.x += 4; game.explosions.push({ x: target.x + target.w / 2, y: target.y + target.h * .52, start: now, duration: 280, color: '#ff5269' })
+        spawnPixelBurst(target.x + target.w / 2, target.y + target.h * .5, '#ff5269', now, 6)
         if (target.hp <= 0) { removeTarget(target); game.shockwaves.push({ x: target.x + target.w / 2, y: FLOOR - 13, radius: 18, vx: -250, end: now + 1200, color: '#ff794f' }); playExplosion() }
         else playArcadeSfx('bossHit')
         return
@@ -676,13 +670,13 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
         game.shakeDuration = 90
         game.shakeMagnitude = 3
         playArcadeSfx('bossHit')
-        spawnPixelBurst(target.x + target.w / 2, target.y + 150, '#ff7894', now, 8)
-        game.explosions.push({ x: target.x + target.w / 2, y: target.y + 150, start: now, duration: 400, color: '#ff405c' })
+        spawnPixelBurst(target.x + target.w / 2, target.y + target.h * .52, '#ff7894', now, 8)
+        game.explosions.push({ x: target.x + target.w / 2, y: target.y + target.h * .52, start: now, duration: 400, color: '#ff405c' })
         if (target.hp === 0) {
           game.bossDefeatPending = true
           game.input.fire = false
-          game.missionEndAt = Math.max(game.missionEndAt, now + 8000)
-          game.banner = { title: '¡MOROS DERROTADO!', subtitle: 'EVACÚA EL CAMPUS · LA BRECHA SE CIERRA', color: '#69f5d8', until: now + 3600 }
+          playExplosion()
+          game.banner = { title: '¡MOROS DERROTADO!', subtitle: 'EL DOMINIO SE DISUELVE', color: '#69f5d8', until: now + 3600 }
           say('bossDefeated')
           giveMorosLine(game, 'defeated', now, true)
         } else if (target.hp > 1 && now - game.lastBossLineAt >= 2000) {
@@ -729,7 +723,7 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       if (target.type === 'boss') {
         target.x = WIDTH + 100
         target.speed = 0
-        target.retreatUntil = now + 2000
+        target.retreatUntil = now + 650
       } else {
         target.x = game.x + 18
         target.speed = 0
@@ -745,6 +739,18 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       for (const action of ['left', 'right', 'fire', 'jump']) game.input[action] = Boolean(game.keyInput[action] || game.touchInput[action] || game.gamepadInput[action])
     }
     const simulationNow = () => performance.now() - game.timeOffset
+    const triggerDash = () => {
+      const now = simulationNow()
+      const rig = game.rig
+      if (game.done || game.paused || now < rig.dashCooldownUntil) return
+      const axis = Number(game.input.right) - Number(game.input.left)
+      rig.dashDirection = axis || game.facing || 1
+      rig.dashUntil = now + 190
+      rig.dashCooldownUntil = now + 900
+      game.invulnerableUntil = Math.max(game.invulnerableUntil, now + 220)
+      game.dashFlashUntil = now + 230
+      playArcadeSfx('dash')
+    }
     const togglePause = (wallNow = performance.now()) => {
       if (game.done) return
       if (!game.paused) {
@@ -774,10 +780,13 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       const pressed = (index) => Boolean(buttons[index]?.pressed || (buttons[index]?.value || 0) > .5)
       const axis = Number(gamepad.axes?.[0]) || 0
       const wasJumping = game.gamepadInput.jump
+      const wasDashing = game.gamepadInput.dash
       game.gamepadInput.left = axis < -.28 || pressed(14)
       game.gamepadInput.right = axis > .28 || pressed(15)
       game.gamepadInput.jump = pressed(0)
       game.gamepadInput.fire = pressed(2) || pressed(7)
+      game.gamepadInput.dash = pressed(1)
+      if (game.gamepadInput.dash && !wasDashing) triggerDash()
       if (game.gamepadInput.jump && !wasJumping && !game.done && !game.paused) {
         game.rig.jumpQueued = true; game.rig.jumpQueuedAt = wallNow - game.timeOffset; playArcadeSfx('jump')
       }
@@ -791,10 +800,11 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
     }
     const keyDown = (event) => {
       const key = event.key.toLowerCase()
-      if (['arrowleft', 'arrowright', 'arrowup', ' ', 'a', 'd', 'w', 'r', 'escape'].includes(key)) event.preventDefault()
+      if (['arrowleft', 'arrowright', 'arrowup', ' ', 'a', 'd', 'w', 'r', 'escape', 'shift'].includes(key)) event.preventDefault()
       if (key === 'arrowleft' || key === 'a') game.keyInput.left = true
       if (key === 'arrowright' || key === 'd') game.keyInput.right = true
       if (key === ' ') game.keyInput.fire = true
+      if (key === 'shift' && !event.repeat) triggerDash()
       if ((key === 'arrowup' || key === 'w') && !game.done && !game.input.jump) { game.keyInput.jump = true; game.rig.jumpQueued = true; game.rig.jumpQueuedAt = simulationNow(); playArcadeSfx('jump') }
       if (key === 'escape') togglePause()
       syncInput()
@@ -811,6 +821,7 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
     const control = (event) => {
       const { action, phase } = typeof event.detail === 'string' ? { action: event.detail, phase: 'tap' } : event.detail
       if (action === 'reload' && phase !== 'up') { reload(simulationNow()); return }
+      if (action === 'dash' && phase !== 'up') { triggerDash(); return }
       if (action === 'up') {
         const wasJumping = game.input.jump
         game.touchInput.jump = phase !== 'up'
@@ -842,30 +853,37 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       if (stopped) return
       updateGamepad(wallNow)
       const now = game.paused ? game.pauseStartedAt : wallNow - game.timeOffset
-      const dt = Math.min(.04, Math.max(0, (now - game.lastTime) / 1000))
+      // Let motion catch up on slower laptops while bounding large tab-switch stalls.
+      const dt = Math.min(.065, Math.max(0, (now - game.lastTime) / 1000))
+      const elapsedTime = game.startTime ? (now - game.startTime) / 1000 : 0
       game.lastTime = now
       ctx.imageSmoothingEnabled = false
-      if (!game.done && !game.paused) {
+      if (game.missionFinishPending && !game.done && !game.paused && now >= game.countdownZeroUntil) finishGame()
+      if (!game.done && !game.paused && !game.missionFinishPending) {
         const elapsed = (now - game.startTime) / 1000
           const wave = elapsed < WAVE_TWO_START ? 1 : elapsed < BOSS_START ? 2 : 3
         if (wave !== game.wave) {
           game.wave = wave
-          if (wave === 2) { startArcadeMusic('battle'); game.banner = { title: 'RUPTURA DIMENSIONAL', subtitle: 'EL DOMINIO DE MOROS · RESISTE', color: '#ff405c', until: now + 2500 }; game.flashUntil = now + 180; game.shakeUntil = now + 650; game.shakeDuration = 650; game.shakeMagnitude = 9; playNavigate(); say('wave2') }
+          if (wave === 2) { game.waveTransitionAt = now; startArcadeMusic('battle'); game.banner = { title: 'RUPTURA DIMENSIONAL', subtitle: 'EL DOMINIO DE MOROS · RESISTE', color: '#ff405c', until: now + 2500 }; game.flashUntil = now + 180; game.shakeUntil = now + 650; game.shakeDuration = 650; game.shakeMagnitude = 9; playNavigate(); say('wave2') }
           if (wave === 3) { startArcadeMusic('boss'); game.banner = { title: 'OLA 3 · JEFE FINAL', subtitle: BOSSES[hero?.id] || BOSSES.tech, color: '#ff668a', until: now + 2600 }; playNavigate(); say('wave3') }
         }
-        if (now >= game.missionEndAt) finishGame()
-        if (!game.done) {
-          const rigFrame = stepMetalSlugRig(game, dt, now, CAMPUS_PLATFORMS, .18, BACKDROP_WIDTH - WIDTH)
+        if (now >= game.missionEndAt && !game.missionFinishPending) {
+          game.missionFinishPending = true
+          game.countdownZeroUntil = now + 850
+          game.input.left = false; game.input.right = false; game.input.fire = false; game.input.jump = false
+          game.banner = { title: game.bossDefeatPending ? '¡MISIÓN COMPLETADA!' : '¡FIN DEL TIEMPO!', subtitle: game.bossDefeatPending ? 'CAMPUS ESTABILIZADO · BUEN TRABAJO' : 'ELIGE TU CAMINO Y VUELVE A INTENTARLO', color: '#ffe16a', until: now + 850 }
+        }
+        if (!game.done && !game.missionFinishPending) {
+          const rigFrame = stepMetalSlugRig(game, dt, now, [], 0, 0)
           if (rigFrame.scrollDelta) {
             game.worldDistance = Math.max(0, game.worldDistance + rigFrame.scrollDelta)
             for (const target of game.targets.values()) target.x -= rigFrame.scrollDelta
-            for (const list of [game.evacuees, game.bullets, game.enemyBullets, game.shells, game.dust, game.particles, game.explosions, game.shockwaves]) for (const item of list) item.x -= rigFrame.scrollDelta
+            for (const list of [game.bullets, game.enemyBullets, game.shells, game.dust, game.particles, game.explosions, game.shockwaves]) for (const item of list) item.x -= rigFrame.scrollDelta
           }
           const secondsLeft = Math.ceil((game.missionEndAt - now) / 1000)
           if (secondsLeft <= 10 && secondsLeft > 0) {
             if (!game.finalCountdownStarted) {
               game.finalCountdownStarted = true
-              game.evacuees.push(...createEvacuees(now, 3))
               game.banner = { title: game.bossDefeatPending ? '¡EXTRACCIÓN INMINENTE!' : '¡COLAPSO INMINENTE!', subtitle: 'ABANDONA EL CAMPUS · 10 SEGUNDOS', color: '#ff5a66', until: now + 2500 }
             }
             if (game.lastCountdownSecond !== secondsLeft) {
@@ -874,8 +892,6 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
               if (secondsLeft <= 3) { game.shakeUntil = now + 120; game.shakeDuration = 120; game.shakeMagnitude = 3 }
             }
           }
-          for (const civilian of game.evacuees) civilian.x -= civilian.speed * dt
-          game.evacuees = game.evacuees.filter((civilian) => civilian.x > -170)
           if (game.input.fire && now >= game.nextShotAt) {
             if (game.ammo === 0) reload(now)
             else {
@@ -886,23 +902,41 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
               game.rig.shotRecoil = 6
               game.muzzleFlashUntil = now + 72
               game.shells.push({ x: game.x + game.playerWidth * .72, y: game.y + HERO_HEIGHT * .5, vx: -75 - random() * 55, vy: -155 - random() * 45, rotation: 0, spin: 8 + random() * 8, bounces: 0 })
-              game.bullets.push({ x: game.x + game.playerWidth * .86, y: game.y + HERO_HEIGHT * .5, vx: 850, color: hero?.color || '#55e8ff', family: hero?.id || 'tech' })
+              const direction = game.facing || 1
+              game.bullets.push({ x: game.x + game.playerWidth * (direction > 0 ? .86 : .14), y: game.y + HERO_HEIGHT * .5, vx: 850 * direction, direction, color: hero?.color || '#55e8ff', family: hero?.id || 'tech' })
               playHeroWeaponSfx(hero?.id || 'tech')
             }
           }
           for (const bullet of game.bullets) bullet.x += bullet.vx * dt
-          game.bullets = game.bullets.filter((bullet) => bullet.x < WIDTH)
+          game.bullets = game.bullets.filter((bullet) => bullet.x > -60 && bullet.x < WIDTH + 60)
           if (game.boss && game.boss.hp > 0 && !(game.boss.retreatUntil && now < game.boss.retreatUntil) && now >= game.bossNextAttackAt && game.boss.shootUntil <= now) {
             game.boss.attackStartedAt = now
             game.boss.volleyFired = false
+            game.boss.attackPattern = game.boss.attackPatternIndex % 3
+            game.boss.attackPatternIndex += 1
             game.boss.shootUntil = now + 1120
             game.bossNextAttackAt = now + (game.boss.hp <= 2 ? 1850 : 2800)
+            playArcadeSfx('bossAttack')
+            const warnings = [
+              ['MOROS CARGA SU RAYO', 'SALTA O ESQUIVA EL ABANICO'],
+              ['MOROS GOLPEA EL SUELO', 'MANTENTE EN EL AIRE'],
+              ['EL CIELO SE QUIEBRA', 'SAL DE LAS MARCAS ROJAS'],
+            ][game.boss.attackPattern]
+            game.banner = { title: warnings[0], subtitle: warnings[1], color: '#ff5368', until: now + 1450 }
             giveMorosLine(game, 'attack', now)
           }
           if (game.boss && game.boss.hp > 0 && game.boss.shootUntil > now && !game.boss.volleyFired && now - game.boss.attackStartedAt >= 610) {
             game.boss.volleyFired = true
-            const spread = [-52, -14, 24]
-            spread.forEach((offset, index) => game.enemyBullets.push({ x: game.boss.x + 24, y: game.boss.y + 212 + offset, vx: -290 - index * 22, vy: index === 1 ? (game.y > game.boss.y + 180 ? 12 : -26) : (index - 1) * 36, radius: index === 1 ? 15 : 13, angle: (index - 1) * .18, color: index === 1 ? '#ff344f' : '#d28a44', ownerType: 'boss' }))
+            const pattern = game.boss.attackPattern
+            if (pattern === 0) {
+              ;[-18, 0, 18].forEach((offset, index) => game.enemyBullets.push({ x: game.boss.x + game.boss.w * .18, y: game.boss.y + game.boss.h * .58 + offset, vx: -300 - index * 18, vy: (index - 1) * 58, radius: index === 1 ? 15 : 12, angle: (index - 1) * .24, color: index === 1 ? '#ff344f' : '#d28a44', ownerType: 'boss' }))
+            } else if (pattern === 1) {
+              game.shockwaves.push({ x: game.boss.x + game.boss.w * .12, y: FLOOR - 11, vx: -310, radius: 25, end: now + 2450, color: '#ff7a36' })
+              game.shockwaves.push({ x: game.boss.x + game.boss.w * .12, y: FLOOR - 8, vx: -245, radius: 11, end: now + 2450, color: '#ffe078' })
+            } else {
+              const aimX = game.x + game.playerWidth / 2
+              for (const laneOffset of [-105, 0, 105]) game.enemyBullets.push({ x: Math.max(32, Math.min(WIDTH - 32, aimX + laneOffset)), y: 78, vx: 0, vy: 285, radius: 12, color: '#ff344f', ownerType: 'bossRain' })
+            }
           }
           for (const bullet of game.enemyBullets) { bullet.x += bullet.vx * dt; bullet.y += (bullet.vy || 0) * dt }
           game.enemyBullets = game.enemyBullets.filter((bullet) => bullet.x > -20 && bullet.y < HEIGHT + 60)
@@ -939,9 +973,9 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
               else if (target.type === 'colossus') game.enemyBullets.push({ x: target.x + 10, y: FLOOR - 15, vx: -235, vy: 0, radius: 14, color: '#ffb23e', ownerType: 'colossus' })
               else game.enemyBullets.push({ x: target.x + 10, y: target.y + 62, vx: -190, vy: 0, radius: 9, color: '#ff244e', ownerType: 'shadow' })
             }
-            if (target.type === 'boss' && target.retreatUntil && now < target.retreatUntil) target.x = WIDTH + 100
+            if (target.type === 'boss' && target.retreatUntil && now < target.retreatUntil) target.x = WIDTH - target.w * .4
             else {
-              if (target.type === 'boss' && target.retreatUntil) { target.retreatUntil = 0; target.x = WIDTH + 60; target.speed = 54 }
+              if (target.type === 'boss' && target.retreatUntil) { target.retreatUntil = 0; target.x = Math.min(target.x, WIDTH - target.w * .38); target.speed = 22 }
               if (target.type === 'boss' && !target.dashUntil && now >= target.nextDashAt) {
                 target.dashUntil = now + 520; target.nextDashAt = now + (target.hp <= 2 ? 1850 : 2450); target.speed = target.hp <= 2 ? 430 : 340
                 game.banner = { title: '¡MOROS CARGA!', subtitle: 'SALTA O MUÉVETE PARA ESQUIVAR', color: '#ff435c', until: now + 650 }
@@ -962,7 +996,7 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
               if (target.type === 'boss' && target.jumpUntil) {
                 if (now < target.jumpUntil) {
                   const phase = Math.min(1, (now - target.jumpStartedAt) / (target.jumpUntil - target.jumpStartedAt))
-                  target.y = target.baseY - Math.sin(phase * Math.PI) * 68
+                    target.y = target.baseY - Math.sin(phase * Math.PI) * target.h * .55
                 } else {
                   target.jumpUntil = 0; target.y = target.baseY
                   if (target._wasJumping) {
@@ -1010,14 +1044,18 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       const shakeY = shake ? (random() * 2 - 1) * shake : 0
       ctx.save()
       ctx.translate(shakeX, shakeY)
-      const sceneCameraOffset = Math.min(BACKDROP_WIDTH - WIDTH, game.worldDistance * .18)
-      if (game.wave < 3) {
-        ctx.imageSmoothingEnabled = false
-        ctx.drawImage(art.campusBackground, -sceneCameraOffset, 0)
-        if (game.wave === 2) { ctx.fillStyle = 'rgba(99,8,27,.28)'; ctx.fillRect(0, 0, WIDTH, HEIGHT); for (let crack = 0; crack < 5; crack++) { ctx.strokeStyle = 'rgba(255,53,83,.35)'; ctx.beginPath(); ctx.moveTo(crack * 221 + 30, 0); ctx.lineTo(crack * 221 + 70, 90); ctx.lineTo(crack * 221 + 26, 170); ctx.stroke() } }
-      } else {
-        ctx.imageSmoothingEnabled = false
-        ctx.drawImage(art.domainBackground, -sceneCameraOffset, 0)
+      const sceneCameraOffset = 0
+      ctx.imageSmoothingEnabled = true
+      ctx.drawImage(art.campusBackground, 0, 0, WIDTH, HEIGHT)
+      const domainMix = game.wave === 1 ? 0 : game.wave === 2 ? Math.min(1, Math.max(0, (now - game.waveTransitionAt) / 1600)) : 1
+      if (domainMix > 0) {
+        ctx.save(); ctx.globalAlpha = domainMix; ctx.drawImage(art.domainBackground, 0, 0, WIDTH, HEIGHT); ctx.restore()
+      }
+      ctx.imageSmoothingEnabled = false
+      if (game.wave >= 2) {
+        ctx.save(); ctx.globalAlpha = domainMix * (.1 + (Math.sin(now / 420) + 1) * .045); ctx.fillStyle = '#741226'; ctx.fillRect(0, 0, WIDTH, HEIGHT); ctx.restore()
+      }
+      if (game.wave >= 3) {
         for (let ember = 0; ember < 38; ember += 1) {
           const x = (ember * 263 + Math.floor(now / 27) * (ember % 3 + 1)) % WIDTH
           const y = (ember * 97 + Math.floor(now / 19) * (ember % 2 + 1)) % FLOOR
@@ -1025,41 +1063,117 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
         }
         ctx.globalAlpha = 1
       }
-      drawWorldMotion(ctx, now, game.worldDistance, game.wave)
-      drawCampusPlatforms(ctx, sceneCameraOffset)
-      for (const civilian of game.evacuees) {
-        const evacueeStrip = art.enemyRunStrip[civilian.variant] || art.enemyRunStrip.evacuee
-        if (!evacueeStrip) continue
-        const frame = evacueeStrip.frames[Math.floor((now - game.startTime) / 85 + civilian.phase) % evacueeStrip.frameCount]
-        const width = civilian.height * frame.width / Math.max(1, frame.height)
-        ctx.save(); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = .95
-        if (civilian.hue) ctx.filter = `hue-rotate(${civilian.hue}deg) saturate(.88)`
-        ctx.shadowColor = '#7ef7db'; ctx.shadowBlur = 5
-        ctx.drawImage(frame, civilian.x, civilian.y - civilian.height, width, civilian.height)
-        ctx.restore()
+      drawWorldMotion(ctx, now, game.worldDistance + elapsedTime * 86, game.wave)
+      if (game.boss && game.boss.shootUntil > now && game.boss.attackPattern === 2) {
+        const attackProgress = now - game.boss.attackStartedAt
+        if (attackProgress > 150 && attackProgress < 610) {
+          const aimX = game.x + game.playerWidth / 2
+          ctx.save(); ctx.globalAlpha = .28 + Math.sin(now / 45) * .08
+          for (const laneOffset of [-105, 0, 105]) {
+            const x = Math.max(32, Math.min(WIDTH - 32, aimX + laneOffset))
+            const lane = ctx.createLinearGradient(x - 18, 0, x + 18, 0)
+            lane.addColorStop(0, 'rgba(255,40,70,0)'); lane.addColorStop(.5, '#ff294d'); lane.addColorStop(1, 'rgba(255,40,70,0)')
+            ctx.fillStyle = lane; ctx.fillRect(x - 18, 58, 36, FLOOR - 58)
+            ctx.fillStyle = '#ff4760'; ctx.fillRect(x - 18, FLOOR - 12, 36, 7)
+          }
+          ctx.restore()
+        }
+      }
+      if (game.wave === 1 && elapsedTime < 9.6) {
+        for (const npc of art.campusNpcs) {
+          if (!npc.image.complete || !npc.image.naturalWidth) continue
+          if (elapsedTime < npc.start) continue
+          const walkPhase = (elapsedTime - npc.start) * npc.stepRate + npc.phase
+          const worldX = npc.x + npc.direction * npc.speed * (elapsedTime - npc.start)
+          const height = npc.height
+          const strip = art.enemyRunStrip[npc.stripKey]
+          const walkFrame = strip?.frames[Math.floor(walkPhase / (Math.PI * 2) * (strip.frameCount || 8)) % (strip.frameCount || 8)]
+          const image = walkFrame || npc.image
+          const width = height * image.width / Math.max(1, image.height)
+          const bobAmount = npc.role === 'teacherPatrol' ? 1.8 : 3.2
+          const bob = Math.abs(Math.sin(walkPhase * 2)) * bobAmount
+          const screenX = Math.round(worldX - sceneCameraOffset)
+          if (screenX + width < -16 || screenX > WIDTH + 16) continue
+          const stepDust = (Math.sin(walkPhase * 2) + 1) / 2
+          ctx.save(); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = 1
+          ctx.fillStyle = 'rgba(22,31,37,.32)'
+          ctx.beginPath(); ctx.ellipse(screenX + width / 2, npc.y + 2, width * (.22 + stepDust * .025), 3.2, 0, 0, Math.PI * 2); ctx.fill()
+          ctx.translate(screenX + width / 2, npc.y - bob)
+          const teacherNod = npc.role === 'teacherPatrol' ? Math.sin(walkPhase * .4) * .012 : 0
+          ctx.rotate(Math.sin(walkPhase) * (npc.role === 'teacherPatrol' ? .006 : .014) + teacherNod)
+          if (npc.direction < 0) ctx.scale(-1, 1)
+          ctx.drawImage(image, -width / 2, -height, width, height)
+          if (npc.role === 'studentJog' && stepDust > .94) {
+            ctx.fillStyle = 'rgba(222,218,195,.3)'
+            ctx.beginPath(); ctx.ellipse(-width * .22, -2, 4, 1.5, -.2, 0, Math.PI * 2); ctx.fill()
+          } else if (npc.role === 'studentBrisk' && stepDust > .97) {
+            ctx.fillStyle = 'rgba(255,226,154,.42)'
+            ctx.beginPath(); ctx.ellipse(width * .2, -2, 2.1, 1.3, 0, 0, Math.PI * 2); ctx.fill()
+          } else if (npc.role === 'teacherPatrol' && Math.sin(now * .0014 + npc.phase) > .965) {
+            ctx.fillStyle = 'rgba(255,231,161,.8)'
+            ctx.beginPath(); ctx.moveTo(width * .12, -height * .58 - 3); ctx.lineTo(width * .12 + 2, -height * .58); ctx.lineTo(width * .12, -height * .58 + 3); ctx.lineTo(width * .12 - 2, -height * .58); ctx.closePath(); ctx.fill()
+          }
+          ctx.restore()
+        }
       }
       for (const target of game.targets.values()) {
         if (target.type === 'boss') {
           if (target.hp > 0 && target.x < WIDTH + 360) {
             const charging = now < target.shootUntil
             const attackProgress = charging ? Math.max(0, now - target.attackStartedAt) : 0
-            const bossArt = now < target.flashUntil ? art.bossHitFlash : art.boss
+            const bossStrip = art.enemyRunStrip.moros
+            const patternStarts = [1, 3, 5]
+            const attackFrame = charging ? patternStarts[target.attackPattern || 0] + Math.min(2, Math.floor(attackProgress / 240)) : target.dashUntil > now ? 2 : target.jumpUntil > now ? 6 : 0
+            const bossFrame = bossStrip?.frames[attackFrame]
+            const bossArt = bossFrame || art.boss
             const drawHeight = target.h
             const drawWidth = drawHeight * (bossArt.width / Math.max(1, bossArt.height))
+            target.w = drawWidth
             const idlePulse = Math.sin(now * .004 + target.id) * .012
             const idleBob = Math.sin(now * .003 + target.id) * 2.5
             const drawX = target.x + target.w - drawWidth
+            if (target.entryUntil > now) {
+              const reveal = Math.min(1, (target.entryUntil - now) / 1250)
+              const portalX = drawX + drawWidth * .52
+              const portalY = FLOOR - drawHeight * .53
+              ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .22 + reveal * .3
+              ctx.strokeStyle = '#ff334f'; ctx.shadowColor = '#ff183f'; ctx.shadowBlur = 30
+              ctx.lineWidth = 4
+              ctx.beginPath(); ctx.ellipse(portalX, portalY, drawWidth * (.35 + reveal * .08), drawHeight * (.58 + reveal * .06), 0, 0, Math.PI * 2); ctx.stroke()
+              ctx.lineWidth = 2; ctx.strokeStyle = '#ffc15f'
+              for (let shard = 0; shard < 7; shard += 1) {
+                const angle = now * .002 + shard * Math.PI * 2 / 7
+                const inner = drawHeight * .22; const outer = drawHeight * (.38 + .06 * Math.sin(now / 55 + shard))
+                ctx.beginPath(); ctx.moveTo(portalX + Math.cos(angle) * inner, portalY + Math.sin(angle) * inner)
+                ctx.lineTo(portalX + Math.cos(angle) * outer, portalY + Math.sin(angle) * outer); ctx.stroke()
+              }
+              ctx.restore()
+            }
             ctx.save(); ctx.imageSmoothingEnabled = false
+            ctx.fillStyle = 'rgba(13,7,17,.48)'
+            ctx.beginPath(); ctx.ellipse(drawX + drawWidth * .5, FLOOR - 2, drawWidth * .34, 7, 0, 0, Math.PI * 2); ctx.fill()
             ctx.shadowColor = charging ? '#ffae45' : '#ff334f'; ctx.shadowBlur = target.dashUntil > now ? 32 : charging ? 26 : 18
             ctx.translate(drawX + drawWidth / 2, target.y + drawHeight + idleBob)
             ctx.scale(1 + idlePulse + (charging ? Math.sin(attackProgress * .022) * .025 : 0), 1 - idlePulse * .65)
-            ctx.drawImage(bossArt, -drawWidth / 2, -drawHeight, drawWidth, drawHeight)
+            if (now < target.flashUntil) ctx.filter = 'brightness(1.9) saturate(1.4)'
+          ctx.drawImage(bossArt, -drawWidth / 2, -drawHeight, drawWidth, drawHeight)
+            ctx.filter = 'none'
             if (charging) {
               const charge = Math.min(1, attackProgress / 600)
-              ctx.translate(-drawWidth / 2 + drawWidth * .23, -drawHeight * .58)
-              ctx.globalAlpha = .35 + charge * .5; ctx.strokeStyle = '#ffd064'; ctx.fillStyle = 'rgba(220,32,57,.32)'; ctx.lineWidth = 3; ctx.shadowBlur = 18
-              ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(12, 0); ctx.lineTo(0, 12); ctx.lineTo(-12, 0); ctx.closePath(); ctx.fill(); ctx.stroke()
-              ctx.rotate(now * .006); ctx.beginPath(); ctx.rect(-9 - charge * 9, -9 - charge * 9, 18 + charge * 18, 18 + charge * 18); ctx.stroke()
+              if (target.attackPattern === 0) {
+                ctx.translate(-drawWidth / 2 + drawWidth * .23, -drawHeight * .58)
+                ctx.globalAlpha = .35 + charge * .5; ctx.strokeStyle = '#ffd064'; ctx.fillStyle = 'rgba(220,32,57,.32)'; ctx.lineWidth = 3; ctx.shadowBlur = 18
+                ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(12, 0); ctx.lineTo(0, 12); ctx.lineTo(-12, 0); ctx.closePath(); ctx.fill(); ctx.stroke()
+                ctx.rotate(now * .006); ctx.beginPath(); ctx.rect(-9 - charge * 9, -9 - charge * 9, 18 + charge * 18, 18 + charge * 18); ctx.stroke()
+              } else if (target.attackPattern === 1) {
+                ctx.translate(-drawWidth / 2 + drawWidth * .12, -7)
+                ctx.globalAlpha = charge; ctx.strokeStyle = '#ff853e'; ctx.lineWidth = 5; ctx.shadowBlur = 22
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-8, 14); ctx.lineTo(4, 24); ctx.lineTo(-7, 38); ctx.stroke()
+              } else {
+                ctx.translate(-drawWidth / 2 + drawWidth * .28, -drawHeight * .47)
+                ctx.globalAlpha = .3 + charge * .7; ctx.fillStyle = '#ff405e'; ctx.shadowColor = '#ff294d'; ctx.shadowBlur = 26
+                ctx.beginPath(); ctx.arc(0, 0, 7 + charge * 13, 0, Math.PI * 2); ctx.fill()
+              }
             }
             ctx.restore()
           }
@@ -1073,6 +1187,8 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
           target.w = cw
           const colossusPose = target.shootUntil > now ? 'shoot' : 'run'
           ctx.save(); ctx.imageSmoothingEnabled = false
+          ctx.fillStyle = 'rgba(18,8,15,.34)'
+          ctx.beginPath(); ctx.ellipse(target.x + cw * .5, FLOOR - 2, cw * .35, 6, 0, 0, Math.PI * 2); ctx.fill()
           ctx.shadowColor = '#ff405c'; ctx.shadowBlur = colossusPose === 'shoot' ? 20 : 9
           if (frame && !(now < target.nextHitAt && target.nextHitAt - now > 100)) ctx.drawImage(frame, target.x, target.y, cw, target.h)
           else ctx.drawImage(colossusArt, target.x, target.y, cw, target.h)
@@ -1090,8 +1206,11 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
           const source = frame || art.shadowCore
           const soldierWidth = target.h * source.width / Math.max(1, source.height)
           target.w = soldierWidth
-          ctx.save(); ctx.imageSmoothingEnabled = false; ctx.shadowColor = '#ff405c'; ctx.shadowBlur = 10 + Math.sin(now / 130) * 3
-          ctx.drawImage(source, target.x, target.y, soldierWidth, target.h); ctx.restore()
+          ctx.save(); ctx.imageSmoothingEnabled = false
+          ctx.fillStyle = 'rgba(16,8,15,.36)'
+          ctx.beginPath(); ctx.ellipse(target.x + soldierWidth * .5, target.y + target.h - 1, soldierWidth * .34, 4, 0, 0, Math.PI * 2); ctx.fill()
+          ctx.shadowColor = '#ff405c'; ctx.shadowBlur = 6 + Math.sin(now / 130) * 2
+          ctx.drawImage(source, target.x, target.y + Math.abs(Math.sin(now / 75 + target.phase)) * 1.8, soldierWidth, target.h); ctx.restore()
           if (target.shootUntil > now) {
             ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#fff4d2'; ctx.shadowColor = '#ff224f'; ctx.shadowBlur = 15
             ctx.beginPath(); ctx.moveTo(target.x + 4, target.y + target.h * .48); ctx.lineTo(target.x - 13, target.y + target.h * .43); ctx.lineTo(target.x - 7, target.y + target.h * .48); ctx.lineTo(target.x - 13, target.y + target.h * .53); ctx.closePath(); ctx.fill(); ctx.restore()
@@ -1103,7 +1222,10 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
           const source = frame || art.drone
           const dw = target.h * source.width / Math.max(1, source.height)
           target.w = dw
-          ctx.save(); ctx.imageSmoothingEnabled = false; ctx.shadowColor = '#ff4b52'; ctx.shadowBlur = 11
+          ctx.save(); ctx.imageSmoothingEnabled = false
+          ctx.fillStyle = 'rgba(16,8,15,.24)'
+          ctx.beginPath(); ctx.ellipse(target.x + dw * .5, FLOOR - 3, dw * .25, 4, 0, 0, Math.PI * 2); ctx.fill()
+          ctx.shadowColor = '#ff4b52'; ctx.shadowBlur = 8
           ctx.drawImage(source, target.x, target.y - 3 + Math.sin(now / 80 + target.phase) * 3, dw, target.h); ctx.restore()
           if (target.shootUntil > now) {
             const droneY = target.y + target.h + 4
@@ -1118,10 +1240,23 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
       for (const wave of game.shockwaves) { ctx.strokeStyle = wave.color; ctx.shadowColor = wave.color; ctx.shadowBlur = 12; ctx.lineWidth = 5; ctx.beginPath(); ctx.ellipse(wave.x, wave.y, wave.radius + 8, 5, 0, Math.PI, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0 }
       for (const explosion of game.explosions) {
         const phase = Math.min(1, (now - explosion.start) / explosion.duration)
-        ctx.globalAlpha = 1 - phase; ctx.strokeStyle = explosion.color; ctx.lineWidth = 5 - phase * 3; ctx.shadowColor = explosion.color; ctx.shadowBlur = 12
-        ctx.beginPath(); ctx.arc(explosion.x, explosion.y, 5 + phase * 26, 0, Math.PI * 2); ctx.stroke()
-        ctx.fillStyle = '#fff4d4'; ctx.fillRect(explosion.x - 2 - phase * 5, explosion.y - 2, 4, 4); ctx.shadowBlur = 0
+        const radius = 5 + phase * 29
+        ctx.globalAlpha = 1 - phase
+        ctx.strokeStyle = explosion.color; ctx.lineWidth = 5 - phase * 3; ctx.shadowColor = explosion.color; ctx.shadowBlur = 16
+        ctx.beginPath(); ctx.arc(explosion.x, explosion.y, radius, 0, Math.PI * 2); ctx.stroke()
+        ctx.strokeStyle = '#fff1b5'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(explosion.x, explosion.y, Math.max(2, radius * .56), 0, Math.PI * 2); ctx.stroke()
+        ctx.fillStyle = '#fff4d4'; ctx.fillRect(explosion.x - 2 - phase * 5, explosion.y - 2, 4, 4)
+        // Eight tapered pixel rays make impacts read as a burst instead of a hollow ring.
+        ctx.lineWidth = 2; ctx.strokeStyle = explosion.color
+        for (let ray = 0; ray < 8; ray += 1) {
+          const angle = ray * Math.PI / 4 + phase * .18
+          const inner = radius * .68; const outer = radius + 8 * (1 - phase)
+          ctx.beginPath(); ctx.moveTo(explosion.x + Math.cos(angle) * inner, explosion.y + Math.sin(angle) * inner)
+          ctx.lineTo(explosion.x + Math.cos(angle) * outer, explosion.y + Math.sin(angle) * outer); ctx.stroke()
+        }
+        ctx.shadowBlur = 0
       }
+      ctx.globalAlpha = 1
       for (const shell of game.shells) { ctx.save(); ctx.translate(shell.x, shell.y); ctx.rotate(shell.rotation); ctx.fillStyle = '#f3c35f'; ctx.fillRect(-3, -2, 6, 4); ctx.restore() }
       for (const particle of game.dust) { ctx.globalAlpha = Math.max(0, (particle.end - now) / 320) * .6; ctx.fillStyle = '#cab79a'; ctx.fillRect(particle.x, particle.y, particle.size, particle.size) }
       for (const particle of game.particles) {
@@ -1144,20 +1279,44 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
           const runStrip = heroRunStripRef.current
           const isFlashing = now < game.flashUntil
           ctx.save(); ctx.imageSmoothingEnabled = false
+          const shadowScale = Math.max(.5, 1 - Math.max(0, FLOOR - groundY) / 210)
+          ctx.fillStyle = 'rgba(14,20,25,.4)'
+          ctx.beginPath(); ctx.ellipse(centerX, FLOOR - 2, game.playerWidth * .31 * shadowScale, 5 * shadowScale, 0, 0, Math.PI * 2); ctx.fill()
+          const facing = game.facing || 1
+          // During a dash, leave short-lived copies of the hero sprite behind the body.
+          // This follows the character silhouette and makes the burst feel authored, not like a UI streak.
+          if (now < game.rig.dashUntil && runStrip?.frames?.length) {
+            const dashFrame = runStrip.frames[Math.floor(now / 1000 * 18) % runStrip.frameCount]
+            for (let echo = 3; echo >= 1; echo -= 1) {
+              ctx.save(); ctx.globalAlpha = .075 + (4 - echo) * .035
+              ctx.shadowColor = hero?.color || '#55e8ff'; ctx.shadowBlur = 14
+              ctx.translate(centerX - facing * echo * 10, 0); ctx.scale(facing, 1)
+              ctx.drawImage(dashFrame, -game.playerWidth / 2, groundY - spriteHeight + (echo % 2 ? 2 : 0), game.playerWidth, spriteHeight)
+              ctx.restore()
+            }
+          }
           ctx.shadowColor = isFlashing ? '#fff4cf' : hero?.color || '#55e8ff'; ctx.shadowBlur = isFlashing ? 17 : 7
           if (locomotion === 'run' && runStrip?.frames?.length) {
             const frameIndex = Math.floor(now / 1000 * 12) % runStrip.frameCount
             const frame = runStrip.frames[frameIndex]
-            ctx.drawImage(isFlashing ? sprite.hitFlashCanvas : frame, centerX - game.playerWidth / 2, groundY - spriteHeight, game.playerWidth, spriteHeight)
+            ctx.translate(centerX, 0); ctx.scale(facing, 1)
+            ctx.drawImage(isFlashing ? sprite.hitFlashCanvas : frame, -game.playerWidth / 2, groundY - spriteHeight, game.playerWidth, spriteHeight)
           } else {
             const recoil = pose === 'shoot' || now < game.muzzleFlashUntil ? -game.rig.shotRecoil : 0
-            ctx.drawImage(isFlashing ? sprite.hitFlashCanvas : sprite.canvas, centerX - spriteWidth / 2 + recoil, groundY - spriteHeight, spriteWidth, spriteHeight)
+            ctx.translate(centerX, 0); ctx.scale(facing, 1)
+            ctx.drawImage(isFlashing ? sprite.hitFlashCanvas : sprite.canvas, -spriteWidth / 2 + recoil, groundY - spriteHeight, spriteWidth, spriteHeight)
+          }
+          if (now < game.dashFlashUntil) {
+            ctx.globalAlpha = .75
+            ctx.strokeStyle = hero?.color || '#55e8ff'; ctx.lineWidth = 3; ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 13
+            for (let trail = 0; trail < 3; trail += 1) { ctx.beginPath(); ctx.moveTo(-facing * (game.playerWidth * .32 + trail * 10), groundY - 28 - trail * 12); ctx.lineTo(-facing * (game.playerWidth * .7 + trail * 15), groundY - 28 - trail * 12); ctx.stroke() }
           }
           ctx.restore()
           if (now < game.muzzleFlashUntil && game.input.fire) {
-            const muzzleX = centerX + spriteWidth * .43; const muzzleY = groundY - spriteHeight * .55
+            const muzzleX = centerX + (game.facing || 1) * spriteWidth * .43; const muzzleY = groundY - spriteHeight * .55
             ctx.save(); ctx.globalAlpha = Math.max(0, (game.muzzleFlashUntil - now) / 72); ctx.fillStyle = '#fff5a4'; ctx.shadowColor = hero?.color || '#55e8ff'; ctx.shadowBlur = 18
-            ctx.beginPath(); ctx.moveTo(muzzleX - 2, muzzleY); ctx.lineTo(muzzleX + 15, muzzleY - 7); ctx.lineTo(muzzleX + 11, muzzleY); ctx.lineTo(muzzleX + 16, muzzleY + 7); ctx.closePath(); ctx.fill(); ctx.restore()
+            const direction = game.facing || 1
+            ctx.beginPath(); ctx.moveTo(muzzleX - direction * 2, muzzleY); ctx.lineTo(muzzleX + direction * 15, muzzleY - 7); ctx.lineTo(muzzleX + direction * 11, muzzleY); ctx.lineTo(muzzleX + direction * 16, muzzleY + 7); ctx.closePath(); ctx.fill(); ctx.restore()
           }
         } else {
           const fallbackPose = pose === 'hurt' || pose === 'fall' ? 'die' : pose === 'shoot' ? 'attack' : pose === 'jump' ? 'jump' : pose
@@ -1211,17 +1370,16 @@ export default function Arcade2DGame({ hero = HERO, profile = null, onGameComple
   return <section className="arcade2d-game" aria-label="Juego arcade 2D">
     <div className="arcade2d-canvas-frame"><canvas ref={canvasRef} className="arcade2d-canvas" width={WIDTH} height={HEIGHT} aria-label="Ciudad Futuro, campo de juego" /></div>
     <header className="arcade-combat-hud" aria-live="polite">
-      <div className="combat-noni"><img src="/assets/nino-hernandez.webp" alt="Nino Hernández"/><div><small>NINO HERNÁNDEZ · APOYO TÁCTICO</small><strong>{hud.noniLine.replace(/^NONI:\s*/,'')}</strong></div></div>
-              <div className="combat-stat-badges"><span><small>OLA</small><b>{hud.wave}/3</b></span><span><small>VIDAS</small><b className="combat-lives">{'♥'.repeat(hud.lives)}{'♡'.repeat(Math.max(0, 5 - hud.lives))}</b></span><span><small>MUNICIÓN</small><b>{String(hud.ammo).padStart(2, '0')}</b></span><span><small>PUNTOS</small><b>{hud.score.toLocaleString('es-MX')}</b></span><span><small>TIEMPO</small><b>00:{String(hud.time).padStart(2, '0')}</b></span></div>
-              <div className="combat-stat-badges"><span><small>OLA</small><b>{hud.wave}/3</b></span><span><small>VIDAS</small><b className="combat-lives">{'♥'.repeat(hud.lives)}{'♡'.repeat(Math.max(0, 5 - hud.lives))}</b></span><span><small>MUNICIÓN</small><b>{String(hud.ammo).padStart(2, '0')}</b></span><span><small>PUNTOS</small><b>{hud.score.toLocaleString('es-MX')}</b></span><span><small>TIEMPO</small><b>00:{String(hud.time).padStart(2, '0')}</b></span></div>
-      <div className="combat-hud-actions">{gamepadConnected && <span className="arcade-gamepad-status">CONTROL CONECTADO</span>}<button type="button" title={musicMuted ? 'Activar música y sonidos' : 'Silenciar música y sonidos'} aria-label={musicMuted ? 'Activar música y sonidos' : 'Silenciar música y sonidos'} onClick={() => setMusicMuted(toggleArcadeMuted())}>{musicMuted ? '🔇' : '🔊'}</button><button type="button" aria-label="Salir del combate" onClick={onExit}>SALIR</button></div>
+      <div className="combat-noni"><img className="nino-guide-animation nino-guide-portrait" src="/assets/nino-hernandez.webp" alt="Nino Hernández, guía de EDUNEXA"/><div><small>NINO HERNÁNDEZ · APOYO TÁCTICO</small><strong>{hud.noniLine.replace(/^NONI:\s*/,'')}</strong></div></div>
+      <div className="combat-stat-badges"><span><small>OLA</small><b>{hud.wave}/3</b></span><span><small>VIDAS</small><b className="combat-lives">{'♥'.repeat(hud.lives)}{'♡'.repeat(Math.max(0, 5 - hud.lives))}</b></span><span><small>MUNICIÓN</small><b>{String(hud.ammo).padStart(2, '0')}</b></span><span><small>PUNTOS</small><b>{hud.score.toLocaleString('es-MX')}</b></span><span><small>TIEMPO</small><b>00:{String(hud.time).padStart(2, '0')}</b></span></div>
+      <div className="combat-hud-actions">{gamepadConnected && <span className="arcade-gamepad-status">CONTROL CONECTADO</span>}<button type="button" title={musicMuted ? 'Activar música y sonidos' : 'Silenciar música y sonidos'} aria-label={musicMuted ? 'Activar música y sonidos' : 'Silenciar música y sonidos'} onClick={() => { const nextMuted = toggleArcadeMuted(); setMusicMuted(nextMuted); if (!nextMuted) playArcadeSfx('confirm') }}>{musicMuted ? '🔇' : '🔊'}</button><button type="button" aria-label="Salir del combate" onClick={onExit}>SALIR</button></div>
     </header>
     {hud.wave === 3 && <div className="arcade2d-boss-health" aria-label={`${hud.bossName}, ${hud.bossHP} de ${hud.bossMaxHP} puntos de vida`}><strong>{hud.bossName}</strong><div>{Array.from({ length: hud.bossMaxHP }, (_, segment) => <i className={segment < hud.bossHP ? 'is-active' : ''} key={segment} />)}</div><small>{hud.bossHP} / {hud.bossMaxHP} HP</small></div>}
-    {hud.wave === 3 && hud.time <= 10 && hud.time > 0 && <div className="arcade-final-countdown" aria-live="assertive"><span>{hud.bossDefeated ? '¡EXTRACCIÓN INMINENTE!' : '¡COLAPSO INMINENTE!'}</span><strong key={hud.time}>{String(hud.time).padStart(2, '0')}</strong><small>{hud.bossDefeated ? 'EL CAMPUS SE ESTABILIZA' : 'EVACÚA · ESQUIVA · SOBREVIVE'}</small></div>}
+    {hud.wave === 3 && hud.time <= 10 && <div className="arcade-final-countdown" aria-live="assertive"><span>{hud.time === 0 ? (hud.bossDefeated ? '¡MISIÓN COMPLETADA!' : '¡FIN DEL TIEMPO!') : hud.bossDefeated ? '¡EXTRACCIÓN INMINENTE!' : '¡COLAPSO INMINENTE!'}</span><strong key={hud.time}>{String(hud.time).padStart(2, '0')}</strong><small>{hud.time === 0 ? 'ELIGE TU CAMINO Y DESCUBRE TU FUTURO' : hud.bossDefeated ? 'EL CAMPUS SE ESTABILIZA' : 'ESQUIVA · SOBREVIVE · SIGUE ADELANTE'}</small></div>}
     {hud.morosLine && <div className="moros-taunt" aria-live="assertive"><strong><i aria-hidden="true">◈</i> MOROS TE PROVOCA</strong><span>“{hud.morosLine}”</span></div>}
     {hud.paused && <div className="arcade2d-pause-overlay" role="status"><strong>PAUSA</strong><span>Presiona START para continuar</span></div>}
-    {!started && <div className="arcade2d-start-overlay"><p className="eyebrow">MISIÓN DE ENTRENAMIENTO</p><h3>El dominio te espera.</h3><p>Corre, salta y dispara a los núcleos de sombra para revelar tus pasiones.</p><button type="button" onClick={startGame}>▶ JUGAR</button></div>}
-    {hud.done && showGameOver && <div className="arcade2d-end-card arcade-game-over"><img src="/assets/nino-hernandez.webp" alt="Nino Hernández, guía de EDUNEXA"/><p className="eyebrow">NINO HERNÁNDEZ · SIGO CONTIGO</p><strong>Sigue estudiando.</strong><span>Una caída no borra lo que descubriste. Puedes volver a intentarlo sin perder tu mini-test.</span><div><button type="button" onClick={() => { window.clearTimeout(startNoniTimerRef.current); const freshGame = initialGame(); if (heroSpriteRef.current) freshGame.playerWidth = Math.max(54, Math.min(150, Math.round((heroSpriteRef.current.width / heroSpriteRef.current.height) * HERO_HEIGHT))); gameRef.current = freshGame; pendingGameStatsRef.current = null; setShowGameOver(false); setHud({ time: MISSION_SECONDS, score: 0, xp: 0, freedom: 0, lives: 5, ammo: MAGAZINE_SIZE, wave: 1, progress: 0, bossHP: 15, bossMaxHP: 15, bossDefeated: false, bossName: BOSSES[hero?.id] || BOSSES.tech, noniLine: 'NONI: Lista para acompañarte.', done: false }); setStarted(false); window.setTimeout(() => startGame(), 40) }}>REINTENTAR</button><button type="button" onClick={() => { const stats = pendingGameStatsRef.current; pendingGameStatsRef.current = null; setShowGameOver(false); if (stats) callbackRef.current.onGameComplete?.(stats) }}>VER MIS RESULTADOS</button></div></div>}
+    {!started && <div className="arcade2d-start-overlay"><p className="eyebrow">MISIÓN DE ENTRENAMIENTO</p><h3>El dominio te espera.</h3><p>Muévete con A/D o las flechas, salta con W/↑, dispara con espacio y esquiva con SHIFT. Apunta a los enemigos y mantén la presión sobre MOROS.</p><button type="button" onClick={startGame}>▶ JUGAR</button></div>}
+    {hud.done && showGameOver && <div className="arcade2d-end-card arcade-game-over"><img className="nino-guide-animation nino-guide-portrait" src="/assets/nino-hernandez.webp" alt="Nino Hernández, guía de EDUNEXA"/><p className="eyebrow">NINO HERNÁNDEZ · SIGO CONTIGO</p><strong>Sigue estudiando.</strong><span>Una caída no borra lo que descubriste. Puedes volver a intentarlo sin perder tu mini-test.</span><div><button type="button" onClick={() => { window.clearTimeout(startNoniTimerRef.current); const freshGame = initialGame(); if (heroSpriteRef.current) freshGame.playerWidth = Math.max(54, Math.min(150, Math.round((heroSpriteRef.current.width / heroSpriteRef.current.height) * HERO_HEIGHT))); gameRef.current = freshGame; pendingGameStatsRef.current = null; setShowGameOver(false); setHud({ time: MISSION_SECONDS, score: 0, xp: 0, freedom: 0, lives: 5, ammo: MAGAZINE_SIZE, wave: 1, progress: 0, bossHP: 15, bossMaxHP: 15, bossDefeated: false, bossName: BOSSES[hero?.id] || BOSSES.tech, noniLine: 'NONI: Lista para acompañarte.', done: false }); setStarted(false); window.setTimeout(() => startGame(), 40) }}>REINTENTAR</button><button type="button" onClick={() => { const stats = pendingGameStatsRef.current; pendingGameStatsRef.current = null; setShowGameOver(false); if (stats) callbackRef.current.onGameComplete?.(stats) }}>VER MIS RESULTADOS</button></div></div>}
     {hud.done && !showGameOver && <div className="arcade2d-end-card arcade-victory-card"><img src={hero?.sprite || HERO_SPRITES.tech} alt={`${hero?.name || 'Tu héroe'} celebra la misión`}/><strong>Tu puntuación: {hud.score}</strong><span>{hud.noniLine}</span><button type="button" onClick={() => callbackRef.current.onGameComplete?.(pendingGameStatsRef.current)}>VER RESULTADOS</button></div>}
   </section>
 }

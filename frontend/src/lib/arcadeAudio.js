@@ -1,12 +1,16 @@
 import { setVoiceMuted } from './voiceEngine'
+import { Howler } from 'howler'
 
 const AudioContextClass = typeof window !== 'undefined' ? (window.AudioContext || window.webkitAudioContext) : null
 
 let context
 let master
+let compressor
 let muted = false
 let musicMode = null
 let scheduler = null
+let activeMusicAudio = null
+let musicAudioGeneration = 0
 let step = 0
 let nextBeatAt = 0
 let noiseBuffer
@@ -18,13 +22,78 @@ const TRACKS = {
   boss: { bpm: 176, notes: [196, 233.08, 293.66, 392, 349.23, 293.66, 233.08, 207.65], bass: [49, 49, 58.27, 73.42], lead: 'sawtooth' },
 }
 
+const MUSIC_ASSETS = {
+  select: '/assets/audio/musica-exploracion.ogg',
+  battle: '/assets/audio/musica-batalla.ogg',
+  boss: '/assets/audio/musica-batalla.ogg',
+}
+
+function stopSynthMusic() {
+  if (scheduler) window.clearInterval(scheduler)
+  scheduler = null
+}
+
+function startSynthMusic(mode) {
+  if (muted || !TRACKS[mode]) return
+  getContext()
+  if (!context) return
+  musicMode = mode
+  step = 0
+  nextBeatAt = context.currentTime
+  stopSynthMusic()
+  scheduleBeat()
+  scheduler = window.setInterval(scheduleBeat, 55)
+}
+
+function playMusicAsset(mode) {
+  const generation = ++musicAudioGeneration
+  const source = MUSIC_ASSETS[mode]
+  if (!source || typeof Audio === 'undefined') { startSynthMusic(mode); return }
+  const audio = new Audio(source)
+  audio.loop = true
+  audio.preload = 'auto'
+  audio.volume = muted ? 0 : mode === 'select' ? .42 : mode === 'boss' ? .68 : .54
+  audio.playbackRate = mode === 'boss' ? 1.08 : 1
+  activeMusicAudio = audio
+  stopSynthMusic()
+  const playback = audio.play()
+  if (playback?.then) playback.then(() => {
+    if (generation !== musicAudioGeneration) audio.pause()
+  }).catch((error) => {
+    if (generation !== musicAudioGeneration || muted) return
+    console.warn(`[EDUNEXA audio] No se pudo reproducir ${source}; se activa música de respaldo.`, error)
+    startSynthMusic(mode)
+  })
+  audio.addEventListener('error', () => {
+    if (generation !== musicAudioGeneration || muted) return
+    console.warn(`[EDUNEXA audio] No se encontró ${source}; se activa música de respaldo.`)
+    startSynthMusic(mode)
+  }, { once: true })
+}
+
+function playSoundAsset(source, volume = .48) {
+  if (muted || typeof Audio === 'undefined') return false
+  const audio = new Audio(source)
+  audio.volume = volume
+  audio.play().catch((error) => {
+    if (error?.name !== 'NotAllowedError') console.warn(`[EDUNEXA audio] No se pudo reproducir ${source}.`, error)
+  })
+  return true
+}
+
 function getContext() {
   if (!AudioContextClass) return null
   if (!context) {
     context = new AudioContextClass()
     master = context.createGain()
-    master.gain.value = muted ? 0 : .22
-    master.connect(context.destination)
+    master.gain.value = muted ? 0 : .34
+    compressor = context.createDynamicsCompressor()
+    compressor.threshold.value = -10
+    compressor.knee.value = 12
+    compressor.ratio.value = 4
+    compressor.attack.value = .004
+    compressor.release.value = .18
+    master.connect(compressor).connect(context.destination)
   }
   if (context.state === 'suspended') context.resume().catch(() => {})
   return context
@@ -108,6 +177,7 @@ function sweep(from, to, duration, type = 'sawtooth', volume = .08) {
 /** Short layered weapon transients, shaped around each hero's weapon identity. */
 export function playHeroWeaponSfx(heroId = 'tech') {
   if (muted) return
+  playSoundAsset('/assets/audio/disparo-cc0.wav', .34)
   if (heroId === 'industry') {
     noiseBurst(.14, 520, .2, 'lowpass'); sweep(150, 42, .17, 'sawtooth', .12); tone(640, .045, 'square', .025)
   } else if (heroId === 'energy') {
@@ -149,32 +219,36 @@ function scheduleBeat() {
 
 export function startArcadeMusic(mode = 'select') {
   if (!TRACKS[mode]) return
-  getContext()
   musicMode = mode
-  step = 0
-  nextBeatAt = context?.currentTime || 0
-  if (scheduler) window.clearInterval(scheduler)
+  stopSynthMusic()
+  activeMusicAudio?.pause()
+  activeMusicAudio = null
   if (muted) return
-  scheduleBeat()
-  scheduler = window.setInterval(scheduleBeat, 55)
+  playMusicAsset(mode)
 }
 
 export function stopArcadeMusic() {
-  if (scheduler) window.clearInterval(scheduler)
-  scheduler = null
+  stopSynthMusic()
+  musicAudioGeneration += 1
+  activeMusicAudio?.pause()
+  activeMusicAudio = null
   musicMode = null
 }
 
 export function playArcadeSfx(name = 'click') {
   if (muted) return
+  if (name === 'bossAttack') playSoundAsset('/assets/audio/explosion-cc0.wav', .56)
   const sounds = {
     click: () => { tone(560, .045, 'square', .035); tone(820, .045, 'square', .025, .035) },
     change: () => { tone(330, .07, 'triangle', .07); tone(494, .09, 'triangle', .06, .06) },
     confirm: () => [523.25, 659.25, 783.99].forEach((n, i) => tone(n, .18, 'square', .055, i * .065)),
     shot: () => { tone(190, .085, 'sawtooth', .07); tone(620, .05, 'square', .035) },
     jump: () => { tone(260, .11, 'square', .05); tone(520, .13, 'triangle', .045, .06) },
+    dash: () => { tone(150, .12, 'sawtooth', .07); tone(760, .1, 'triangle', .045, .02) },
     countdown: () => { tone(880, .075, 'square', .075); tone(660, .11, 'triangle', .055, .065) },
     bossHit: () => { tone(110, .16, 'sawtooth', .13); tone(740, .09, 'square', .06, .025) },
+    bossAttack: () => { sweep(360, 72, .46, 'sawtooth', .1); noiseBurst(.32, 260, .12, 'lowpass'); tone(72, .36, 'triangle', .14, .04) },
+    explosion: () => { noiseBurst(.38, 380, .18, 'lowpass'); sweep(180, 38, .45, 'triangle', .17); tone(54, .38, 'sine', .13) },
   }
   ;(sounds[name] || sounds.click)()
 }
@@ -183,11 +257,13 @@ export function getArcadeMuted() { return muted }
 export function toggleArcadeMuted() {
   muted = !muted
   setVoiceMuted(muted)
+  Howler.mute(muted)
   const ctx = getContext()
   if (ctx && master) {
     master.gain.cancelScheduledValues(ctx.currentTime)
-    master.gain.setTargetAtTime(muted ? .0001 : .22, ctx.currentTime, .035)
+    master.gain.setTargetAtTime(muted ? .0001 : .34, ctx.currentTime, .035)
   }
+  if (activeMusicAudio) activeMusicAudio.volume = muted ? 0 : musicMode === 'select' ? .42 : musicMode === 'boss' ? .68 : .54
   listeners.forEach((listener) => listener(muted))
   if (!muted && musicMode) startArcadeMusic(musicMode)
   return muted

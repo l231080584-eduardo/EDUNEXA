@@ -3,10 +3,30 @@ import { Award, CheckCircle, ExternalLink, GraduationCap, MapPin, Navigation, Ro
 import { getCompatibleUniversities } from '../lib/api'
 import { GEM_CATEGORIES, rankUniversitiesByProximity } from '../data/careers'
 import offlineUniversities from '../data/universitiesFallback.json'
+import tecmnCatalog from '../data/tecnmCatalog.json'
 import { playClick } from '../lib/audio'
 import { HERO_CLASSES } from './CharacterSelect'
 
-const TECNM_LOCATION = offlineUniversities.find((university) => university.esTecnmIztapalapa1)
+const IZTAPALAPA_REFERENCE = offlineUniversities.find((university) => university.esTecnmIztapalapa1)
+const TECNM_OFFLINE_CAMPUSES = tecmnCatalog.campus
+  .filter((campus) => normalizeText(campus.nombre).includes('instituto tecnologico'))
+  .map((campus) => {
+    const iztapalapa = normalizeText(campus.nombre) === 'instituto tecnologico de iztapalapa'
+    return {
+      ...(iztapalapa ? IZTAPALAPA_REFERENCE : {}),
+      id: iztapalapa ? IZTAPALAPA_REFERENCE?.id || 'tecnm-iztapalapa-1' : `tecnm-${normalizeText(campus.nombre).replace(/ /g, '-')}`,
+      nombre: iztapalapa ? IZTAPALAPA_REFERENCE?.nombre || campus.nombre : campus.nombre,
+      tipo: 'Instituto Tecnológico · TecNM',
+      direccion: iztapalapa ? IZTAPALAPA_REFERENCE?.direccion || campus.ubicacion : campus.ubicacion,
+      latitud: iztapalapa ? IZTAPALAPA_REFERENCE?.latitud : undefined,
+      longitud: iztapalapa ? IZTAPALAPA_REFERENCE?.longitud : undefined,
+      esTecnmIztapalapa1: iztapalapa,
+      sitioWeb: campus.fuente,
+      carreras: campus.carreras,
+      localFallback: true,
+    }
+  })
+const TECNM_LOCATION = TECNM_OFFLINE_CAMPUSES.find((university) => university.esTecnmIztapalapa1)
 const IZTAPALAPA_ORIGIN = { latitud: 19.3562, longitud: -99.0141 }
 const AREA_LABELS = Object.fromEntries(Object.entries(GEM_CATEGORIES).map(([key, value]) => [key, value.label]))
 const FAMILY_API_ALIASES = { tech: ['tech'], industry: ['engineering'], construction: ['design'], energy: ['engineering'], business: ['business', 'law', 'humanities'], life: ['social'] }
@@ -30,6 +50,15 @@ function distanceKm(origin, destination) {
 }
 
 function normalizeText(value) { return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-MX').replace(/[^a-z0-9]+/g, ' ').trim() }
+
+function isTecnmCampus(university) {
+  if (!university || typeof university !== 'object') return false
+  if (university.esTecnmIztapalapa1) return true
+  const identity = normalizeText(`${university.nombre || university.name || ''} ${university.tipo || ''}`)
+  return identity.includes('tecnologico nacional de mexico')
+    || identity.includes('instituto tecnologico')
+    || /(^| )tecnm( |$)/.test(identity)
+}
 
 function universityOffersSuggestedCareer(university, careers) {
   if (university.localFallback && careers.length === 0) return true
@@ -56,14 +85,23 @@ function matchingPrograms(university, careers) {
 }
 
 function careerMatchPriority(university, careers) {
-  const match = matchingPrograms(university, careers)
-  return match.broad ? 0 : match.labels.length
+  const programs = (university.carreras || []).map(normalizeText).filter(Boolean)
+  const exactMatches = programs.reduce((score, program) => score + careers.filter((career) => {
+    const name = normalizeText(career.name)
+    return name && (program.includes(name) || name.includes(program))
+  }).length, 0)
+  const compatibleCategories = new Set(careers.map((career) => career.category))
+  const categoryMatches = [...compatibleCategories].filter((category) => {
+    const aliases = FAMILY_API_ALIASES[category] || [category]
+    return programs.some((program) => aliases.some((alias) => program.includes(normalizeText(alias))))
+  }).length
+  return exactMatches * 100 + categoryMatches * 10 + matchingPrograms(university, careers).labels.length
 }
 
-function mergeUniversityCatalog(primary, fallback = offlineUniversities) {
+function mergeUniversityCatalog(primary, fallback = TECNM_OFFLINE_CAMPUSES) {
   const merged = new Map()
   for (const item of [...(Array.isArray(primary) ? primary : []), ...fallback.map((university) => ({ ...university, localFallback: true }))]) {
-    if (!item || typeof item !== 'object') continue
+    if (!isTecnmCampus(item)) continue
     const name = normalizeText(item.nombre || item.name || item.id)
     if (!name) continue
     const current = merged.get(name)
@@ -78,13 +116,17 @@ function mergeUniversityCatalog(primary, fallback = offlineUniversities) {
 }
 
 function routeEmbed(place, origin) {
+  if (!hasCoordinates(place)) {
+    const destination = encodeURIComponent(`${place?.nombre || place?.name || ''}, ${place?.direccion || ''}`)
+    return `https://maps.google.com/maps?q=${destination}&z=13&output=embed`
+  }
   if (!hasCoordinates(origin)) return `https://maps.google.com/maps?q=${place.latitud},${place.longitud}&z=15&output=embed`
   const originQuery = `${origin.latitud},${origin.longitud}`
   return `https://maps.google.com/maps?saddr=${originQuery}&daddr=${place.latitud},${place.longitud}&z=13&output=embed`
 }
 
 function routeEstimate(place, origin) {
-  if (!hasCoordinates(origin)) return null
+  if (!hasCoordinates(origin) || !hasCoordinates(place)) return null
   const km = distanceKm(origin, place) * 1.25
   return { distance: `~${km.toFixed(1)} km`, time: `~${Math.max(1, Math.round(km / 32 * 60))} min` }
 }
@@ -174,7 +216,7 @@ export default function ResultsDashboard({ result, report, careers, bonus, profi
   const safeCareers = useMemo(() => Array.isArray(careers) ? careers.filter((career) => career && typeof career === 'object') : [], [careers])
   const safeMetrics = metrics && typeof metrics === 'object' ? metrics : {}
   const [universities, setUniversities] = useState(() => mergeUniversityCatalog([]))
-  const [selectedPlace, setSelectedPlace] = useState(() => savedRecord?.selectedUniversity || TECNM_LOCATION || null)
+  const [selectedPlace, setSelectedPlace] = useState(() => isTecnmCampus(savedRecord?.selectedUniversity) ? savedRecord.selectedUniversity : TECNM_LOCATION || null)
   const [universityQuery, setUniversityQuery] = useState('')
   const [studentLocation, setStudentLocation] = useState(() => savedRecord?.studentLocation || null)
   const [locationMessage, setLocationMessage] = useState('')
@@ -216,9 +258,8 @@ export default function ResultsDashboard({ result, report, careers, bonus, profi
   const interestedTecnm = Boolean(bonus || profile?.interesTecnm)
   const shouldShowTecnmNotice = interestedTecnm
   const catalog = useMemo(() => {
-    const eligible = universities.filter((university) => universityOffersSuggestedCareer(university, safeCareers))
-    const tecCandidate = eligible.find((university) => university.esTecnmIztapalapa1 || normalizeText(university.nombre || university.name).includes('tecnm plantel iztapalapa 1'))
-      || (universityOffersSuggestedCareer(TECNM_LOCATION, safeCareers) ? TECNM_LOCATION : null)
+    const eligible = universities.filter(isTecnmCampus)
+    const tecCandidate = eligible.find((university) => university.esTecnmIztapalapa1 || normalizeText(university.nombre || university.name).includes('tecnm plantel iztapalapa 1')) || TECNM_LOCATION
     const others = eligible.filter((university) => university !== tecCandidate && !university.esTecnmIztapalapa1 && !normalizeText(university.nombre || university.name).includes('tecnm plantel iztapalapa 1'))
     const closestOtherKm = studentLocation && others.length ? Math.min(...others.map((university) => distanceKm(studentLocation, university))) : Infinity
     if (interestedTecnm && tecCandidate) return [...others, tecCandidate]
@@ -228,7 +269,6 @@ export default function ResultsDashboard({ result, report, careers, bonus, profi
   const referenceLocation = studentLocation
   const nearestUniversities = useMemo(() => {
     const candidates = catalog.map((university) => ({ ...university, distanciaKm: studentLocation ? distanceKm(studentLocation, university) : distanceKm(IZTAPALAPA_ORIGIN, university), distanciaReferenciaKm: distanceKm(IZTAPALAPA_ORIGIN, university) }))
-      .filter((university) => hasCoordinates(university))
       .sort((a, b) => careerMatchPriority(b, safeCareers) - careerMatchPriority(a, safeCareers)
         || (b.matchScorePercentage || 0) - (a.matchScorePercentage || 0))
     return rankUniversitiesByProximity(candidates, safeMetrics)
@@ -239,7 +279,7 @@ export default function ResultsDashboard({ result, report, careers, bonus, profi
   const savedLatitude = savedRecord?.studentLocation?.latitud
   const savedLongitude = savedRecord?.studentLocation?.longitud
   useEffect(() => {
-    if (savedPlaceId && (selectedPlace?.id || normalizeText(selectedPlace?.nombre || selectedPlace?.name)) !== savedPlaceId) setSelectedPlace(savedRecord.selectedUniversity)
+    if (savedPlaceId && isTecnmCampus(savedRecord?.selectedUniversity) && (selectedPlace?.id || normalizeText(selectedPlace?.nombre || selectedPlace?.name)) !== savedPlaceId) setSelectedPlace(savedRecord.selectedUniversity)
     if (Number.isFinite(Number(savedLatitude)) && Number.isFinite(Number(savedLongitude))) setStudentLocation((current) => current || { latitud: Number(savedLatitude), longitud: Number(savedLongitude) })
   }, [savedPlaceId, savedLatitude, savedLongitude])
   useEffect(() => {
@@ -267,11 +307,21 @@ export default function ResultsDashboard({ result, report, careers, bonus, profi
   }, [onRecordUpdate, recommendedUniversities, selectedPlace, studentLocation])
 
   const percent = Math.round((Number(result?.matchScore) || 0) * 100)
+  const profileWeights = result?.weights || savedRecord?.result?.weights || { miniTest: 0.7, hero: 0.3, gameplay: 0 }
+  const weightSummary = [
+    profileWeights.miniTest ? `${Math.round(profileWeights.miniTest * 100)}% mini-test` : null,
+    profileWeights.hero ? `${Math.round(profileWeights.hero * 100)}% héroe elegido` : null,
+    profileWeights.gameplay ? `${Math.round(profileWeights.gameplay * 100)}% objetivos atendidos` : null,
+  ].filter(Boolean).join(' · ')
   const heroLabel = HERO_CLASSES.find((hero) => hero.id === result?.hero)?.name || result?.hero || 'Piloto EDUNEXA'
   const highestFamilyScore = Math.max(...Object.values(result?.familyScores || { tech: 0 }))
   const badges = ['🏅 Pionero Vocacional', ...(Number(result?.familyScores?.tech) === highestFamilyScore && highestFamilyScore > 0 ? ['⚡ Mente Tecnológica'] : []), ...(bonus || profile?.interesTecnm ? ['🎯 Candidato Prioritario TecNM Iztapalapa 1'] : [])]
   const navigationOrigin = studentLocation ? `&origin=${studentLocation.latitud},${studentLocation.longitud}` : ''
-  const directionsUrl = selectedPlace ? `https://www.google.com/maps/dir/?api=1&destination=${selectedPlace.latitud},${selectedPlace.longitud}${navigationOrigin}&travelmode=driving` : 'https://www.google.com/maps/search/universidades+cerca+de+mi'
+  const directionsUrl = selectedPlace
+    ? hasCoordinates(selectedPlace)
+      ? `https://www.google.com/maps/dir/?api=1&destination=${selectedPlace.latitud},${selectedPlace.longitud}${navigationOrigin}&travelmode=driving`
+      : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${selectedPlace.nombre || selectedPlace.name}, ${selectedPlace.direccion || ''}`)}${navigationOrigin}&travelmode=driving`
+    : 'https://www.google.com/maps/search/universidades+cerca+de+mi'
   const route = selectedPlace ? routeEstimate(selectedPlace, referenceLocation) : null
   const nearestKm = nearestUniversities[0]?.distanciaKm
   const proximityMetric = studentLocation && Number.isFinite(nearestKm) ? Math.max(0, 1 - nearestKm / 50) : safeMetrics.geolocalizacion
@@ -290,29 +340,29 @@ export default function ResultsDashboard({ result, report, careers, bonus, profi
 
   return (
     <section className="results-section" aria-labelledby="results-title">
-      <div className="section-heading"><div><p className="eyebrow">¡Evaluación Arcade completada!</p><h2 id="results-title">Tu Brújula Vocacional</h2></div><button type="button" className="quiet-button" onClick={() => { playClick(); onRestart() }}><RotateCcw size={16} /> Repetir</button></div>
+      <div className="section-heading"><div><p className="eyebrow">{result?.won === false ? 'Partida terminada · tu perfil está guardado' : '¡Misión completada!'}</p><h2 id="results-title">Tu Brújula Vocacional</h2></div><button type="button" className="quiet-button" onClick={() => { playClick(); onRestart() }}><RotateCcw size={16} /> Repetir</button></div>
 
       {profile && <article className="applicant-banner"><div className="applicant-banner-heading"><span className="applicant-sparkle"><GraduationCap size={18} /></span><div><p className="eyebrow">Ficha de aspirante</p><h3>{profile.nombre}{profile.nickname ? ` · ${profile.nickname}` : ''}</h3></div></div><dl className="applicant-details"><div><dt>Correo</dt><dd>{profile.email || '—'}</dd></div><div><dt>WhatsApp</dt><dd>{profile.telefono || '—'}</dd></div><div><dt>Escuela de procedencia</dt><dd>{profile.escuela || '—'}</dd></div><div><dt>Folio</dt><dd>{profile.folio || '—'}</dd></div><div><dt>Interés TecNM Iztapalapa 1</dt><dd>{profile.interesTecnm ? 'Sí, me interesa' : studentLocation && selectedPlace?.esTecnmIztapalapa1 ? 'Incluido por cercanía' : 'Aún por explorar'}</dd></div></dl></article>}
 
       <div className="arcade-badges"><p className="eyebrow">Insignias Arcade desbloqueadas</p><div className="badge-list">{badges.map((badge) => <span className="arcade-badge" key={badge}>{badge}</span>)}</div></div>
 
-      <div className="results-grid"><article className="panel score-card"><div className="score-ring" style={{ '--score': `${percent}%` }}><div><strong>{percent}<span>%</span></strong><small>afinidad</small></div></div><div className="score-copy"><span className="pill"><Award size={13} /> TU PUNTO DE PARTIDA</span><h3>Tu récord de partida</h3><p>Clase: {heroLabel} · <strong>{Number(result?.score || savedRecord?.finalScore || 0).toLocaleString('es-MX')} puntos</strong></p><p>Tu afinidad usa la mezcla de 30% mini-test, 20% héroe y 50% decisiones de juego. No define ni limita tu futuro.</p>{bonus && <span className="bonus-badge"><Sparkles size={12} /> Interés TecNM registrado</span>}<p className="latest-answer">{result?.xp || 0} XP · {Object.values(result?.gemCounts || {}).reduce((sum, count) => sum + count, 0)} decisiones vocacionales · Folio {profile?.folio || result?.resultadoId || 'local'}</p></div></article>
+      <div className="results-grid"><article className="panel score-card"><div className="score-ring" style={{ '--score': `${percent}%` }}><div><strong>{percent}<span>%</span></strong><small>exploración</small></div></div><div className="score-copy"><span className="pill"><Award size={13} /> TU PUNTO DE PARTIDA</span><h3>Tu récord de partida</h3><p>Clase: {heroLabel} · <strong>{Number(result?.score || savedRecord?.finalScore || 0).toLocaleString('es-MX')} puntos</strong></p><p>Este mapa es una orientación inicial, no una prueba diagnóstica. Se calcula con {weightSummary || 'tus respuestas y elecciones'}; la puntería y los reflejos no determinan tu futuro.</p>{bonus && <span className="bonus-badge"><Sparkles size={12} /> Interés TecNM registrado</span>}<p className="latest-answer">{result?.xp || 0} XP · {Object.values(result?.gemCounts || {}).reduce((sum, count) => sum + count, 0)} objetivos atendidos · Folio {profile?.folio || result?.resultadoId || 'local'}</p></div></article>
         <article className="panel report-card"><div className="report-top"><span className="panel-icon"><Sparkles size={18} /></span><div><p className="eyebrow">Tu copiloto vocacional</p><h3>NINO HERNÁNDEZ</h3></div></div><p className="report-text">{report || 'Tus decisiones forman un mapa inicial de intereses. Puedes explorarlo y cambiar de rumbo cuando quieras.'}</p><div className="career-chips">{safeCareers.map((career, index) => <span key={career.name || index}>{career.name || 'Carrera por explorar'}</span>)}</div></article></div>
       {noniBackend?.narrative && <article className="panel report-card"><div className="report-top"><span className="panel-icon"><Sparkles size={18} /></span><div><p className="eyebrow">Análisis del servidor</p><h3>Análisis de Nino Hernández</h3></div></div><p className="report-text">{noniBackend.narrative}</p>{noniBackend.carrera && <p className="report-text"><strong>Carrera sugerida:</strong> {noniBackend.carrera}</p>}{noniBackend.universidad && <p className="report-text"><strong>Universidad sugerida:</strong> {noniBackend.universidad}</p>}{Array.isArray(noniBackend.badges) && noniBackend.badges.length > 0 && <div className="career-chips">{noniBackend.badges.map((badge, index) => <span key={index}>{badge}</span>)}</div>}</article>}
 
-      <article className="panel metrics-panel"><div><p className="eyebrow">Radar de desempeño</p><h3>Tus portales trazan el perfil</h3></div><div className="metrics-list">{metricRows.map(([label, value]) => <div className="metric-item" key={label}><span>{label}</span><div className="metric-track"><span style={{ width: `${Math.round(Math.max(0, Math.min(1, value || 0)) * 100)}%` }} /></div><strong>{Math.round(Math.max(0, Math.min(1, value || 0)) * 100)}%</strong></div>)}</div><div className="family-score-list"><p className="eyebrow">Tu mezcla vocacional · 30% + 20% + 50%</p>{familyRows.map(([label, value, color]) => <div className="metric-item" key={label}><span>{label}</span><div className="metric-track"><span style={{ width: `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`, background: color }} /></div><strong>{Math.round(Math.max(0, Math.min(1, value)) * 100)}%</strong></div>)}</div></article>
+      <article className="panel metrics-panel"><div><p className="eyebrow">Mapa inicial de intereses</p><h3>Señales por área para explorar</h3></div><div className="metrics-list">{metricRows.map(([label, value]) => <div className="metric-item" key={label}><span>{label}</span><div className="metric-track"><span style={{ width: `${Math.round(Math.max(0, Math.min(1, value || 0)) * 100)}%` }} /></div><strong>{Math.round(Math.max(0, Math.min(1, value || 0)) * 100)}%</strong></div>)}</div><div className="family-score-list"><p className="eyebrow">Señales consideradas · {weightSummary || 'respuestas y elecciones'}</p>{familyRows.map(([label, value, color]) => <div className="metric-item" key={label}><span>{label}</span><div className="metric-track"><span style={{ width: `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`, background: color }} /></div><strong>{Math.round(Math.max(0, Math.min(1, value)) * 100)}%</strong></div>)}</div></article>
 
       <section className="career-recommendations"><div className="universities-heading"><div><p className="eyebrow">Tu combinación de habilidades</p><h3>Carreras sugeridas según tu partida</h3></div><span className="api-label">{safeCareers.length} opciones de carrera</span></div>{safeCareers.length ? <div className="career-detail-list">{safeCareers.map((career, index) => <CareerCard key={career.name || index} career={career} index={index} miniTest={miniTest} metrics={safeMetrics} showTecnmNotice={['tech', 'industry', 'energy'].includes(career.category) && shouldShowTecnmNotice} />)}</div> : <p className="state-message">No hubo suficientes recolecciones para formar una recomendación. Puedes repetir la misión para descubrir más rutas.</p>}</section>
 
-      {backendFailed && <p className="location-status">Mostrando catálogo de respaldo sin conexión (6 sedes)</p>}
-      <div className="universities-heading"><div><p className="eyebrow">Sedes compatibles más cercanas</p><h3>Instituciones para conocer</h3></div><span className="api-label"><span className="status-dot" /> {backendLoaded ? `Catálogo TecNM ZMVM: ${universities.length} sedes` : filteredUniversities.length ? `${Math.min(5, filteredUniversities.length)} de hasta 5 sedes` : 'Sin coincidencias de programas'}</span></div>
+      {backendFailed && <p className="location-status">Sin conexión al servidor. Mostramos únicamente los campus del catálogo TecNM local ({universities.length} sedes).</p>}
+      <div className="universities-heading"><div><p className="eyebrow">Campus TecNM compatibles</p><h3>Institutos tecnológicos para conocer</h3></div><span className="api-label"><span className="status-dot" /> {backendLoaded ? `Catálogo TecNM ZMVM: ${universities.length} sedes` : filteredUniversities.length ? `${Math.min(5, filteredUniversities.length)} de ${filteredUniversities.length} campus` : 'Sin campus en el catálogo'}</span></div>
       <div className="university-tools"><label className="university-search"><MapPin size={16} /><span className="sr-only">Buscar institución por nombre, carrera o dirección</span><input type="search" value={universityQuery} onChange={(event) => setUniversityQuery(event.target.value)} placeholder="Buscar por institución, carrera o dirección…" /></label><button type="button" className="locate-button" onClick={locateStudent} disabled={locating}><LocateFixed size={15} />{locating ? 'Localizando…' : studentLocation ? 'Actualizar mi ubicación' : 'Ordenar desde mi GPS'}</button></div>
       {locationMessage && <p className="location-status" aria-live="polite">{locationMessage}</p>}
-      <div className="universities-grid">{filteredUniversities.slice(0, 5).map((university) => { const offered = matchingPrograms(university, safeCareers); return <article className="panel university-card" key={university.id || university.nombre}><span className="university-icon"><GraduationCap size={17} /></span>{university.esTecnmIztapalapa1 && <span className="mini-bonus">TecNM</span>}<div className="university-title"><h4>{university.nombre || university.name}</h4><p>{university.tipo || 'Institución educativa'} · {studentLocation ? `~${university.distanciaKm.toFixed(1)} km desde tu GPS` : `~${university.distanciaReferenciaKm.toFixed(1)} km de Iztapalapa`}</p></div><p className="university-career-match">{offered.broad ? 'Áreas afines para explorar: ' : 'Carreras relacionadas: '}{offered.labels.join(' · ')}</p>{(offered.broad || university.localFallback) && <small className="catalog-note">{university.localFallback ? 'Sede de referencia offline; confirma campus y oferta vigente.' : 'Confirma la oferta vigente en el campus elegido.'}</small>}<div className="university-actions"><button className="map-select-button" type="button" onClick={() => { playClick(); setSelectedPlace(university); window.setTimeout(() => mapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80); onNoniUpdate?.({ text: `Encontré ${university.nombre || university.name}. En el mapa puedes revisar cómo llegar desde tu ubicación.`, id: Date.now() }) }}><MapPin size={13} /> Ver en mapa</button>{university.sitioWeb && <a className="university-link" href={university.sitioWeb} target="_blank" rel="noreferrer">Conocer institución <ExternalLink size={12} /></a>}</div></article> })}</div>
+      <div className="universities-grid">{filteredUniversities.slice(0, 5).map((university) => { const offered = matchingPrograms(university, safeCareers); const hasDistance = Number.isFinite(university.distanciaKm); return <article className="panel university-card" key={university.id || university.nombre}><span className="university-icon"><GraduationCap size={17} /></span>{university.esTecnmIztapalapa1 && <span className="mini-bonus">TecNM</span>}<div className="university-title"><h4>{university.nombre || university.name}</h4><p>{hasDistance ? `~${university.distanciaKm.toFixed(1)} km ${studentLocation ? 'desde tu GPS' : 'de Iztapalapa'}` : 'Ubicación exacta pendiente de confirmar'}</p></div><p className="university-career-match">{offered.labels.length ? `${offered.broad ? 'Áreas afines para explorar: ' : 'Carreras relacionadas: '}${offered.labels.join(' · ')}` : 'Revisa la oferta del campus para confirmar estas carreras.'}</p>{university.localFallback && <small className="catalog-note">Catálogo TecNM local; confirma convocatoria y oferta vigente en el sitio oficial.</small>}<div className="university-actions"><button className="map-select-button" type="button" onClick={() => { playClick(); setSelectedPlace(university); window.setTimeout(() => mapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80); onNoniUpdate?.({ text: hasCoordinates(university) ? `Encontré ${university.nombre || university.name}. En el mapa puedes revisar la ruta desde tu ubicación.` : `Encontré ${university.nombre || university.name}. Puedes buscar el plantel en el mapa; el catálogo local no incluye coordenadas verificadas.`, id: Date.now() }) }}><MapPin size={13} /> Ver en mapa</button>{university.sitioWeb && <a className="university-link" href={university.sitioWeb} target="_blank" rel="noreferrer">Conocer institución <ExternalLink size={12} /></a>}</div></article> })}</div>
       {filteredUniversities.length === 0 && <p className="state-message">No hay sedes que coincidan con esta búsqueda. Borra el filtro para volver a ver las instituciones compatibles.</p>}
 
       <article ref={mapRef} className="panel location-panel" aria-labelledby="map-heading"><div className="location-heading"><div><p className="eyebrow">Ruta GPS recomendada</p><h3 id="map-heading">{selectedPlace?.nombre || selectedPlace?.name || 'Selecciona una institución compatible'}</h3><p className="location-address">{selectedPlace?.direccion || (studentLocation ? 'Origen: tu ubicación actual' : 'Permite la ubicación para ordenar y calcular desde tu punto de partida.')}</p></div>{selectedPlace && <a className="maps-directions-button" href={directionsUrl} target="_blank" rel="noreferrer"><Navigation size={15} /> Iniciar Navegación GPS / Cómo llegar</a>}</div>
-        {selectedPlace && <>{route && <div className="route-estimate"><span><strong>Tiempo estimado</strong>{route.time}</span><span><strong>Distancia aproximada</strong>{route.distance}</span><span><strong>Origen</strong>Tu ubicación GPS</span><small>Estimación geográfica aproximada; Google Maps calcula la ruta vial y el tráfico al iniciar navegación.</small></div>}{!route && <p className="location-status">Activa el GPS para calcular distancia y tiempo desde tu ubicación real. El mapa muestra el destino seleccionado.</p>}<iframe className="location-map" title={`Ruta a ${selectedPlace.nombre || selectedPlace.name}`} src={routeEmbed(selectedPlace, studentLocation)} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen /></>}
+        {selectedPlace && <>{route && <div className="route-estimate"><span><strong>Tiempo estimado</strong>{route.time}</span><span><strong>Distancia aproximada</strong>{route.distance}</span><span><strong>Origen</strong>Tu ubicación GPS</span><small>Estimación geográfica aproximada; Google Maps calcula la ruta vial y el tráfico al iniciar navegación.</small></div>}{!route && <p className="location-status">Este campus no tiene coordenadas verificadas en el catálogo local. El mapa busca su nombre y dirección; Google Maps puede calcular la ruta al confirmar el destino.</p>}<iframe className="location-map" title={`Ubicación de ${selectedPlace.nombre || selectedPlace.name}`} src={routeEmbed(selectedPlace, studentLocation)} loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen /></>}
         <p className="result-reference"><CheckCircle size={13} /> Folio de evaluación: {result?.resultadoId || 'EDUNEXA'}</p></article>
     </section>
   )

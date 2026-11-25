@@ -123,13 +123,12 @@ export function recommendCareers(gemCounts = {}, gemEffectiveness = {}, careerCa
   const ranked = rankGemCategories(gemCounts, gemEffectiveness)
   const familyScores = finalMetrics?.familyScores
   const blendedRanked = familyScores
-    ? Object.entries(GEM_CATEGORIES).map(([id]) => ({ id, score: Math.max(0, Math.min(1, Number(familyScores[id]) || 0)), count: Math.max(0, Number(gemCounts[id]) || 0) }))
-      .sort((a, b) => b.score - a.score || b.count - a.count)
+    ? Object.entries(GEM_CATEGORIES).map(([id]) => ({ id, score: Math.max(0, Math.min(1, Number(familyScores[id]) || 0)) }))
+      .sort((a, b) => b.score - a.score)
     : ranked
-  const chosenHeroFamily = finalMetrics?.hero
-  const strongest = chosenHeroFamily && blendedRanked.some((family) => family.id === chosenHeroFamily)
-    ? [blendedRanked.find((family) => family.id === chosenHeroFamily), ...blendedRanked.filter((family) => family.id !== chosenHeroFamily).slice(0, 1)]
-    : blendedRanked.slice(0, 2)
+  // The selected hero already contributes to familyScores. Forcing that family
+  // to the front a second time would double-count the choice in career results.
+  const strongest = blendedRanked.slice(0, 2)
   const catalogNames = new Set()
   const completeCatalog = [...careerCatalog, ...CAREER_CATALOG].map(normalizeCareer).filter((career) => {
     const key = career.name?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()

@@ -113,14 +113,15 @@ export default function App() {
     const categoryCounts = gameStats?.gemCounts && typeof gameStats.gemCounts === 'object' ? gameStats.gemCounts : {}
     const totalXp = Math.max(0, Number(gameStats?.totalXp) || 0)
     const chosenHero = gameStats?.hero || hero?.id || 'tech'
-    const gameDecisionTotal = Object.values(categoryCounts).reduce((sum, value) => sum + Math.max(0, Number(value) || 0), 0)
     const answerValue = (id) => Math.max(0, Math.min(1, ((Number(miniTest?.answers?.[id]) || 3) - 1) / 4))
     const miniScores = miniTest?.scores || {}
+    // Shooting a collectible is a gameplay action, not reliable evidence of
+    // vocational interest. Only explicit answers and the chosen career hero score.
+    const weights = { miniTest: 0.75, hero: 0.25, gameplay: 0 }
     const familyScores = Object.fromEntries(Object.keys(GEM_CATEGORIES).map((family) => {
-      const gameShare = gameDecisionTotal ? (Number(categoryCounts[family]) || 0) / gameDecisionTotal : 0
       const miniScore = Math.max(0, Math.min(1, Number(miniScores[family]) || 0))
       const selectedScore = chosenHero === family ? 1 : 0
-      return [family, 0.3 * miniScore + 0.2 * selectedScore + 0.5 * gameShare]
+      return [family, weights.miniTest * miniScore + weights.hero * selectedScore]
     }))
     const finalMetrics = {
       intereses: (familyScores.tech + familyScores.life) / 2,
@@ -129,7 +130,7 @@ export default function App() {
       geolocalizacion: answerValue('geolocalizacion'),
       familyScores,
       hero: chosenHero,
-      weights: { miniTest: 0.3, hero: 0.2, gameplay: 0.5 },
+      weights,
     }
 
     const interestedTecnm = Boolean(profile?.interesTecnm)
@@ -137,13 +138,13 @@ export default function App() {
     const careerNames = recommendedCareers.map((career) => career.name)
     const generatedReport = createReport(finalMetrics, careerNames, interestedTecnm)
     const matchScore = Math.max(...Object.values(familyScores))
-    const finalResult = { matchScore, familyScores, weights: finalMetrics.weights, resultadoId: `ARCADE-${globalThis.crypto?.randomUUID?.() || Date.now().toString(36)}`, xp: totalXp, score: Math.max(0, Number(gameStats?.score) || 0), gemCounts: categoryCounts, gemEffectiveness: gameStats?.gemEffectiveness || {}, hero: chosenHero, miniTest: miniTest || null }
+    const finalResult = { matchScore, familyScores, weights: finalMetrics.weights, won: gameStats?.won !== false, resultadoId: `ARCADE-${globalThis.crypto?.randomUUID?.() || Date.now().toString(36)}`, xp: totalXp, score: Math.max(0, Number(gameStats?.score) || 0), gemCounts: categoryCounts, gemEffectiveness: gameStats?.gemEffectiveness || {}, hero: chosenHero, miniTest: miniTest || null }
     const playerId = profile?.id || `guest-${globalThis.crypto?.randomUUID?.() || Date.now().toString(36)}`
     const completedRecord = { playerId, heroClass: finalResult.hero, finalScore: finalResult.score, recommendedUniversities: [], selectedUniversity: null, studentLocation: null, result: finalResult, report: generatedReport, careers: recommendedCareers, metrics: finalMetrics, miniTest: miniTest || null, savedAt: new Date().toISOString() }
     setMetrics(finalMetrics); setReport(generatedReport); setCareers(recommendedCareers); setResult(finalResult); setRecord(completedRecord)
     setNoniBackend(null)
     if (profile?.id) {
-      const payload = { usuarioId: profile.id, intereses: finalMetrics.intereses, materias: finalMetrics.materias, estiloVida: finalMetrics.estiloVida, geolocalizacion: finalMetrics.geolocalizacion, esTecnmIztapalapa1: interestedTecnm, vectorRespuestas: JSON.stringify(categoryCounts), topCarrerasJson: JSON.stringify(careerNames), reporteIa: generatedReport }
+      const payload = { usuarioId: profile.id, intereses: finalMetrics.intereses, materias: finalMetrics.materias, estiloVida: finalMetrics.estiloVida, geolocalizacion: finalMetrics.geolocalizacion, esTecnmIztapalapa1: interestedTecnm, vectorRespuestas: JSON.stringify({ familyScores, surveyAnswers: miniTest?.answers || {}, scenarioScores: miniTest?.scenarioScores || {}, scenarioAnswers: miniTest?.scenarioAnswers || {}, confirmedTopTwo: miniTest?.confirmedTopTwo || [], hero: chosenHero }), topCarrerasJson: JSON.stringify(careerNames), reporteIa: generatedReport }
       // Call evaluateArcadeNoni first, then evaluateTest with the university from NONI
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
       if (uuidRegex.test(profile.id)) {

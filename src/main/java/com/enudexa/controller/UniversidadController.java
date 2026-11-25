@@ -41,13 +41,11 @@ public class UniversidadController {
 
     private boolean esInstitutoTecnologico(Universidad universidad) {
         String nombre = normalizar(universidad.getNombre());
-        String tipo = normalizar(universidad.getTipo());
 
-        return nombre.contains("TECNM")
+        return universidad.isEsTecnmIztapalapa1()
+                || nombre.contains("TECNM")
                 || nombre.contains("TECNOLOGICO NACIONAL DE MEXICO")
-                || nombre.contains("INSTITUTO TECNOLOGICO")
-                || tipo.contains("TECNOLOGICO")
-                || tipo.contains("TECNM");
+                || nombre.contains("INSTITUTO TECNOLOGICO");
     }
 
     private String normalizar(String valor) {

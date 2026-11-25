@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.text.Normalizer;
 
 @Service
 @RequiredArgsConstructor
@@ -84,13 +85,32 @@ public class TestVocacionalService {
                 .comparing((Universidad universidad) -> priorizarTecnm && universidad.isEsTecnmIztapalapa1()).reversed()
                 .thenComparing(Universidad::getNombre, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
 
-        Universidad elegida = carrera.getUniversidades().stream()
+        List<Universidad> campusTecnm = carrera.getUniversidades().stream()
+                .filter(this::esTecnmCampus)
+                .toList();
+        if (campusTecnm.isEmpty()) {
+            campusTecnm = universidadRepository.findAll().stream()
+                    .filter(this::esTecnmCampus)
+                    .toList();
+        }
+
+        Universidad elegida = campusTecnm.stream()
                 .min(prioridad)
-                .orElseGet(() -> universidadRepository.findAll().stream().min(prioridad).orElse(null));
+                .orElse(null);
         if (elegida == null) {
-            throw new IllegalStateException("No hay universidades disponibles para recomendar.");
+            throw new IllegalStateException("No hay campus del TecNM disponibles para recomendar.");
         }
         return elegida;
+    }
+
+    private boolean esTecnmCampus(Universidad universidad) {
+        String nombre = Normalizer.normalize(universidad.getNombre() == null ? "" : universidad.getNombre(), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toUpperCase(Locale.ROOT);
+        return universidad.isEsTecnmIztapalapa1()
+                || nombre.contains("TECNM")
+                || nombre.contains("TECNOLOGICO NACIONAL DE MEXICO")
+                || nombre.contains("INSTITUTO TECNOLOGICO");
     }
 
     private EvaluacionArcadeResponseDTO.CarreraDetalleDTO mapCarrera(Carrera carrera) {
